@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2732 2732">
+  <rect width="2732" height="2732" fill="#ffffff"/>
+  <g transform="translate(854 734)">
+    <rect x="126" y="126" width="772" height="772" rx="244" fill="#ed1c2f"/>
+    <path d="M316 302h274c125 0 190 67 190 163 0 75-39 129-112 153l136 122H624L512 628h-52v112H316V302Zm144 129v91h119c39 0 60-18 60-46 0-27-21-45-60-45H460Z" fill="#fff"/>
+    <path d="M245 245h112M667 779h112" stroke="#fff" stroke-width="26" stroke-linecap="round" opacity=".78"/>
+  </g>
+  <text x="1366" y="1910" text-anchor="middle" font-family="Arial, sans-serif" font-size="116" font-weight="800" letter-spacing="30" fill="#17171b">REZERVA</text>
+  <text x="1366" y="2025" text-anchor="middle" font-family="Arial, sans-serif" font-size="43" font-weight="400" letter-spacing="4" fill="#74747d">PROGRAMĂRI SIMPLE</text>
+</svg>

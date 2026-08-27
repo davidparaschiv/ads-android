@@ -1,0 +1,21 @@
+project_id = "rezerva"
+
+[functions.enrollment]
+verify_jwt = false
+entrypoint = "./functions/enrollment/index.js"
+
+[functions.revenuecat-webhook]
+verify_jwt = false
+entrypoint = "./functions/revenuecat-webhook/index.js"
+
+[functions.send-reminders]
+verify_jwt = false
+entrypoint = "./functions/send-reminders/index.js"
+
+[functions.sync-subscription]
+verify_jwt = false
+entrypoint = "./functions/sync-subscription/index.js"
+
+[functions.send-calendar-invite]
+verify_jwt = false
+entrypoint = "./functions/send-calendar-invite/index.js"

@@ -1,0 +1,6 @@
+body { font-family: system-ui, sans-serif; color: #19191e; background: #fff7f7; margin: 0; }
+main { max-width: 450px; margin: 40px auto; padding: 28px; background: white; border-radius: 24px; }
+p { line-height: 1.6; color: #62616a; }
+a { display: block; background: #ed2648; color: white; padding: 16px; text-decoration: none; border-radius: 14px; text-align: center; }
+a[hidden] { display: none; }
+textarea { box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; resize: none; }

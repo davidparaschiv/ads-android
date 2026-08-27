@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env
+supabase/.env
+supabase/.env.*
+!supabase/.env.example
+android/app/google-services.json
+*.jks
+*.keystore
+license-keys*
+.DS_Store
+*.log
+android/.gradle/
+android/local.properties
+android/app/build/
+android/build/
+.idea/
