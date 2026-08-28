@@ -14,3 +14,9 @@ android/local.properties
 android/app/build/
 android/build/
 .idea/
+.env
+.env.backend.local
+.backend-test-state.json
+.backend-test-sessions.json
+.backend-test.lock
+.backend-test-results/

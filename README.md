@@ -117,6 +117,17 @@ Exemplele secretelor backend sunt în `supabase/.env.example`; nu le copia în `
 
 ## Teste și fișiere importante
 
+**Nou: teste numai pentru backend și integrări reale**, cu instrucțiuni Git Bash în [BACKEND-TESTS.md](BACKEND-TESTS.md).
+
+```bash
+npm run test:backend:local
+npm run test:backend:setup
+# Completează .env.backend.local și confirmă proiectul de dezvoltare înainte de:
+npm run test:backend
+```
+
+Testele live sunt opt-in. Emailurile, SMS-urile, notificările și scrierile persistente cer acord explicit prin opțiuni CLI. `npm test` rămâne offline. Nu sunt necesare migrații noi pentru această actualizare.
+
 ```bash
 npm run check
 npm run typecheck
@@ -142,3 +153,10 @@ Acesta este un schelet funcțional extins, nu o garanție de securitate sau o la
 Limite rămase: editor complet pentru ore/servicii după configurarea inițială, excepții de program și reprogramări complexe; preferințele de reminder se aplică programărilor create ulterior; recuperare automată pentru joburi push întrerupte în `processing`; monitorizare și reconciliere periodică a abonamentelor când un webhook este ratat. Demo-ul nu este o bază de date de producție. Rapoartele paginează toate înregistrările intervalului; la volume mari mută agregările în SQL și păstrează lista paginată în UI.
 
 Folosește cheile pentru acces administrativ/gratuit/testare. Vânzarea externă de chei pentru funcții digitale poate intra sub [regulile de plată Google Play](https://support.google.com/googleplay/android-developer/answer/9858738?hl=en); nu este un mecanism de evitare automată a acelor reguli.
+
+
+
+
+
+DAVID run tests after npm install:
+npm run test:backend:local
