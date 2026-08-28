@@ -37,6 +37,7 @@
     "eslint": "^9.35.0",
     "globals": "^16.3.0",
     "jsdom": "^30.0.1",
+    "supabase": "^2.116.0",
     "typescript": "^7.0.2",
     "vite": "^7.1.3"
   }

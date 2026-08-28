@@ -1,6 +1,5 @@
 node_modules/
 dist/
-.env
 supabase/.env
 supabase/.env.*
 !supabase/.env.example
