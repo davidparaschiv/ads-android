@@ -27,6 +27,7 @@ import { workspaces } from './services/access.js';
 import { page, bindBack } from './ui/layout.js';
 import { escapeHtml } from './ui/dom.js';
 import { navigate, currentRoute } from './router.js';
+import { businessQrScreen, customerQrScreen } from './screens/reservation-qr.js';
 
 export async function startApp() {
   assertLiveConfiguration();
@@ -58,6 +59,7 @@ export async function startApp() {
       '/business/setup': () => scheduleSetupScreen(root),
       '/business/home': () => businessHomeScreen(root),
       '/business/calendar': () => businessCalendarScreen(root),
+      '/business/scan': () => businessQrScreen(root),
       '/business/reports': () => reportsScreen(root),
       '/business/notifications': () => businessNotificationsScreen(root),
       '/customer/login': () => loginScreen(root, 'customer'),
@@ -66,6 +68,7 @@ export async function startApp() {
       '/customer/book': () => bookingScreen(root),
       '/customer/booking-success': () => bookingSuccessScreen(root),
       '/customer/bookings': () => customerBookingsScreen(root),
+      '/customer/booking-qr': () => customerQrScreen(root),
       '/customer/notifications': () => notificationSettings(root, 'customer'),
       '/profile': () => profileScreen(root),
     };

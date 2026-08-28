@@ -1,0 +1,42 @@
+### 1. Run local commands
+
+With Node.js 24 installed, open Git Bash inside the extracted project:
+
+```bash
+npm ci
+npm run assets
+npm run check
+npm run typecheck
+npm run test:local
+npm run check:phone
+```
+
+### 2. Update backend settings
+
+Follow **SETUP.html → Step 7** to save the renamed secrets. Google OAuth credentials must also be entered in Supabase’s Google provider settings.
+
+If this folder isn’t already linked:
+
+```bash
+npx supabase login --no-browser
+npx supabase link --project-ref okaoefrutpmzqqjbnpoa // this is my project ref the weird id in supabase
+```
+
+
+```bash
+npx supabase functions deploy enrollment --use-api
+npx supabase functions deploy send-reminders --use-api
+```
+
+**No new migrations are required for this update.**
+
+### 3. Install on your phone
+
+With Android Studio, JDK 21 and Android SDK 36 configured:
+
+```bash
+npm run android:sync
+npm run android:open
+```
+
+Connect your phone with USB debugging enabled, select it in Android Studio and click **Run ▶**.

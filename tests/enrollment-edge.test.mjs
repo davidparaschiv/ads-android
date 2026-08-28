@@ -8,7 +8,7 @@ test('Enrollment edge adapter: authentication, SMS provider proof, and fixed rec
   const originalDeno = globalThis.Deno;
   t.after(() => { globalThis.fetch=originalFetch; globalThis.Deno=originalDeno; delete globalThis.enrollmentFixture; });
   const calls=[], sid='VE'+'a'.repeat(32);
-  const env={ TWILIO_ACCOUNT_SID:'AC'+'a'.repeat(32), TWILIO_AUTH_TOKEN:'test-token', TWILIO_VERIFY_SERVICE_SID:'VA'+'a'.repeat(32), RESEND_API_KEY:'test', INVITE_FROM_EMAIL:'test@example.com' };
+  const env={ TWILLIO_ACCOUNT_SID:'AC'+'a'.repeat(32), TWILLIO_AUTH_TOKEN:'test-token', TWILIO_VERIFY_SERVICE_SID:'VA'+'a'.repeat(32), RESEND_API_KEY:'test', INVITE_FROM_EMAIL:'test@example.com' };
   let authenticated=true, providerStatus='pending', providerPhone='+40712345678';
   globalThis.Deno={ serve() {}, env:{get:name=>env[name]} };
   globalThis.enrollmentFixture={

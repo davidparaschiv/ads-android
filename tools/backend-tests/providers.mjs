@@ -5,9 +5,9 @@ import { createSign, randomUUID } from 'node:crypto';
 import { root, need, ensure, request, ok, consent, recipient, saveState, CheckError } from './core.mjs';
 
 export function twilioHeaders(config) {
-  need(config, 'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_VERIFY_SERVICE_SID');
-  ensure(/^AC[0-9a-f]{32}$/i.test(config.TWILIO_ACCOUNT_SID) && /^VA[0-9a-f]{32}$/i.test(config.TWILIO_VERIFY_SERVICE_SID), 'Invalid Twilio Account/Verify Service SID.');
-  return { Authorization: 'Basic ' + Buffer.from(`${config.TWILIO_ACCOUNT_SID}:${config.TWILIO_AUTH_TOKEN}`).toString('base64'), 'Content-Type': 'application/x-www-form-urlencoded' };
+  need(config, 'TWILLIO_ACCOUNT_SID', 'TWILLIO_AUTH_TOKEN', 'TWILIO_VERIFY_SERVICE_SID');
+  ensure(/^AC[0-9a-f]{32}$/i.test(config.TWILLIO_ACCOUNT_SID) && /^VA[0-9a-f]{32}$/i.test(config.TWILIO_VERIFY_SERVICE_SID), 'Invalid Twilio Account/Verify Service SID.');
+  return { Authorization: 'Basic ' + Buffer.from(`${config.TWILLIO_ACCOUNT_SID}:${config.TWILLIO_AUTH_TOKEN}`).toString('base64'), 'Content-Type': 'application/x-www-form-urlencoded' };
 }
 export async function twilio(config, path = '', values) {
   return request(config, `https://verify.twilio.com/v2/Services/${config.TWILIO_VERIFY_SERVICE_SID}${path}`, {
@@ -15,11 +15,12 @@ export async function twilio(config, path = '', values) {
   });
 }
 export async function firebaseToken(config) {
-  need(config, 'FIREBASE_PROJECT_ID', 'FIREBASE_SERVICE_ACCOUNT_FILE');
+  need(config, 'FIREBASE_PROJID');
+  ensure(Boolean(config.GCLOUD_SERVICEACCOUNT_KEYS) !== Boolean(config.FIREBASE_SERVICE_ACCOUNT_FILE), 'Set exactly one of GCLOUD_SERVICEACCOUNT_KEYS (full JSON) or FIREBASE_SERVICE_ACCOUNT_FILE (private JSON file path).');
   let key;
-  try { key = JSON.parse(await readFile(resolve(root, config.FIREBASE_SERVICE_ACCOUNT_FILE), 'utf8')); }
-  catch { throw new CheckError('Cannot read FIREBASE_SERVICE_ACCOUNT_FILE; use a private service-account JSON path.'); }
-  ensure(key.type === 'service_account' && key.project_id === config.FIREBASE_PROJECT_ID && key.private_key && key.client_email, 'Firebase key type/project mismatch. Do not use google-services.json.');
+  try { key = JSON.parse(config.GCLOUD_SERVICEACCOUNT_KEYS || await readFile(resolve(root, config.FIREBASE_SERVICE_ACCOUNT_FILE), 'utf8')); }
+  catch { throw new CheckError('Cannot parse Firebase credentials. Use full JSON in GCLOUD_SERVICEACCOUNT_KEYS or a readable private FIREBASE_SERVICE_ACCOUNT_FILE.'); }
+  ensure(key.type === 'service_account' && key.project_id === config.FIREBASE_PROJID && key.private_key && key.client_email, 'Firebase key type/project mismatch. Do not use google-services.json.');
   const encode = value => Buffer.from(JSON.stringify(value)).toString('base64url');
   const now = Math.floor(Date.now() / 1000);
   const signing = encode({ alg: 'RS256', typ: 'JWT' }) + '.' + encode({ iss: key.client_email, scope: 'https://www.googleapis.com/auth/firebase.messaging', aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600 });
@@ -29,8 +30,8 @@ export async function firebaseToken(config) {
 }
 export async function fcm(config, token, validateOnly) {
   need(config, 'TEST_FCM_TOKEN');
-  ensure(/^[a-z][a-z0-9-]{4,62}$/.test(config.FIREBASE_PROJECT_ID), 'Invalid Firebase project ID.');
-  const result = await request(config, `https://fcm.googleapis.com/v1/projects/${config.FIREBASE_PROJECT_ID}/messages:send`, {
+  ensure(/^[a-z][a-z0-9-]{4,62}$/.test(config.FIREBASE_PROJID), 'Invalid Firebase project ID.');
+  const result = await request(config, `https://fcm.googleapis.com/v1/projects/${config.FIREBASE_PROJID}/messages:send`, {
     method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ validate_only: validateOnly, message: { token: config.TEST_FCM_TOKEN,
       notification: { title: 'Rezervari AI · Test backend', body: 'Notificare de test. Nu este o programare reală.' }, data: { backendTest: 'true' } } }),

@@ -8,11 +8,6 @@
   "plugins": {
     "PushNotifications": {
       "presentationOptions": ["badge", "sound", "alert"]
-    },
-    "SplashScreen": {
-      "launchShowDuration": 1200,
-      "backgroundColor": "#ffffff",
-      "showSpinner": false
     }
   }
 }

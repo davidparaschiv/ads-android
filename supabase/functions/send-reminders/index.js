@@ -12,10 +12,10 @@ Deno.serve(async (request) => {
   if (error) return Response.json({ error: error.message }, { status: 500 });
   if (!jobs?.length) return Response.json({ processed: 0 });
 
-  const credentials = JSON.parse(Deno.env.get('FIREBASE_SERVICE_ACCOUNT_JSON') ?? '{}');
+  const credentials = JSON.parse(Deno.env.get('GCLOUD_SERVICEACCOUNT_KEYS') ?? '{}');
   const auth = new JWT({ email: credentials.client_email, key: credentials.private_key, scopes: ['https://www.googleapis.com/auth/firebase.messaging'] });
   const { access_token: accessToken } = await auth.authorize();
-  const projectId = Deno.env.get('FIREBASE_PROJECT_ID');
+  const projectId = Deno.env.get('FIREBASE_PROJID');
   let processed = 0;
 
   for (const job of jobs) {

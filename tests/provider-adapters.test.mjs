@@ -15,7 +15,7 @@ async function adapter(entry, fixture) {
       builder.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:args.path==='http'
         ? `const f=globalThis.providerFixture; export const authenticated=f.authenticated,env=f.env,serviceClient=()=>f.db; export const headers=()=>({}); export const json=(_r,b,status=200)=>Response.json(b,{status});`
         :args.path==='supabase'?`export const createClient=()=>globalThis.providerFixture.db;`
-          :`export class JWT { async authorize(){return {access_token:'offline-only'};} }`}));
+          :`export class JWT { constructor(options){globalThis.providerFixture.jwtOptions=options;} async authorize(){return {access_token:'offline-only'};} }`}));
     },
   }]});
   let handler;
@@ -57,7 +57,7 @@ test('Provider adapters: reminder worker claiming, eligibility, FCM and retries'
   const originals={fetch:globalThis.fetch,Deno:globalThis.Deno};
   t.after(()=>{Object.assign(globalThis,originals);delete globalThis.providerFixture;});
   let jobs=[],allowed=true,claimed=true,providerStatus=200;const calls=[],updates=[],logs=[];
-  const fixture={env:name=>name==='CRON_SECRET'?'offline-secret':name==='FIREBASE_SERVICE_ACCOUNT_JSON'?'{}':'test-project',db:{
+  const fixture={env:name=>name==='CRON_SECRET'?'offline-secret':name==='GCLOUD_SERVICEACCOUNT_KEYS'?JSON.stringify({type:'service_account',project_id:'test-project',client_email:'offline@example.invalid',private_key:'offline-private-key'}):'test-project',db:{
     rpc:async()=>({data:allowed,error:null}),
     from:table=>{
       let update;const query={select(){return query;},eq(){return query;},lte(){return query;},limit(){return query;},
@@ -85,6 +85,8 @@ test('Provider adapters: reminder worker claiming, eligibility, FCM and retries'
   });
   await t.test('successful send contains booking ID and logs one delivery',async()=>{
     assert.deepEqual(await (await invoke()).json(),{processed:1});
+    assert.deepEqual(fixture.jwtOptions, {email:'offline@example.invalid',key:'offline-private-key',scopes:['https://www.googleapis.com/auth/firebase.messaging']});
+    assert.equal(calls[0].url,'https://fcm.googleapis.com/v1/projects/test-project/messages:send');
     assert.equal(JSON.parse(calls[0].options.body).message.data.bookingId,'booking');
     assert.equal(updates.at(-1).status,'sent');assert.equal(logs.length,1);
   });

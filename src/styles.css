@@ -266,3 +266,14 @@ p { color: var(--muted); line-height: 1.6; }
 .booking-actions { display: flex; flex-wrap: wrap; gap: 12px; padding: 0 0 16px 60px; }
 .button:disabled, .text-button:disabled { opacity: .5; cursor: not-allowed; }
 .timeline-item small { overflow-wrap: anywhere; }
+/* Customer QR stays black/white with its full quiet zone; no decorative overlays. */
+.qr-customer-card { text-align: center; }
+.reservation-qr-image { display: block; width: min(100%, 320px); height: auto; aspect-ratio: 1; margin: 20px auto; background: #fff; image-rendering: pixelated; }
+.qr-reservation-details { text-align: left; overflow-wrap: anywhere; }
+.qr-reservation-details h2 { margin: 16px 0 4px; }
+.qr-reservation-details dl { display: grid; grid-template-columns: minmax(75px, .35fr) minmax(0, 1fr); gap: 10px 14px; }
+.qr-reservation-details dt { color: #677080; }
+.qr-reservation-details dd { margin: 0; }
+.qr-status-warning { padding: 12px; background: #fff0ed; border-left: 3px solid #c82333; border-radius: 6px; }
+.qr-result-card { margin-top: 20px; padding-top: 12px; border-top: 1px solid #e7e8ec; }
+#manual-qr-form { display: grid; gap: 14px; margin-top: 16px; }

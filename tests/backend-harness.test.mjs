@@ -42,7 +42,7 @@ test('Backend harness: no message calls without consent; FCM dry-run payload; no
   assert.equal(calls.length,0);
   await assert.rejects(request(config,'https://evil.example/'),/unexpected/);
   assert.equal(calls.length,0);
-  await fcm({...config,FIREBASE_PROJECT_ID:'test-project',TEST_FCM_TOKEN:'dummy-token'},'dummy-access',true);
+  await fcm({...config,FIREBASE_PROJID:'test-project',TEST_FCM_TOKEN:'dummy-token'},'dummy-access',true);
   assert.equal(JSON.parse(calls[0].options.body).validate_only,true);
   assert.equal(calls[0].options.redirect,'error');
 });

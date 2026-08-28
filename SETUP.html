@@ -1,255 +1,257 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
-<title>Rezerva · Live service setup</title>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<title>Rezerva — Android &amp; live services setup</title>
 <style>
-:root{color-scheme:light;--red:#ba1939;--text:#252b36;--muted:#616977;--line:#e5e7eb}
-*{box-sizing:border-box}html{scroll-padding-top:24px}body{margin:0;background:#f6f7fa;color:var(--text);font:16px/1.7 system-ui,-apple-system,"Segoe UI",sans-serif}
-a{color:var(--red);text-underline-offset:3px;overflow-wrap:anywhere}a:hover{text-decoration-thickness:2px}a:focus-visible{outline:3px solid #ba1939;outline-offset:4px}
-header{background:white;border-bottom:4px solid var(--red);padding:36px max(24px,calc((100vw - 1160px)/2))}
-.brand{display:flex;gap:14px;align-items:center}.logo{display:grid;place-items:center;background:var(--red);color:white;width:46px;height:46px;border-radius:14px;font-weight:900;font-size:30px;transform:skew(-8deg)}
-.eyebrow{color:var(--red);font-size:12px;font-weight:750;letter-spacing:.12em;text-transform:uppercase}h1{margin:10px 0;font-size:clamp(28px,4vw,44px);line-height:1.15;letter-spacing:-.04em}header p{margin:10px 0;color:var(--muted);max-width:800px}
-.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}.badges span{border:1px solid var(--line);padding:4px 12px;border-radius:20px;font-size:13px}
-.layout{max-width:1208px;margin:auto;padding:32px 24px;display:grid;grid-template-columns:235px minmax(0,1fr);gap:30px}
-nav{align-self:start;position:sticky;top:24px;max-height:calc(100vh - 48px);overflow:auto;font-size:13px}nav strong{display:block;margin-bottom:10px}nav a{display:block;color:#525a68;padding:7px 9px;text-decoration:none;border-left:2px solid #dedfe4}nav a:hover{border-color:var(--red);color:var(--red);background:white}
-main{min-width:0}section{background:white;border:1px solid var(--line);border-radius:16px;padding:28px;margin-bottom:20px;overflow-wrap:anywhere}h2{font-size:23px;line-height:1.35;margin:0 0 20px;letter-spacing:-.025em}p{margin:14px 0}ul,ol{padding-left:24px}li{padding-left:3px;margin:7px 0}
-pre{background:#f3f4f7;border:1px solid #dfe2e8;border-radius:10px;padding:16px;overflow-x:auto;max-width:100%;font-size:13px;line-height:1.6;tab-size:2}
-code{font-family:ui-monospace,Consolas,monospace;font-size:.88em;background:#f3f4f7;padding:2px 4px;border-radius:4px}pre code{padding:0;background:none;font-size:inherit;overflow-wrap:normal}
-.checkpoint{background:#f1f8f4;border-left:4px solid #2e7351;padding:14px 16px;border-radius:0 8px 8px 0;margin-top:24px}
-.table-scroll{overflow-x:auto;max-width:100%}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;vertical-align:top;padding:12px;border:1px solid var(--line)}th{background:#f7f7f9}
-.intro{border-top:4px solid var(--red)}footer{padding:0 24px 32px;text-align:center;font-size:13px;color:var(--muted)}
-@media(max-width:820px){.layout{grid-template-columns:1fr;gap:16px;padding:20px 14px}nav{position:static;max-height:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}nav strong{grid-column:1/-1}section{padding:20px}header{padding:28px 20px}h2{font-size:21px}}
-@media(max-width:430px){nav{grid-template-columns:1fr}pre{font-size:12px;padding:12px}.badges span{font-size:12px}}
-@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
-@media print{@page{size:A4;margin:16mm}body{background:white;font-size:10pt}header{padding:0 0 16px;border-width:2px}header h1{font-size:26pt}.layout{display:block;padding:0}nav,.badges,footer{display:none}section{border:0;border-radius:0;padding:16px 0;margin:0;break-before:auto}h2{font-size:15pt;break-after:avoid}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:8pt}table{font-size:9pt}.table-scroll{overflow:visible}.checkpoint{break-inside:avoid}a{color:inherit}p,li{orphans:3;widows:3}}
-</style>
-</head>
-<body>
-<header>
-<div class="brand"><span class="logo" aria-hidden="true">R</span><span class="eyebrow">Rezerva · Developer setup</span></div>
-<h1>Your first real booking.</h1>
-<p>Windows → real cloud services → your Android phone. Follow the steps in order and check each result before continuing.</p>
-<div class="badges"><span>Live services</span><span>No public app release</span><span>No domain for own-inbox testing</span><span>v0.4 source</span></div>
-</header>
-<div class="layout"><nav aria-label="Setup steps"><strong>ON THIS PAGE</strong><a href="#step-1">1. Install the Windows tools</a>
-<a href="#step-2">2. Extract and install dependencies</a>
-<a href="#step-3">3. Create Supabase and apply the four migrations</a>
-<a href="#step-4">4. Enable real Google login</a>
-<a href="#step-5">5. Set up real email and SMS without a domain</a>
-<a href="#step-6">6. Set up Firebase for push</a>
-<a href="#step-7">7. Put server secrets in Supabase</a>
-<a href="#step-8">8. Deploy backend functions and record migration history</a>
-<a href="#step-9">9. Configure the Android app and install it</a>
-<a href="#step-10">10. Enroll and approve your test business</a>
-<a href="#step-11">11. Schedule and test real reminders</a>
-<a href="#step-12">12. Later: invitations to others and Play billing</a>
-<a href="#step-13">What was verified in this archive</a></nav>
-<main><section class="intro">
-<p>This is the current Rezerva v0.4 development source. You will install it privately, use real Google login/DB/email/SMS/push, and use your authorized developer license instead of purchasing a plan. Nothing here publishes the app to the public Play Store.</p>
-<p><strong>Plans:</strong> Small = €50/month, 1 calendar, no business reports or reminders. Complete = €150/month, 5 calendars with business reports and push reminders. Customer reminders remain available with either plan. Active five-calendar licenses include Complete features. <strong>Already at setup Step 4 or later with 001–003 applied? Apply only migration 004 before continuing:</strong> <a href="docs/PLAN-UPDATE.md">update instructions</a>.</p>
-<p><strong>Not included yet: reservation QR codes/check-in, a compiled APK, or production approval.</strong> The existing app and tests are included. Do not treat this archive as a fully finished production release.</p>
-<p>Use Windows <strong>Command Prompt (CMD)</strong> for the commands below. Run commands from the folder containing <code>package.json</code>. Stop if a checkpoint fails. The <a href="docs/WINDOWS-SETUP.md">full guide</a> has detailed provider setup, troubleshooting, migration-history repair and optional Play billing tests.</p>
-</section><section id="step-1"><h2>1. Install the Windows tools</h2>
-<ul>
-<li><a href="https://nodejs.org/en/download">Node.js 24.x</a>, including npm.</li>
-<li><a href="https://developer.android.com/studio">Android Studio</a>, version 2025.2.1 or newer.</li>
-<li>In Android Studio SDK Manager: Android SDK Platform <strong>36</strong>, Platform-Tools and Command-line Tools. Accept the exact Build-Tools package requested by Gradle.</li>
-<li>In Android Studio&#39;s Gradle settings: select <strong>JDK 21</strong> (download through Studio if necessary).</li>
-<li>Use a physical Android 7.0+ phone; a recent device with Google Play services is preferable.</li>
-</ul>
-<p>No separate Gradle, local PostgreSQL, Docker, Firebase CLI or message broker installation is needed for this route. <a href="https://capacitorjs.com/docs/getting-started/environment-setup">Capacitor requirements</a>.</p>
-<p class="checkpoint"><strong>Check:</strong> a new CMD window runs <code>node --version</code> and <code>npm --version</code> successfully.</p>
-</section><section id="step-2"><h2>2. Extract and install dependencies</h2>
-<p>Extract the ZIP into a short path, for example <code>C:\dev\rezerva-app</code>. Do not overwrite a different local project. Then:</p>
-<pre><code class="language-bat">cd /d C:\dev\rezerva-app
+:root{color-scheme:light;--red:#cc1531;--ink:#20232c;--muted:#626773;--line:#e5e6eb}*{box-sizing:border-box}body{margin:0;background:#f6f7f9;color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}a{color:var(--red);text-underline-offset:3px;overflow-wrap:anywhere}a:focus-visible{outline:3px solid var(--red);outline-offset:3px}header{background:#fff;border-bottom:4px solid var(--red);padding:36px max(24px,calc((100vw - 1160px)/2))}.brand{display:flex;gap:12px;align-items:center;color:var(--red);font-size:12px;font-weight:750;letter-spacing:.1em;text-transform:uppercase}.brand img{width:54px;height:54px;border-radius:12px}h1{font-size:clamp(28px,4vw,44px);line-height:1.15;letter-spacing:-.035em;margin:14px 0}header p{max-width:800px;color:var(--muted)}.badges{display:flex;gap:8px;flex-wrap:wrap}.badges span{border:1px solid var(--line);border-radius:20px;padding:4px 12px;font-size:13px}.layout{max-width:1208px;margin:auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:28px;padding:28px 24px}nav{position:sticky;top:20px;align-self:start;max-height:calc(100vh - 40px);overflow:auto;font-size:13px}nav strong{display:block;margin-bottom:10px}nav a{display:block;padding:7px 10px;border-left:2px solid var(--line);text-decoration:none;color:var(--muted)}nav a:hover{background:#fff;color:var(--red);border-color:var(--red)}main{min-width:0}section{background:#fff;border:1px solid var(--line);border-radius:16px;margin-bottom:20px;padding:28px;overflow-wrap:anywhere;scroll-margin-top:20px}h2{font-size:23px;line-height:1.3;margin:0 0 20px;letter-spacing:-.025em}h3{font-size:17px;margin:24px 0 10px}p{margin:12px 0}li{margin:8px 0}ol,ul{padding-left:24px}.note,.check,.warn{padding:14px 16px;border-left:4px solid #64748b;background:#f2f4f7;margin:18px 0;border-radius:0 8px 8px 0}.check{border-color:#267749;background:#f0f8f3}.warn{border-color:#be5d10;background:#fff7ed}code{font:.88em ui-monospace,Consolas,monospace;background:#f1f2f5;border-radius:4px;padding:2px 4px}pre{background:#f1f2f5;border:1px solid #dddfe6;border-radius:10px;padding:16px;overflow:auto;font-size:13px;line-height:1.6;max-width:100%}pre code{font-size:inherit;padding:0;white-space:pre;overflow-wrap:normal}.table{overflow:auto}table{width:100%;border-collapse:collapse;font-size:14px}th,td{border:1px solid var(--line);padding:11px;text-align:left;vertical-align:top}th{background:#f6f7f9}footer{padding:12px 24px 32px;text-align:center;color:var(--muted);font-size:13px}@media(max-width:820px){.layout{grid-template-columns:1fr;padding:20px 14px;gap:16px}nav{position:static;max-height:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}nav strong{grid-column:1/-1}section{padding:20px}header{padding:24px 20px}}@media(max-width:430px){nav{grid-template-columns:1fr}pre{font-size:12px;padding:12px}}@media print{@page{size:A4;margin:16mm}body{background:white;font-size:10pt}header{padding:0 0 16px}.layout{display:block;padding:0}nav,.badges,footer{display:none}section{border:0;padding:16px 0;margin:0}h2,h3{break-after:avoid}h1{font-size:25pt}pre code{white-space:pre-wrap;overflow-wrap:anywhere}.table{overflow:visible}table{font-size:9pt}.check,.warn{break-inside:avoid}}
+</style></head><body><header>
+<div class="brand"><img src="assets/icon-only.png" alt="Rezerva R logo"><span>Rezerva · Developer setup</span></div>
+<h1>Your app. Your phone.<br>Real services.</h1>
+<p>Windows / Git Bash → hosted services → your Android debug app. Real email, paid SMS and push notifications; no public app release is needed for bookings.</p>
+<div class="badges"><span>rezervari-ai.com</span><span>support@rezervari-ai.com</span><span>ro.rezerva.app</span><span>28 August 2026</span></div></header>
+<div class="layout"><nav aria-label="Setup steps"><strong>START HERE</strong>
+<a href="#changes">What changed</a><a href="#commands">Commands to run now</a><a href="#qr-setup">QR update &amp; phone test</a><a href="#phone-readiness">Remaining configuration</a><a href="#step-1">1. Windows tools</a><a href="#step-2">2. Extract and install</a><a href="#step-3">3. Database migrations</a><a href="#step-4">4. Google sign-in</a><a href="#step-5">5. Domain, email &amp; paid SMS</a><a href="#step-6">6. Firebase push</a><a href="#step-7">7. Exact secret names</a><a href="#step-8">8. Link and deploy</a><a href="#step-9">9. Build and install Android</a><a href="#step-10">10. Business enrollment</a><a href="#step-11">11. Reminder scheduler</a><a href="#step-12">12. Manual phone checks</a><a href="#step-13">13. Billing &amp; release</a><a href="#backend-tests">Local versus live tests</a><a href="#verification">Verification boundaries</a></nav><main>
+<section id="changes"><h2>Update your setup, don’t recreate it.</h2>
+<p>This QR update starts from the final <strong>rezerva-app-android-update.zip</strong> you approved. Your frontend/Firebase configuration, icons, secret names and Small/Complete plans are retained. <strong>New migration: 005_reservation_qr.sql.</strong> Apply it once after 001–004, then rebuild the APK. Older Markdown guides are retained unchanged; use this HTML for the current instructions.</p>
+<ul><li>Explicit Android permissions, notification channel, transparent notification R, launcher/adaptive icons and icon-only splash from your supplied PNG.</li><li>Exact <code>TWILLIO_</code> spelling for Account SID/Auth Token; <code>TWILIO_VERIFY_SERVICE_SID</code> is unchanged.</li><li>Full Firebase JSON under <code>GCLOUD_SERVICEACCOUNT_KEYS</code>; project ID under <code>FIREBASE_PROJID</code>.</li><li>Google OAuth values must be entered into hosted Supabase Auth, not only custom Edge secrets.</li></ul>
+<div class="table"><table><thead><tr><th>Plan</th><th>Monthly price</th><th>Calendars</th><th>Business reports / reminders</th></tr></thead><tbody><tr><td>Small</td><td>€50</td><td>1</td><td>No</td></tr><tr><td>Complete</td><td>€150</td><td>5</td><td>Yes</td></tr></tbody></table></div>
+<p>Customer reminders remain available on either plan. Invited staff do not buy separate plans. Complete's internal identifier remains <code>large</code>.</p>
+<p class="check"><strong>New:</strong> customers open a reservation QR from Programările mele. Authorized business staff use Scanează programarea to open that reservation. This works with Small and Complete. Scanning only reads current details; it does not mark arrival, complete, cancel or consume the reservation.</p>
+<p><a href="#qr-setup">QR setup and phone test</a> · <a href="#phone-readiness">What is still needed for an unpublished debug test?</a></p>
+<p class="warn">This ZIP is source, not a compiled APK or a certified production release.</p></section>
+<section id="commands"><h2>Commands to run now</h2><p>In Git Bash, open the extracted folder containing <code>package.json</code>. Run one command at a time; stop on errors. Example path:</p>
+<pre><code>cd /c/dev/rezerva-app
 npm ci
-copy .env.live.example .env
-</code></pre>
-<p>If you already have a configured <code>.env</code>, keep it and edit its values instead of copying over it. Turn on filename extensions in Explorer so you do not accidentally create <code>.env.txt</code>.</p>
-<p class="checkpoint"><strong>Check:</strong> <code>npm ci</code> succeeds and <code>.env</code> is alongside <code>package.json</code>, with <code>VITE_APP_MODE=live</code>.</p>
-</section><section id="step-3"><h2>3. Create Supabase and apply the four migrations</h2>
-<p>Create a separate development project in <a href="https://supabase.com/dashboard">Supabase</a>. Save the database password privately. In the project&#39;s <strong>SQL Editor</strong>, open and run each entire file from the ZIP, in this exact order:</p>
-<ol>
-<li><code>supabase/migrations/001_initial_schema.sql</code></li>
-<li><code>supabase/migrations/002_plans_licenses_invitations.sql</code></li>
-<li><code>supabase/migrations/003_verified_enrollment.sql</code></li>
-<li><code>supabase/migrations/004_team_features.sql</code></li>
-</ol>
-<p>Wait for success before moving to the next file. These instructions assume a NEW project. On an existing database, back up first and apply only missing migrations. Do not rerun old migrations, delete tables, or disable RLS to suppress an error.</p>
-<p>Do not expose the <code>private</code> schema through the Data API. Check in SQL Editor:</p>
-<pre><code class="language-sql">select to_regclass(&#39;public.bookings&#39;),
-       to_regclass(&#39;private.license_keys&#39;),
-       to_regclass(&#39;private.enrollment_requests&#39;);
-select owner_email from private.platform_settings;
-</code></pre>
-<p class="checkpoint"><strong>Check:</strong> the three relations exist and owner email is <code>davidnicolaparaschiv@gmail.com</code>. There are no seeded sample businesses in a new live database.</p>
-</section><section id="step-4"><h2>4. Enable real Google login</h2>
-<p>In <a href="https://console.cloud.google.com/">Google Cloud</a>, configure the OAuth consent screen and add David and your customer test account as test users. Create an OAuth client of type <strong>Web application</strong>. Its authorized redirect URI must be the exact Supabase Google-provider callback, normally:</p>
-<pre><code class="language-text">https://YOUR_PROJECT_REF.supabase.co/auth/v1/callback
-</code></pre>
-<p>Put the Google client ID and secret into <strong>Supabase → Authentication → Google provider</strong> and enable it. Put these URLs in <strong>Supabase → Authentication → URL Configuration → Redirect URLs</strong>:</p>
-<pre><code class="language-text">ro.rezerva.app://auth/callback
-http://localhost:5173/
-</code></pre>
-<p>Use <code>http://localhost:5173/</code> as your development Site URL. The Google secret belongs in Supabase, not the APK. The Google redirect and Android redirect are different on purpose. <a href="https://supabase.com/docs/guides/auth/social-login/auth-google">Google OAuth guide</a>.</p>
-<p class="checkpoint"><strong>Check:</strong> Google provider is enabled, its credentials are saved, and the Android redirect is allowed.</p>
-</section><section id="step-5"><h2>5. Set up real email and SMS without a domain</h2>
-<p>Create your <a href="https://resend.com/">Resend</a> account using <strong><a href="mailto:davidnicolaparaschiv@gmail.com">davidnicolaparaschiv@gmail.com</a></strong> and create a sending API key. Use <code>Rezerva &lt;onboarding@resend.dev&gt;</code> as the sender.</p>
-<p>Resend&#39;s test sender delivers ONLY to the email address associated with your Resend account. Use that same address as your business contact email. This allows real verification and admin approval emails to David, but not invitations delivered to other people. Do not try to verify <code>gmail.com</code> or <code>github.io</code>. <a href="https://resend.com/docs/knowledge-base/403-error-resend-dev-domain">Resend restriction</a>.</p>
-<p>Create a <a href="https://www.twilio.com/docs/verify">Twilio Verify</a> service with SMS enabled. Save Account SID (<code>AC...</code>), Auth Token and Verify Service SID (<code>VA...</code>). Allow Romania in Verify Geo Permissions. On a trial account, verify your own destination phone if required. Use provider spending limits and fraud protection. Real SMS may cost money.</p>
-<p>You do not need a website, GitHub Pages or purchased domain. Leave <code>INVITE_WEB_URL</code> and <code>ENROLLMENT_WEB_URL</code> unset for now. Emails contain a direct Android link and a manual fallback code.</p>
-<p class="checkpoint"><strong>Check:</strong> you have the Resend key, the Twilio credentials, and a Romanian mobile you control. No credentials are pasted into chat or your frontend source.</p>
-</section><section id="step-6"><h2>6. Set up Firebase for push</h2>
-<p>Create a development project in <a href="https://console.firebase.google.com/">Firebase</a>. Register Android application <strong><code>ro.rezerva.app</code></strong> and save its downloaded client configuration at:</p>
-<pre><code class="language-text">C:\dev\rezerva-app\android\app\google-services.json
-</code></pre>
-<p>Enable Firebase Cloud Messaging HTTP v1 API. Create a dedicated Google Cloud service account permitted to send FCM messages (Firebase Cloud Messaging API Admin is an applicable role) and obtain its JSON private key. Keep that private JSON outside the app source; it will go into a Supabase secret.</p>
-<p>If your organization forbids private service-account keys, stop and use an approved authentication approach; do not weaken the organization policy. No Firebase Authentication or Firestore database is needed. The existing Capacitor plugin already provides Android messaging dependencies; do not add duplicate native setup code.</p>
-<p class="checkpoint"><strong>Check:</strong> the Android client file is in <code>android/app</code>; the DIFFERENT service-account JSON is stored privately. See full guide Step 10 for links and details.</p>
-</section><section id="step-7"><h2>7. Put server secrets in Supabase</h2>
-<p>Open <strong>Supabase → Edge Functions → Secrets</strong>. Add:</p>
-<div class="table-scroll"><table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Value</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><code>RESEND_API_KEY</code></td>
-<td>Your Resend sending key</td>
-</tr>
-<tr>
-<td><code>INVITE_FROM_EMAIL</code></td>
-<td><code>Rezerva &lt;onboarding@resend.dev&gt;</code></td>
-</tr>
-<tr>
-<td><code>TWILIO_ACCOUNT_SID</code></td>
-<td>Your <code>AC...</code> SID</td>
-</tr>
-<tr>
-<td><code>TWILIO_AUTH_TOKEN</code></td>
-<td>Your Twilio Auth Token</td>
-</tr>
-<tr>
-<td><code>TWILIO_VERIFY_SERVICE_SID</code></td>
-<td>Your <code>VA...</code> SID</td>
-</tr>
-<tr>
-<td><code>FIREBASE_PROJECT_ID</code></td>
-<td>The Firebase project ID</td>
-</tr>
-<tr>
-<td><code>FIREBASE_SERVICE_ACCOUNT_JSON</code></td>
-<td>Entire valid private service-account JSON, not a filename</td>
-</tr>
-<tr>
-<td><code>CRON_SECRET</code></td>
-<td>A new long random value generated below</td>
-</tr>
-<tr>
-<td><code>ALLOWED_ORIGINS</code></td>
-<td><code>https://localhost,http://localhost,http://localhost:5173</code></td>
-</tr>
+npm run assets
+npm run check
+npm run typecheck
+npm run test:local
+npm run check:phone
+npm run android:sync
+npm run android:open</code></pre>
+<p><code>npm ci</code> downloads dependencies. Assets, lint, typechecking and local tests do not call your cloud services. <code>check:phone</code> reads local settings without displaying values. It cannot prove cloud readiness. Android sync builds/copies the frontend; it does not deploy backend functions.</p>
+<p><strong>For this QR update:</strong> first apply migration 005 using <a href="#qr-setup">the QR instructions below</a>. QR requires no new secrets, accounts, Edge Functions or changes to your domain. Keep the Step 7 settings you already saved.</p>
+<p>The following deployments are needed only if you have not yet deployed the previous archive's renamed-secret functions. QR itself does not change them. Link the folder first if needed (<a href="#step-8">Step 8.1</a>):</p>
+<pre><code>npx supabase functions deploy enrollment --use-api
+npx supabase functions deploy send-reminders --use-api</code></pre>
+<p>Deployment commands update your live backend when <em>you</em> run them. No deployment or hosted migration was run while preparing this ZIP.</p>
+<p class="check">In Android Studio, select your USB-connected phone and click <strong>Run ▶</strong>. This builds and installs the debug APK without publishing to Google Play.</p></section>
+<section id="step-1"><h2>1. Install Windows tools</h2>
+<ol><li>Install <a href="https://nodejs.org/en/download">Node.js 24.x</a> with npm and <a href="https://git-scm.com/download/win">Git for Windows</a> with Git Bash.</li><li>Install <a href="https://developer.android.com/studio">Android Studio</a> compatible with Capacitor 8. In SDK Manager install <strong>Android SDK Platform 36</strong>, Platform-Tools and Command-line Tools. Install the Build-Tools version Gradle requests.</li><li>In Studio: <strong>Settings → Build, Execution, Deployment → Build Tools → Gradle → Gradle JDK</strong>: select/download <strong>JDK 21</strong>. Terminal builds also need Windows <code>JAVA_HOME</code> pointing to JDK 21; reopen Git Bash after changing it.</li><li>Use an Android 7.0+ phone with Google Play services. Enable Developer options → USB debugging. Install the manufacturer's Windows USB driver if Studio cannot detect the phone.</li></ol>
+<pre><code>node --version
+npm --version
+git --version
+java -version</code></pre>
+<p>No separate PostgreSQL, Docker, Gradle installation, Firebase CLI or message broker is needed for this hosted route. Supabase CLI is a project dependency. <a href="https://capacitorjs.com/docs/getting-started/environment-setup">Capacitor requirements</a>.</p></section>
+<section id="step-2"><h2>2. Extract and install</h2>
+<ol><li>Extract into a new, short folder such as <code>C:\dev\rezerva-app</code>. Do not overwrite a different working project.</li><li>Keep your configured root <code>.env</code> and <code>android/app/google-services.json</code>; do not copy blank examples over them.</li><li>Run <code>npm ci</code>. Keep the lockfile. Do not use <code>--ignore-scripts</code>: Sharp's image generation requires its installation step.</li><li>Set <code>VITE_APP_MODE=live</code> for real services. Demo mode uses simulated data.</li></ol>
+<p>The ZIP retains your uploaded account-specific configuration. Keep it private; never upload the entire source ZIP, private keys or test session files to GitHub Pages.</p>
+<p class="check">Run <code>npm run check:phone</code>. Fix failures; review warnings manually.</p></section>
+<section id="step-3"><h2>3. Database migrations</h2>
+<p>Keep your existing Supabase development project. If migrations 001–004 already succeeded, <strong>do not rerun them</strong>. Apply only the new <code>005_reservation_qr.sql</code> for QR. It adds a private token table and two guarded RPCs without changing old bookings. Existing bookings get their QR lazily when the customer opens it.</p>
+<p>For a new project only, execute each complete file in SQL Editor, in this order:</p>
+<ol><li><code>supabase/migrations/001_initial_schema.sql</code></li><li><code>supabase/migrations/002_plans_licenses_invitations.sql</code></li><li><code>supabase/migrations/003_verified_enrollment.sql</code></li><li><code>supabase/migrations/004_team_features.sql</code></li><li><code>supabase/migrations/005_reservation_qr.sql</code></li></ol>
+<p>On an existing database, back up first and apply only missing migrations. Stop on errors; do not disable RLS or reset tables to hide a problem. Check:</p>
+<pre><code>select to_regclass('public.bookings'),
+       to_regclass('private.license_keys'),
+       to_regclass('private.enrollment_requests');
+select owner_email from private.platform_settings;</code></pre>
+<p class="check">All three relations exist; the owner is <code>davidnicolaparaschiv@gmail.com</code>. Keep the private schema out of the Data API. SQL Editor execution does not automatically record CLI migration history; see <a href="#step-8">Step 8.2</a>.</p></section>
+<section id="step-4"><h2>4. Google sign-in for Android</h2>
+<p>The installed app opens a secure browser sign-in tab and returns to Android. This is not a browser version of the app. Supabase's OAuth flow uses a Google <strong>Web application</strong> client even though your product is Android.</p>
+<ol><li>In <a href="https://console.cloud.google.com/">Google Cloud Console</a>, select your OAuth project. Open <strong>Google Auth Platform → Branding</strong> (older UI: APIs &amp; Services → OAuth consent screen).</li><li>Complete app name, support email and developer contact email. Use <code>support@rezervari-ai.com</code> where appropriate. Authorized domain: <code>rezervari-ai.com</code>, without scheme/path. Enter only homepage/privacy/terms URLs you actually host; follow any Google domain-verification prompt.</li><li>Under Audience, configure the appropriate audience. While External is in Testing, add David and all customer/staff Google accounts used in your tests. Google test users are unrelated to Twilio's paid status.</li><li>Open/create a Web application client under Clients. Add the exact Supabase Google callback as an authorized redirect URI:</li></ol>
+<pre><code>https://YOUR_PROJECT_REF.supabase.co/auth/v1/callback</code></pre>
+<ol start="5"><li>In Supabase → <strong>Authentication → Sign In / Providers → Google</strong>, enable Google and paste the actual client ID and secret values.</li><li>In Supabase Authentication → URL Configuration, use your real homepage as Site URL. Add <code>ro.rezerva.app://auth/callback</code> to Redirect URLs. No localhost browser redirect is required for this phone workflow.</li><li>Keep <code>VITE_AUTH_REDIRECT_URL=ro.rezerva.app://auth/callback</code> in the frontend configuration.</li></ol>
+<p class="warn"><code>SUPABASEGOOGLEOAUTH_CLIENTID</code> and <code>SUPABASEGOOGLEOAUTH_CLIENTSECRET</code> are your names for those values. Storing them as custom Edge secrets does <strong>not</strong> configure hosted Supabase Auth. Paste their values into the Google provider's Client ID and Client Secret fields. Never put the secret in the APK.</p>
+<p><code>ro.rezerva.app</code> is the existing Android custom scheme, not a domain to buy. Your domain remains <code>rezervari-ai.com</code>. Verified HTTPS App Links merit a separate production review; this update preserves the custom-scheme/PKCE flow. <a href="https://supabase.com/docs/guides/auth/social-login/auth-google">Supabase Google instructions</a>.</p></section>
+<section id="step-5"><h2>5. Domain, email and paid SMS</h2>
+<h3>5.1 — Spaceship mailbox + Resend sending</h3>
+<p>Spaceship receives mail for <code>support@rezervari-ai.com</code>; Resend sends app verification, approval and invitation email. Booking reminders are push notifications, not email.</p>
+<ol><li>In <a href="https://resend.com/domains">Resend → Domains</a>, add <code>rezervari-ai.com</code>.</li><li>In your authoritative DNS dashboard, copy each Resend sending record exactly: type, host/name, value and priority. Use the actual dashboard values, not guessed record types.</li><li>Add the required DKIM and SPF/return-path records. Resend's sending-subdomain MX (often at <code>send</code>) must not replace root-domain Spaceship mailbox MX. Keep mailbox records and avoid duplicate SPF policies at the same hostname.</li><li>Leave inbound receiving off in Resend unless intentionally moving your mailbox. Wait for successful sending verification.</li><li>Create a sending API key, restricted to the domain where available. Set backend <code>RESEND_API_KEY</code> and <code>INVITE_FROM_EMAIL=Rezervari.ai &lt;support@rezervari-ai.com&gt;</code>.</li></ol>
+<p><a href="https://resend.com/docs/dashboard/domains/introduction">Resend domain verification</a>. Do not use the restricted onboarding sender for invitations to arbitrary recipients.</p>
+<h3>5.2 — Optional website links</h3>
+<p>GitHub Pages can host your homepage and the small app-opening pages, not backend functions or secrets. If desired, publish only <code>public/verify.html</code>, <code>verify.js</code>, <code>invite.html</code>, <code>invite.js</code> and <code>invite.css</code> to your website folder. Verify HTTPS at the URLs before setting:</p>
+<pre><code>ENROLLMENT_WEB_URL=https://rezervari-ai.com/verify.html
+INVITE_WEB_URL=https://rezervari-ai.com/invite.html</code></pre>
+<p>Until hosted, leave both unset. Emails then contain direct Android links and a fallback code. The HTTPS pages require an explicit “open app” action; opening the page alone never approves a business. DNS and hosting were not tested here.</p>
+<h3>5.3 — Paid Twilio Verify, not trial credentials</h3>
+<ol><li>Use your upgraded paid account with active billing and required account/compliance review completed.</li><li>Open <strong>Verify → Services</strong>, create/open the SMS service and copy its <code>VA…</code> SID. Use the same account/subaccount's live <code>AC…</code> Account SID and Auth Token, not Twilio test credentials.</li><li>Save values as <code>TWILLIO_ACCOUNT_SID</code>, <code>TWILLIO_AUTH_TOKEN</code> and <code>TWILIO_VERIFY_SERVICE_SID</code>.</li><li>Open <strong>Verify → Settings → Geo permissions</strong>, find Romania, enable SMS with fraud monitoring where available, and save. Enable Fraud Guard for your service as required. Keep unused destinations disabled. <a href="https://www.twilio.com/docs/verify/preventing-toll-fraud/verify-geo-permissions">Twilio instructions</a>.</li><li>Use a Romanian mobile you control in <code>+407XXXXXXXX</code> format. This version supports Romanian mobile numbers, not arbitrary countries or landlines.</li><li>Review paid Verify/SMS rates and configure usage alerts/fraud controls. Alerts are not guaranteed hard spending caps. Every manual send/resend can incur a charge.</li></ol>
+<p>This app uses the Verify Service API, not a Programmable Messaging “From” phone number. Do not buy another Twilio number solely for these steps. Paid accounts are not limited to trial-verified destination numbers, but provider/country restrictions still apply.</p>
+<p class="check">Your sender is verified, live Twilio credentials are saved, Romania is enabled and your receiving phone is ready. No local test command sends SMS.</p></section>
+<section id="step-6"><h2>6. Firebase push notifications</h2>
+<ol><li>Use your existing <a href="https://console.firebase.google.com/">Firebase project</a> and Android app <code>ro.rezerva.app</code>.</li><li>Keep <code>google-services.json</code> at <code>android/app/google-services.json</code>. This is Android configuration, not the private service-account JSON.</li><li>The uploaded Groovy Gradle project already applies the Google Services plugin and receives Firebase Messaging through Capacitor Push Notifications. Do not paste duplicate Kotlin DSL plugin blocks or add Analytics just because the Firebase wizard shows it.</li><li>Enable FCM HTTP v1 for that project. Grant a dedicated service account the needed send permission; Firebase Cloud Messaging API Admin is an applicable role. Follow your organization's key policy.</li><li>Store its full private JSON as <code>GCLOUD_SERVICEACCOUNT_KEYS</code>, and the Firebase project ID as <code>FIREBASE_PROJID</code>. The JSON's project, Android configuration and this ID must match for this setup.</li><li>After installation, sign in, enable notifications in the app and allow Android's prompt. The app creates channel <code>rezerva_bookings</code> and stores its FCM token in <code>public.device_tokens</code>.</li></ol>
+<p>Keep private JSON outside source control and never give it a <code>VITE_</code> name. <a href="https://capacitorjs.com/docs/apis/push-notifications">Capacitor push setup</a>.</p>
+<p class="note">Launcher: your full-color PNG. Notifications: transparent white R with red tint. Native launch splash: logo-only on white, implemented with the existing AndroidX dependency. The unused Capacitor SplashScreen configuration was removed; no extra plugin is needed.</p></section>
+<section id="step-7"><h2>7. All exact secret names</h2>
+<p>In Supabase → <strong>Edge Functions → Secrets</strong>, add/update the relevant names and paste their values privately. Keep unrelated settings unchanged. After saving, deploy the updated functions.</p>
+<div class="table"><table><thead><tr><th>Exact name</th><th>Value / purpose</th></tr></thead><tbody>
+<tr><td><code>TWILLIO_ACCOUNT_SID</code></td><td>Live Twilio account SID, AC…; two Ls.</td></tr><tr><td><code>TWILLIO_AUTH_TOKEN</code></td><td>Live Auth Token for the same account; two Ls.</td></tr><tr><td><code>TWILIO_VERIFY_SERVICE_SID</code></td><td>Verify SMS service SID, VA…; spelling unchanged.</td></tr>
+<tr><td><code>GCLOUD_SERVICEACCOUNT_KEYS</code></td><td>Complete private service-account JSON including type, project_id, client_email, private_key. Dashboard value: raw JSON, not a path, Base64 or extra outer quoted string.</td></tr><tr><td><code>FIREBASE_PROJID</code></td><td>Firebase project ID, not numeric project number.</td></tr><tr><td><code>RESEND_API_KEY</code></td><td>Resend sending API key.</td></tr><tr><td><code>INVITE_FROM_EMAIL</code></td><td><code>Rezervari.ai &lt;support@rezervari-ai.com&gt;</code>.</td></tr><tr><td><code>CRON_SECRET</code></td><td>Long random secret shared only with the scheduler's Vault entry.</td></tr><tr><td><code>ALLOWED_ORIGINS</code></td><td><code>https://localhost</code> for the Android WebView. Add only other actual frontend origins when needed; no wildcard.</td></tr><tr><td><code>ENROLLMENT_WEB_URL</code></td><td>Optional <code>https://rezervari-ai.com/verify.html</code>, only once hosted.</td></tr><tr><td><code>INVITE_WEB_URL</code></td><td>Optional <code>https://rezervari-ai.com/invite.html</code>, only once hosted.</td></tr><tr><td><code>REVENUECAT_SECRET_API_KEY</code></td><td>Server API key, needed for billing.</td></tr><tr><td><code>REVENUECAT_ENTITLEMENT_ID</code></td><td><code>business_pro</code>, matching your existing RevenueCat configuration.</td></tr><tr><td><code>REVENUECAT_WEBHOOK_AUTH</code></td><td>Long random Authorization header value, identical in RevenueCat's webhook settings.</td></tr>
 </tbody></table></div>
-<p>Generate your cron secret locally:</p>
-<pre><code class="language-bat">node -e &quot;console.log(require(&#39;node:crypto&#39;).randomBytes(32).toString(&#39;hex&#39;))&quot;
-</code></pre>
-<p>Keep this value private. Hosted Supabase functions already receive their Supabase URL and service credentials. Do not put server secrets into root <code>.env</code> or any variable beginning <code>VITE_</code>. Leave the optional web landing URLs unset.</p>
-<p class="checkpoint"><strong>Check:</strong> every row above is configured in Supabase. The Firebase JSON is a JSON object with its original escaped key newlines, not an extra JSON-quoted string.</p>
-</section><section id="step-8"><h2>8. Deploy backend functions and record migration history</h2>
-<p>From the app root in CMD:</p>
-<pre><code class="language-bat">npm install --save-dev supabase
-npx supabase login
+<h3>Google OAuth — enter values in hosted Auth settings</h3>
+<div class="table"><table><thead><tr><th>Your name</th><th>Supabase Authentication → Google provider</th></tr></thead><tbody><tr><td><code>SUPABASEGOOGLEOAUTH_CLIENTID</code></td><td>Paste its value into Client ID / Client IDs.</td></tr><tr><td><code>SUPABASEGOOGLEOAUTH_CLIENTSECRET</code></td><td>Paste its value into Client Secret.</td></tr></tbody></table></div>
+<p>Custom Edge secrets with those OAuth names may remain stored, but they do not configure hosted Auth automatically. Supabase manages <code>SUPABASE_URL</code>, <code>SUPABASE_ANON_KEY</code> and <code>SUPABASE_SERVICE_ROLE_KEY</code> for hosted functions; do not rename them or copy the service-role key into the app.</p>
+<p>Generate a new scheduler secret locally if you do not already have one:</p>
+<pre><code>node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"</code></pre>
+<p>Save it privately as CRON_SECRET and the matching Vault value. Do not share its terminal output. Never import a blank example file over configured live secrets.</p></section>
+<section id="step-8"><h2>8. CLI link, migration history and deployment</h2>
+<h3>8.1 — Authenticate and link this folder</h3>
+<pre><code>npx supabase login --no-browser
 npx supabase link --project-ref YOUR_PROJECT_REF
-</code></pre>
-<p>Replace <code>YOUR_PROJECT_REF</code>. Do not run <code>supabase init --force</code>; the project already includes function configuration. Since Step 3 applied SQL manually, record those exact successful migrations:</p>
-<pre><code class="language-bat">npx supabase migration repair 001 --status applied
+npx supabase migration list</code></pre>
+<p>Replace YOUR_PROJECT_REF. Follow the URL/code shown in the terminal; open it manually if Git Bash does not launch a browser. If necessary use the personal-access-token login prompt from Windows CMD. Do not put tokens in shell history or disable TLS. Skip login/link if already authenticated and linked to the correct project.</p>
+<h3>8.2 — Only for successfully applied manual SQL</h3>
+<p>If SQL Editor execution completed but the CLI Remote column is empty, verify the full migration history and database objects first. Then mark only the versions actually completed:</p>
+<pre><code>npx supabase migration repair 001 --status applied
 npx supabase migration repair 002 --status applied
 npx supabase migration repair 003 --status applied
 npx supabase migration repair 004 --status applied
-npx supabase migration list
-</code></pre>
-<p>Repair only records history. Never mark a failed or unapplied migration as applied. If you used the full guide&#39;s CLI <code>db push</code> method instead of manual SQL, skip repair; CLI already recorded it.</p>
-<p>Deploy:</p>
-<pre><code class="language-bat">npx supabase functions deploy enrollment --use-api
-npx supabase functions deploy send-calendar-invite --use-api
-npx supabase functions deploy send-reminders --use-api
-</code></pre>
-<p>The <code>--use-api</code> option avoids needing Docker for this deployment. Function-level authentication in the source must stay intact. RevenueCat&#39;s two functions can wait until you set up Play billing.</p>
-<p class="checkpoint"><strong>Check:</strong> the three functions appear in your intended Supabase development project, and migration history lists 001, 002, 003 and 004.</p>
-</section><section id="step-9"><h2>9. Configure the Android app and install it</h2>
-<p>Edit root <code>.env</code>, not the example file:</p>
-<pre><code class="language-env">VITE_APP_MODE=live
+npx supabase migration repair 005 --status applied
+npx supabase migration list</code></pre>
+<p>Repair changes history, not schema. It does not validate or run missing SQL. Do not mark partial/failed migrations complete, reset the database, or blindly push old migrations.</p>
+<h3>8.3 — Functions from the previous update (no QR redeployment required)</h3>
+<pre><code>npx supabase functions deploy enrollment --use-api
+npx supabase functions deploy send-reminders --use-api</code></pre>
+<p>Fresh setup only: also deploy invitations:</p>
+<pre><code>npx supabase functions deploy send-calendar-invite --use-api</code></pre>
+<p>For billing, additionally deploy <code>sync-subscription</code> and <code>revenuecat-webhook</code>. <code>--use-api</code> uses hosted bundling without local Docker. The supplied function configuration uses internal user-JWT/cron-secret/webhook checks instead of gateway JWT verification; do not remove those internal checks.</p>
+<p class="check">Deployments succeed in the correct project. No deployment was run while preparing this archive.</p></section>
+<section id="step-9"><h2>9. Build and install on Android</h2>
+<h3>9.1 — Frontend settings</h3><p>Keep your real public Supabase values and set:</p>
+<pre><code>VITE_APP_MODE=live
 VITE_ENABLE_LICENSE_REDEMPTION=true
-VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_CLIENT_KEY
-VITE_AUTH_REDIRECT_URL=ro.rezerva.app://auth/callback
-</code></pre>
-<p>Copy your project&#39;s client publishable key or legacy anon key into <code>VITE_SUPABASE_ANON_KEY</code>. NEVER use a service-role or secret key. RevenueCat may stay blank while using the license route.</p>
-<pre><code class="language-bat">npm run check
+VITE_AUTH_REDIRECT_URL=ro.rezerva.app://auth/callback</code></pre>
+<p><code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> are required. Use a publishable/anon key, never service-role. RevenueCat's Google public SDK key is optional for the authorized license path. Use real support/privacy/deletion URLs; a URL alone does not implement deletion.</p>
+<h3>9.2 — Generate assets with a command</h3>
+<pre><code>npm run assets</code></pre>
+<p>Windows CMD alternative: <code>tools\generate-android-assets.cmd</code>. Canonical source: <code>assets/icon-only.png</code>, byte-for-byte as uploaded. Generated inputs: <code>assets/generated/</code>. Android outputs: <code>android/app/src/main/res/</code>. Older SVGs are retained but unused. If changing artwork later, review the source-relative R crop in <code>tools/prepare-android-assets.mjs</code>.</p>
+<p>White icon-only splash in light/dark mode; Android controls its duration. The existing AndroidX SplashScreen dependency implements launch behavior, without an extra Capacitor plugin. <a href="https://developer.android.com/develop/ui/views/launch/splash-screen/migrate">Android splash guidance</a>.</p>
+<h3>9.3 — Checks, sync and Studio</h3>
+<pre><code>npm run check
 npm run typecheck
-npm test
+npm run test:local
+npm run check:phone
 npm run android:sync
-npm run android:open
-</code></pre>
-<p>Do not run <code>android:add</code>: the folder already exists. Let Android Studio finish Gradle sync, selecting JDK 21. On your phone enable Developer options and USB debugging, connect a data-capable USB cable and accept the authorization prompt. Select your phone and the <code>app</code> configuration in Android Studio; click <strong>Run</strong>.</p>
-<p>If the phone is not listed, check its USB driver/cable and Android Studio&#39;s device troubleshooting. The phone needs internet for real services, but no running laptop Vite server. Rebuild/sync and Run again after changing frontend <code>.env</code> values.</p>
-<p class="checkpoint"><strong>Check:</strong> Rezerva opens on your phone. Google login opens a real account chooser and creates a Google identity in Supabase Auth. Instant login as <code>andrei@demo.ro</code> means you installed a demo build.</p>
-</section><section id="step-10"><h2>10. Enroll and approve your test business</h2>
-<ol>
-<li>Choose <strong>Reprezint o afacere</strong> and sign in with <strong><a href="mailto:davidnicolaparaschiv@gmail.com">davidnicolaparaschiv@gmail.com</a></strong>.</li>
-<li>Choose <strong>Înregistrează propria afacere</strong> → <strong>Am o cheie de licență</strong> → enter <strong><code>dev112233</code></strong> → activate and continue.</li>
-<li>Enter your test-business name, category, address and unique CUI-format value. In this isolated development DB use test data, not another company&#39;s identity. Enter <strong>David&#39;s same Gmail as the contact email</strong> and your real Romanian mobile number.</li>
-<li>Submit the form and open the actual verification email. Confirm it while signed into the account that submitted the request.</li>
-<li>Request the SMS and enter the real code received. <code>123456</code> is only for offline demo and is not a live bypass.</li>
-<li>Request approval; open the approval email in David&#39;s inbox and approve while signed into that Google account.</li>
-<li>Refresh enrollment status and continue. Create a calendar, service, duration and opening hours.</li>
-</ol>
-<p>If your email client refuses the app link, copy the fallback code from the email into <strong>Confirmă un link de înscriere</strong>. If you switch accounts, reopen the link or paste it again; sign-out clears pending links. Do not edit DB verification flags manually.</p>
-<p class="checkpoint"><strong>Check:</strong> before final approval there is only a private pending request. After approval, <code>public.businesses</code> contains the business. <code>dev112233</code> grants this authorized account five calendars for 30 days; it does not bypass enrollment.</p>
-</section><section id="step-11"><h2>11. Schedule and test real reminders</h2>
-<p>The reminder queue is already <code>public.notification_jobs</code>. No separate message broker is required.</p>
-<p>In Supabase enable <strong>pg_cron</strong> and <strong>pg_net</strong>, and make sure Vault is available. In Vault create:</p>
-<ul>
-<li><code>rezerva_project_url</code>: your Supabase project URL, without a trailing slash.</li>
-<li><code>rezerva_cron_secret</code>: EXACTLY the same value as your Edge Function&#39;s <code>CRON_SECRET</code>.</li>
-</ul>
-<p>In SQL Editor, check no schedule named <code>rezerva-reminders</code> already exists:</p>
-<pre><code class="language-sql">select jobid, jobname, active from cron.job
-where jobname = &#39;rezerva-reminders&#39;;
-</code></pre>
-<p>If none exists, run:</p>
-<pre><code class="language-sql">select cron.schedule(&#39;rezerva-reminders&#39;, &#39;* * * * *&#39;, $job$
+npm run android:open</code></pre>
+<ol><li>Connect and unlock the phone; accept the USB debugging prompt.</li><li>Let Studio sync Gradle. Confirm JDK 21 and SDK 36, choose the phone, then click Run ▶.</li><li>Install SDK components requested by Gradle. Do not upgrade unrelated packages to hide a build error.</li><li>Launch from the home screen to inspect the icon/splash; sign in and allow notifications.</li></ol>
+<p>Optional Git Bash terminal build/install once JDK and SDK are configured:</p>
+<pre><code>cd android
+./gradlew.bat assembleDebug
+./gradlew.bat installDebug
+cd ..</code></pre>
+<p>Output: <code>android/app/build/outputs/apk/debug/app-debug.apk</code>. Use Studio to choose a device if several are connected. A signing mismatch may require uninstalling an old app, which loses local sessions/data; do not uninstall blindly.</p>
+<p class="check">Re-run android:sync after frontend/config changes, then rebuild. Backend changes need function deployment instead.</p></section>
+<section id="step-10"><h2>10. Enroll a business with real services</h2>
+<ol><li>Choose Business and sign in as <code>davidnicolaparaschiv@gmail.com</code> for the existing developer-license path.</li><li>Enter <code>dev112233</code> when asked for a license. The server limits this key to the verified platform owner. It grants Complete access for 30 days; there is no global payment-skip flag.</li><li>Submit business name/details, CUI, contact email you control and your Romanian mobile.</li><li>Open the real email verification link on the phone, signed in as the initiating account, and confirm. If the mail app blocks the link, paste the fallback code into <strong>Confirmă un link de înscriere</strong>.</li><li>Request the SMS and enter the actual received code. This is a paid Verify request, not a demo code.</li><li>Request platform approval. The email goes to the fixed owner from the database. Open as David, review and approve.</li><li>Refresh status and create calendars, event types, durations and available hours. Use a different Google account for the customer test.</li></ol>
+<p>A pending request is stored privately. The active business appears in <code>public.businesses</code> only after verified approval. The developer license bypasses neither email nor SMS nor admin approval. Do not edit verification flags manually.</p>
+<p>Other owners need a valid email-bound license through the existing local license-generator/admin SQL workflow or a verified purchase. Do not assume dev112233 works for every user or is a production secret.</p></section>
+<section id="step-11"><h2>11. Schedule reminders — no extra broker</h2>
+<p><code>public.notification_jobs</code> is the queue. Supabase scheduling calls the send-reminders worker, which sends FCM messages. RabbitMQ/Kafka are not required.</p>
+<ol><li>Enable <strong>pg_cron</strong> and <strong>pg_net</strong>; ensure Vault is available.</li><li>In Vault create <code>rezerva_project_url</code>: Supabase project HTTPS URL with no trailing slash.</li><li>Create <code>rezerva_cron_secret</code>: exactly the existing Edge <code>CRON_SECRET</code>. Keep its value private.</li></ol>
+<p>Check first:</p><pre><code>select jobid, jobname, schedule, active
+from cron.job where jobname = 'rezerva-reminders';</code></pre>
+<p>Only if absent, run once in SQL Editor. This starts recurring processing of due jobs:</p>
+<pre><code>select cron.schedule('rezerva-reminders', '* * * * *', $job$
   select net.http_post(
     url := (select decrypted_secret from vault.decrypted_secrets
-            where name = &#39;rezerva_project_url&#39;)
-           || &#39;/functions/v1/send-reminders&#39;,
+            where name = 'rezerva_project_url')
+           || '/functions/v1/send-reminders',
     headers := jsonb_build_object(
-      &#39;Content-Type&#39;, &#39;application/json&#39;,
-      &#39;x-cron-secret&#39;, (select decrypted_secret from vault.decrypted_secrets
-                        where name = &#39;rezerva_cron_secret&#39;)
+      'Content-Type', 'application/json',
+      'x-cron-secret', (select decrypted_secret from vault.decrypted_secrets
+                        where name = 'rezerva_cron_secret')
     ),
-    body := &#39;{}&#39;::jsonb,
+    body := '{}'::jsonb,
     timeout_milliseconds := 10000
   );
-$job$);
-</code></pre>
-<p>Keep just one schedule. Enable app notifications, grant the Android permission, and confirm <code>public.device_tokens</code> has a row for the phone&#39;s signed-in user. Do not publish its token.</p>
-<p>Use another phone or browser session as a customer (add that Google account as an OAuth test user). Customers do not require Resend emails or a business subscription. Search for your approved business and create a future booking. Choose the reminder interval before booking; ensure its send time is still in the future. Refresh the business calendar to see the booking. Background the app on the intended notification device without force-stopping it.</p>
-<p class="checkpoint"><strong>Check:</strong> the booking is visible on both sides after refresh and a real push reaches the phone. Check Supabase function logs if not. A cron success or <code>sent</code> job is not proof of phone delivery. Current worker limitations are documented in the full guide.</p>
-</section><section id="step-12"><h2>12. Later: invitations to others and Play billing</h2>
-<p>Your own-account email test works without a domain. Email invitations to OTHER staff addresses require a verified sending domain or a different email integration. Do not route other people&#39;s verification messages to David to simulate ownership.</p>
-<p>For Play billing, follow full guide Steps 19–21: products <code>rezerva_small_monthly</code> and <code>rezerva_large_monthly</code>, RevenueCat entitlement <code>business_pro</code>, a current Offering, server credentials/webhook, and a private Play internal-testing release with license testers. You do not need a public Play release. Confirm the checkout displays test payment methods.</p>
-<p>Use a business account without an active five-calendar license to test the one-calendar purchase limit. A free license would otherwise hide the billing result. Keep sandbox payment acceptance enabled only in the development database.</p>
-<p class="checkpoint"><strong>Check:</strong> do not claim staff email delivery or Google Play payments are tested until those real integrations pass. You can finish Steps 1–11 using your authorized license without setting up billing.</p>
-</section><section id="step-13"><h2>What was verified in this archive</h2>
-<p>Source checks, JS type checks, 34 automated tests, Vite build and Android asset/plugin sync. The automated tests use a simulated DOM and in-memory PostgreSQL. Android compilation, phone rendering and all provider integrations must still be tested on your machine. No real messages were sent and no services were deployed during packaging.</p>
-<p>See <a href="docs/VERIFICATION.md">docs/VERIFICATION.md</a> for details. Keep credentials and signing keys private. The included policy links are placeholders and must be replaced before release.</p>
-</section></main></div>
-<footer>This guide works offline. External documentation links require internet. Use Ctrl+P to print or save a PDF. No account credentials are included.</footer>
-</body></html>
+$job$);</code></pre>
+<p>Read-only diagnostics:</p>
+<pre><code>select jobid, status, return_message, start_time
+from cron.job_run_details order by start_time desc limit 10;
+select id, status_code, timed_out, error_msg
+from net._http_response order by created desc limit 10;
+select id, send_at, status, attempts, last_error
+from public.notification_jobs order by created_at desc limit 20;</code></pre>
+<p>A successful cron query does not prove HTTP success or phone delivery. Inspect HTTP status, Edge logs and the phone. Keep one schedule; paused projects cannot process reminders. <a href="https://supabase.com/docs/guides/functions/schedule-functions">Supabase scheduler pattern</a>.</p>
+<p class="warn">Push is best-effort, not an exact alarm. This existing worker can mark jobs sent when no device token exists: register your phone first. Jobs stranded in processing by a crash have no automatic recovery here. This update documents those limits without redesigning the queue.</p></section>
+<section id="step-12"><h2>12. Manual phone checklist</h2>
+<ul><li><strong>Login:</strong> sign in, sign out, restart and repeat. All required Google test accounts must be in the OAuth audience while in Testing.</li><li><strong>Enrollment:</strong> actual email, SMS and fixed-owner approval; wrong accounts and invalid/expired links should fail.</li><li><strong>Bookings:</strong> create as customer, inspect as business, attempt the same capacity again and cancel through the app.</li><li><strong>Invites:</strong> send to another Google account you control. Confirm only the invited calendars are accessible. Use your verified Resend sender.</li><li><strong>Plans:</strong> Small has one calendar/no business reports or reminders; Complete has five with both. Customer reminders remain available.</li><li><strong>Push:</strong> enable/register the phone and choose reminder timing before making a booking sufficiently far ahead, such as 15 minutes ahead with a 5-minute reminder. Allow for the one-minute scheduler interval. Check both customer and eligible business devices.</li><li><strong>Android:</strong> check foreground, background and screen-locked notifications. Check channel settings if muted. Force-stopping the app can prevent delivery until reopened; battery restrictions can delay it.</li><li><strong>Security:</strong> no private keys in source/APK, no disabled RLS, no publicly exposed private schema. Do not share private logs, tokens or customer details.</li></ul>
+<p>The manifest includes internet, network state, notifications, wake lock, vibration and Play billing. It does not request SMS read/send, contacts, device calendar, storage, location or exact-alarm access. The QR scanner delegates its camera screen to Google Play services, so this app does not need its own CAMERA permission. Camera hardware is optional: customers can still display their QR without a camera.</p>
+<p class="check">These manual checks establish your real setup's behavior. Offline tests cannot certify delivery or external credentials.</p></section>
+<section id="step-13"><h2>13. Billing and release boundaries</h2>
+<p>Booking/enrollment/push work in the private debug workflow with an authorized license. Purchases additionally need Play and RevenueCat configuration; a billing permission alone is insufficient.</p>
+<ol><li>Create the Play app with package <code>ro.rezerva.app</code>. Configure subscriptions <code>rezerva_small_monthly</code> and <code>rezerva_large_monthly</code> with active monthly base plans and intended €50/€150 prices. Checkout pricing comes from Play, not just app labels.</li><li>Connect RevenueCat using the required Play API credentials. Put both products in the current offering and attach entitlement <code>business_pro</code>.</li><li>Set the public Google SDK key in <code>VITE_REVENUECAT_GOOGLE_API_KEY</code>. Server key and webhook Authorization belong only in Edge secrets.</li><li>Deploy sync-subscription and revenuecat-webhook. Set RevenueCat's webhook to <code>https://YOUR_PROJECT_REF.supabase.co/functions/v1/revenuecat-webhook</code>, with Authorization exactly matching <code>REVENUECAT_WEBHOOK_AUTH</code>.</li><li>Use configured Play license testers or an internal testing track. License testers can also sideload matching-package debug builds; an unconfigured sideload alone is not sufficient. Internal-track purchases can incur charges unless the buyer is a license tester using test payment methods. <a href="https://developer.android.com/google/play/billing/test">Play billing testing rules</a>.</li></ol>
+<p>Before public release, review signing, real policy/support/deletion pages and deletion workflow, privacy declarations, provider compliance, backups/monitoring, abuse controls, the developer-license path and queue recovery. QR lookup is now included; automatic arrival/check-in marking is deliberately not part of scanning. These release requirements are not certified by this update.</p></section>
+<section id="qr-setup"><h2>QR update — install and test</h2>
+<h3>QR.1 — Apply only the new migration</h3>
+<ol><li>Open your existing Supabase project → SQL Editor.</li><li>Open <code>supabase/migrations/005_reservation_qr.sql</code> from this ZIP, copy the complete file into a new query and run it once. It assumes 001–004 already succeeded. Do not rerun old migrations.</li><li>After success, run these read-only checks:</li></ol>
+<pre><code>select to_regclass('private.booking_qr_tokens'),
+       to_regprocedure('public.get_customer_booking_qr(uuid)'),
+       to_regprocedure('public.resolve_booking_qr(text,uuid)');</code></pre>
+<p>All three results should be non-null. Keep the private schema unexposed. The app must never receive a service-role key to call these functions.</p>
+<p>After the SQL completed, record its history from the correctly linked folder in Git Bash:</p>
+<pre><code>npx supabase migration repair 005 --status applied
+npx supabase migration list</code></pre>
+<p>If it was already applied through CLI, do not repair it again. If this extracted folder is not linked, follow Step 8.1 first. History repair does not execute missing SQL. QR requires no Edge Function deployment and no new secrets.</p>
+<h3>QR.2 — Install dependencies and rebuild the debug APK</h3>
+<pre><code>npm ci
+npm run check
+npm run typecheck
+npm run test:local
+npm run check:phone
+npm run android:sync
+npm run android:open</code></pre>
+<p>In Android Studio, use JDK 21 / SDK 36, let Gradle download the declared dependencies, select your USB-debugging phone and click Run ▶. Native changes require a rebuild/reinstall; syncing JavaScript alone cannot add the scanner to an already installed APK.</p>
+<p>No additional npm plugin command is needed. A small local Capacitor bridge is already registered in MainActivity; Gradle includes <code>com.google.android.gms:play-services-code-scanner:16.1.0</code> for scanning and <code>com.google.zxing:core:3.5.4</code> for local QR generation. Your existing icons and splash are unchanged; <code>npm run assets</code> remains available but is not required for the QR update.</p>
+<h3>QR.3 — Google Play services on the phone</h3>
+<p>Keep Google Play services up to date and internet available. The scanner's optional module may download on first use, especially with a sideloaded debug APK. If the first scan cannot start, check connectivity and retry after the module downloads. The manifest includes the Play-install download hint <code>barcode_ui</code>, but a debug sideload should not assume install-time download has already happened.</p>
+<p>The scanner uses Google's camera UI, so you should <strong>not</strong> expect a CAMERA permission prompt from Rezerva. It returns the decoded value; the app validates the format and then checks the booking through Supabase. <a href="https://developers.google.com/ml-kit/vision/barcode-scanning/code-scanner">Google scanner setup</a>. QR encoding uses <a href="https://zxing.github.io/zxing/apidocs/com/google/zxing/qrcode/QRCodeWriter.html">ZXing</a> locally, not a public QR-image website.</p>
+<h3>QR.4 — Customer: display only</h3>
+<ol><li>Use <code>VITE_APP_MODE=live</code>. Sign in through <strong>Sunt client</strong> and create a real booking for your approved test business.</li><li>Open <strong>Programările mele</strong>, then tap the QR icon on the reservation.</li><li>The screen displays that reservation's black-and-white QR plus its date, business, service and current status. There is no scanner button for customers.</li><li>The customer needs internet to retrieve the booking/QR. The QR itself is stable for that booking, including bookings created before this update. A screenshot can be shown later, but the business must still fetch its current status online.</li></ol>
+<h3>QR.5 — Business: scan and open the reservation</h3>
+<ol><li>Display the customer's QR on a second phone, or use a screenshot/printout on your own computer. A phone cannot point its camera at its own screen. Avoid public QR-generation or sharing sites.</li><li>On the scanning phone sign in through <strong>Reprezint o afacere</strong> as the owner or an invited member with access to that calendar.</li><li>Open the business home screen → <strong>Scanează programarea</strong>. Select the correct business and tap <strong>Scanează QR-ul clientului</strong>.</li><li>Point the camera at the entire QR. The app opens current reservation details: business, service, calendar, customer name/email, date/time and status. Cancelled/completed/no-show reservations retain their real status; a scan never reactivates them.</li><li>Try the same code as an unrelated company or a staff account without access to that calendar. Details must be refused. Revoking a staff invitation's access also blocks subsequent lookups.</li><li>Cancel the scanner and scan again. Cancellation must not open an old result or change any booking.</li></ol>
+<p>An Android camera app that recognizes <code>ro.rezerva.app://reservation?token=…</code> can also open Rezerva. Sign-in and database checks still apply. The built-in scanner is the reliable app workflow; third-party camera apps differ in custom-link handling. If scanning is unavailable, authorized staff can use the manual code/link field. It never opens arbitrary web URLs.</p>
+<p class="note">QR is a private lookup reference, not an identity document, payment proof or one-time admission ticket. Staff should check the returned customer, date and status. Both plans support read-only lookup; existing history stays readable under the same calendar permissions even after a plan expires. Only the actual booking customer can request its QR through the customer endpoint. Business staff do not get a “show QR” action.</p>
+<h3>QR.6 — Optional native local test</h3>
+<p>The Node suite covers real SQL and mocked native/UI contracts. To also run the included Java encoder round-trip test on your Windows development environment:</p>
+<pre><code>cd android
+./gradlew.bat testDebugUnitTest
+./gradlew.bat assembleDebug
+./gradlew.bat installDebug
+cd ..</code></pre>
+<p>Gradle may download build dependencies. These unit tests send no SMS, email, push or purchases. Camera hardware, scanner-module download, app-link handoff and actual phone display still need the manual test. No native Gradle test/build was run in this preparation environment.</p></section>
+<section id="phone-readiness"><h2>What is still needed for your unpublished phone test?</h2>
+<p>No public Play Store release is required for Google login, bookings, email/SMS verification, invitations, push or QR lookup. Google sign-in uses a browser tab, but your app itself runs as an installed debug APK. Here is what can be confirmed locally versus what you must still check:</p>
+<div class="table"><table><thead><tr><th>Item</th><th>Status / action</th><th>Needed now?</th></tr></thead><tbody>
+<tr><td>Frontend connection</td><td>The retained files have live mode, public Supabase configuration and the expected Android callback. <code>check:phone</code> validates structure, not connectivity.</td><td>Yes</td></tr>
+<tr><td>Firebase Android file</td><td>The retained <code>google-services.json</code> contains <code>ro.rezerva.app</code>. Compare its project to FIREBASE_PROJID / the private JSON in Supabase.</td><td>Yes, for push</td></tr>
+<tr><td>Migration 005</td><td>Apply once and confirm the private table / both RPCs exist. Hosted state was not inspected.</td><td>Yes, for QR</td></tr>
+<tr><td>Android build tools</td><td>Node 24, JDK 21, SDK 36, USB debugging, Gradle dependency download and native APK rebuild. Your phone needs Google Play services.</td><td>Yes</td></tr>
+<tr><td>Google OAuth</td><td>Google provider enabled in Supabase with your Web client credentials; callback allowed; both owner and customer accounts added to Google's Testing audience if applicable.</td><td>Yes</td></tr>
+<tr><td>Email and SMS</td><td>Verified Resend domain/sender; live paid Twilio credentials and Verify service; Romania enabled; enroll via real email, SMS and David's approval.</td><td>Yes, for full enrollment/invites</td></tr>
+<tr><td>Reminders</td><td>FCM server credentials; deployed send-reminders; matching CRON_SECRET/Vault; one active scheduler; registered phone token and notifications enabled.</td><td>Yes, for push</td></tr>
+<tr><td>License</td><td>Use dev112233 only as verified David for the existing 30-day Complete developer grant, or an email-bound issued license. It does not bypass enrollment.</td><td>Yes, unless testing purchases</td></tr>
+<tr><td>RevenueCat public key</td><td>The retained frontend key is missing or not a configured Google SDK key. Set it and complete Play/RevenueCat setup only when testing purchases.</td><td>Not for the license-based flow</td></tr>
+<tr><td>Support/privacy/deletion links</td><td>The retained frontend URLs still need real destinations. Your intended privacy page is <code>https://rezervari-ai.com/privacy-policy</code>; confirm it is hosted before setting VITE_PRIVACY_URL. Terms: <code>https://rezervari-ai.com/terms-of-service</code>. A real deletion workflow remains separate work.</td><td>Not a QR/debug-build blocker; needed for complete policy/release flows</td></tr>
+<tr><td>HTTPS email landing pages</td><td>Optional. Until hosted, keep INVITE_WEB_URL / ENROLLMENT_WEB_URL unset and use direct app links or fallback codes.</td><td>Optional</td></tr>
+<tr><td>Second display</td><td>Show the customer's QR on another screen or printout while your phone scans as the business.</td><td>Yes, for camera testing</td></tr>
+</tbody></table></div>
+<p class="warn">I cannot confirm your hosted secrets, DNS, scheduler or delivery without live checks, and none were run. The checklist identifies required settings, not a claim that those settings are missing from your online accounts. Follow Steps 4–11 only for anything not already configured.</p></section>
+<section id="backend-tests"><h2>Backend tests: local versus live</h2>
+<h3>Local-only verification</h3><pre><code>npm run test:local
+npm run check
+npm run typecheck
+npm run check:phone</code></pre>
+<p>test:local runs every tests/*.test.mjs, including in-process PostgreSQL/PGlite integration checks and mocked external/native contracts. No real provider credentials or paid messages are used. <code>npm run test:qr</code> runs the focused QR checks. test:backend:local includes the new QR database tests. JavaScript still uses @ts-check; no TypeScript app source was introduced.</p>
+<h3>Optional live harness — not run here</h3>
+<p><code>npm run test:backend:setup</code> creates a private configuration from <code>.env.backend.example</code>, without overwriting existing settings. It is setup, not an integration test. If <code>.env.backend.local</code> already exists, manually rename its Twilio/Firebase entries; the setup command intentionally leaves them untouched.</p>
+<p>A future deliberate live run requires a matching Supabase URL, public key and project ref, <code>BACKEND_TEST_ENVIRONMENT=development</code>, and explicit <code>BACKEND_TEST_ENABLED=true</code>. Use only recipients/accounts/devices and records you control.</p>
+<p>Firebase's harness accepts <strong>either</strong> full JSON in <code>GCLOUD_SERVICEACCOUNT_KEYS</code> <strong>or</strong> a private JSON path in <code>FIREBASE_SERVICE_ACCOUNT_FILE</code>, never both. Example Windows path: <code>C:/Users/David/private/firebase-service-account.json</code>. Inline JSON in an env file must be one line enclosed in single quotes to preserve the JSON PEM <code>\n</code> escapes. <code>FIREBASE_PROJID</code> is required either way. Never source this file in Bash.</p>
+<p class="warn">Do not run test:backend, test:backend:db, test:backend:all or live login/send/workflow commands for this local verification. They contact external services; some can create data or incur message charges and require explicit opt-in flags. Even read-only smoke is a live integration run.</p></section>
+<section id="verification"><h2>What was checked — and what was not</h2>
+<p class="check">Preparation results: 76 local tests passed; lint, JavaScript typechecking, the Vite build and Capacitor Android sync passed.</p>
+<ul><li>Local contracts cover manifest/deep links, notification behavior, icons/splash, customer-only QR display, business-only scanning and cancellation.</li><li>Migration 005 is executed in local PostgreSQL/PGlite tests: customer ownership, business/calendar isolation, staff revocation, both plans, invalid codes, repeated scans and current reservation status.</li><li>Secret names and the original four migrations are preserved. Only migration 005 is added. No credentials are embedded in this guide.</li><li>Native Java QR round-trip tests are included for your Android Gradle environment. Their commands are in QR.6 above; they were not executed in this runtime.</li></ul>
+<p class="warn">No live integration tests, deployments, SMS, email, push or purchases were run. Native Gradle compilation and phone execution require JDK 21, SDK 36 and your device and are not claimed as verified here. This is a source ZIP, not an APK.</p>
+<p>Preparation used preinstalled local dependencies because installation was blocked in this runtime. All top-level versions matched the lockfile except the available Sharp image engine (0.35.4 used here versus locked 0.32.6). The portable asset script uses APIs supported by both. Run a normal <code>npm ci</code> and the local checks on Windows to verify your installed environment. HTML structure/navigation was tested locally; a browser-rendering engine was unavailable here.</p>
+<p>Android sync refreshes generated web bundles from current source, replacing stale generated bundles from the uploaded archive. The original upload remains the reference for unchanged files.</p></section>
+</main></div><footer>Rezerva · Android-only workflow · Local checks do not certify live services.</footer></body></html>

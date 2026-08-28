@@ -50,7 +50,7 @@ export function safeError(error, config) {
     ? redact(error.message, config) : 'Unexpected local/database error; check configuration, TLS and permissions. Raw details withheld to protect secrets.';
 }
 export function consent(flags, ...required) {
-  for (const name of required) ensure(flags.has(name), `This operation requires --${name}; read BACKEND-TESTS.md first.`);
+  for (const name of required) ensure(flags.has(name), `This operation requires --${name}; read SETUP.html#backend-tests first.`);
 }
 export function recipient(config, name) {
   need(config, name);

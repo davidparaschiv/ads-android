@@ -15,8 +15,17 @@ export async function registerPushNotifications() {
 }
 async function register() {
   let permission = await PushNotifications.checkPermissions();
-  if (permission.receive === 'prompt') permission = await PushNotifications.requestPermissions();
+  if (permission.receive === 'prompt' || permission.receive === 'prompt-with-rationale') permission = await PushNotifications.requestPermissions();
   if (permission.receive !== 'granted') return { enabled: false, reason: 'denied' };
+  if (Capacitor.getPlatform() === 'android') {
+    await PushNotifications.createChannel({
+      id: 'rezerva_bookings', name: 'Programări',
+      description: 'Notificări și mementouri pentru programările tale',
+      // Omit sound to retain Android's default. This plugin interprets a string
+      // as the name of a bundled res/raw sound, not a "default" keyword.
+      importance: 4, visibility: 0, vibration: true,
+    });
+  }
   const handles = [];
   let timer;
   try {

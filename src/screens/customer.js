@@ -146,5 +146,14 @@ export async function customerBookingsScreen(root) {
     eyebrow: 'CONTUL MEU', title: 'Programările mele', nav: 'customer', active: 'bookings',
     content: `<div class="segmented"><button class="is-active">Viitoare</button><button>Istoric</button></div><section class="appointment-list">${future.map((booking) => `<article class="appointment-card"><div class="appointment-date"><strong>${new Date(`${booking.date}T12:00:00`).getDate()}</strong><span>${new Intl.DateTimeFormat('ro-RO',{month:'short'}).format(new Date(`${booking.date}T12:00:00`))}</span></div><div><small>${formatDate(booking.date)} · ${booking.time}</small><strong>${escapeHtml(booking.business)}</strong><span>${escapeHtml(booking.service)}</span></div><button class="icon-button" aria-label="Detalii">${icon('arrow')}</button></article>`).join('')}</section>`,
   });
+  if (store.get().role === 'customer') {
+    root.querySelectorAll('.appointment-card').forEach((card, index) => {
+      const button = card.querySelector('button');
+      if (!button) return;
+      button.setAttribute('data-route', `/customer/booking-qr?booking=${encodeURIComponent(future[index].id)}`);
+      button.setAttribute('aria-label', 'Arată QR-ul programării');
+      button.innerHTML = icon('qr');
+    });
+  }
   bindBack(root);
 }

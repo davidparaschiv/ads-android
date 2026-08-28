@@ -6,6 +6,8 @@ import { Preferences } from '@capacitor/preferences';
 import { config } from '../config.js';
 import { getSupabase } from '../api/supabase.js';
 import { store } from '../state/store.js';
+import { rememberReservationQr, hasPendingReservationQr, clearPendingReservationQr } from './qr-session.js';
+import { navigate } from '../router.js';
 
 let listenerInstalled = false;
 // In memory only: never persist invitation or license secrets in Preferences.
@@ -14,7 +16,7 @@ let pendingEnrollment = '';
 export const takePendingEnrollment = () => pendingEnrollment;
 export const clearPendingEnrollment = () => { pendingEnrollment = ''; };
 export const setDemoEnrollmentToken = token => { if (config.mode === 'demo') pendingEnrollment = token; };
-export const businessEntryRoute = () => pendingEnrollment ? '/business/enrollment-link' : pendingInvitation ? '/business/invite' : '/business/workspaces';
+export const businessEntryRoute = () => pendingEnrollment ? '/business/enrollment-link' : pendingInvitation ? '/business/invite' : hasPendingReservationQr() ? '/business/scan' : '/business/workspaces';
 export const takePendingInvitation = () => { const token = pendingInvitation; pendingInvitation = ''; return token; };
 export const hasPendingInvitation = () => Boolean(pendingInvitation);
 const businessRoute = businessEntryRoute;
@@ -22,6 +24,12 @@ const businessRoute = businessEntryRoute;
 async function handleUrl(url) {
   const parsed = new URL(url);
   if (parsed.protocol !== new URL(config.authRedirectUrl).protocol) return;
+  if (parsed.hostname === 'reservation') {
+    try { rememberReservationQr(url); } catch { return; }
+    await store.set({ role: 'business' });
+    navigate(store.get().user ? '/business/scan' : '/business/login');
+    return;
+  }
   if (parsed.hostname === 'enrollment') {
     const token = parsed.searchParams.get('token') || '';
     if (/^RZ[EA]-[A-F0-9]{64}$/.test(token)) {
@@ -113,6 +121,7 @@ export async function signOut() {
   }
   pendingInvitation = '';
   pendingEnrollment = '';
+  clearPendingReservationQr();
   await store.clear();
 }
 

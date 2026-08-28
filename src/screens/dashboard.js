@@ -17,6 +17,7 @@ export async function businessHomeScreen(root) {
     eyebrow: formatDate(todayIso()).toUpperCase(), title: escapeHtml(business.name), nav: 'business', active: 'home',
     content: `${accessNotice(access)}${hasBusinessFeature(access, 'reports') ? `<section class="dashboard-hero"><div><span>Astăzi</span><strong>${bookings.filter(b => b.status === 'confirmed').length}</strong><small>programări confirmate</small></div><div class="hero-orbit">${icon('calendar')}</div></section>` : ''}
       <div class="stack">${access.isOwner ? '<button class="button button--secondary" data-route="/business/team">Calendare și echipă</button><button class="text-button" data-route="/business/plans">Abonament și licență</button>' : '<p class="info-note">Vezi numai calendarele alocate. Abonamentul este administrat de proprietar.</p>'}
+      ${store.get().role === 'business' ? `<button class="button button--primary" data-route="/business/scan">${icon('qr')} Scanează programarea</button>` : ''}
       <button class="text-button" data-route="/business/workspaces">Schimbă afacerea · invitații · cont</button></div>
       <section class="list-section"><h2>Programările de astăzi</h2>${bookings.length ? bookings.map(bookingRow).join('') : '<p>Nu există programări astăzi.</p>'}</section>`,
   });

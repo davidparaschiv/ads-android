@@ -30,9 +30,9 @@ export async function inspectDatabase(config, check) {
   const db = await connectDb(config);
   try {
     await db.query('begin read only');
-    await check('Database: all four migration versions recorded', async () => {
+    await check('Database: all five migration versions recorded', async () => {
       const rows = (await db.query('select version from supabase_migrations.schema_migrations')).rows;
-      ensure(['001', '002', '003', '004'].every(v => rows.some(r => r.version === v)), 'Migration history is incomplete; apply/record only the SQL files that actually succeeded.');
+      ensure(['001', '002', '003', '004', '005'].every(v => rows.some(r => r.version === v)), 'Migration history is incomplete; apply/record only the SQL files that actually succeeded.');
     });
     await check('Database: required tables use RLS; private schema is not client-accessible', async () => {
       const names = ['profiles','businesses','business_members','subscriptions','resources','event_types','bookings','device_tokens','notification_jobs','calendar_members'];

@@ -13,7 +13,7 @@ export async function main(args = process.argv.slice(2)) {
     console.log('Commands: '+commands.join(', '));
     console.log('Default: check (no messages, purchases or application-record writes).');
     console.log('Consent flags: '+allowedFlags.map(f=>'--'+f).join(' '));
-    console.log('Run npm run test:backend:setup first. Full instructions: BACKEND-TESTS.md.'); return;
+    console.log('Run npm run test:backend:setup first. Full instructions: SETUP.html#backend-tests.'); return;
   }
   let config = {}, unlock; const rows=[];
   const command=args.find(a=>!a.startsWith('--')) || 'check';

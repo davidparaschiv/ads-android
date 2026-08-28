@@ -94,4 +94,11 @@ test('Romanian demo: license, five calendars, invites, reports and staff without
   submit('#notification-form'); await until(() => d.querySelector('[data-plan-gate]'));
   await w.testApi.store.set({business:{...w.testApi.store.get().business,is_owner:true},demoAccess:{source:'developer',calendarLimit:5,expiresAt:new Date(Date.now()-1000).toISOString()}});
   w.testApi.navigate('/business/reports'); await until(() => d.querySelector('[data-plan-gate]') && d.querySelector('[data-route="/business/plans"]'));
+  // Only customer mode exposes the reservation QR, and demo never invents a live QR.
+  await w.testApi.store.set({role:'customer'});
+  w.testApi.navigate('/customer/bookings'); await until(() => d.querySelector('[aria-label="Arată QR-ul programării"]'));
+  assert.equal(d.querySelector('[data-route="/business/scan"]'),null);
+  click('[aria-label="Arată QR-ul programării"]');
+  await until(() => d.querySelector('#customer-qr-content')?.textContent.includes('modul live'));
+  assert.equal(d.querySelector('#scan-reservation'),null);
 });

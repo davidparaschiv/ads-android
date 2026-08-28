@@ -14,7 +14,7 @@ try {
 } catch { /* Public defaults are optional. */ }
 try {
   await writeFile(resolve(root, '.env.backend.local'), template, { flag: 'wx', mode: 0o600 });
-  console.log('Created .env.backend.local. Review the target, fill credentials, set the project ref and enable tests. Read BACKEND-TESTS.md.');
+  console.log('Created .env.backend.local. Review the target, fill credentials, set the project ref and enable tests. Read SETUP.html#backend-tests.');
 } catch (error) {
   if (error.code === 'EEXIST') console.log('.env.backend.local already exists; nothing overwritten.');
   else { console.error('Could not create .env.backend.local.'); process.exitCode = 1; }

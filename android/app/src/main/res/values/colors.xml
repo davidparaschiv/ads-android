@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#EF1835</color>
+    <color name="colorPrimaryDark">#CA102A</color>
+    <color name="colorAccent">#EF1835</color>
+    <color name="notification_red">#EF1835</color>
+    <color name="splash_background">#FFFFFF</color>
+</resources>

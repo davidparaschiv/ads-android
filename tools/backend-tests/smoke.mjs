@@ -49,12 +49,12 @@ export async function smoke(config, check) {
   await check('Twilio: real Verify service credentials',async()=>{
     if(!config.TWILIO_VERIFY_SERVICE_SID) throw new Skip('Twilio not configured yet.');
     const result=await twilio(config); ok(result);
-    ensure(result.data?.sid === config.TWILIO_VERIFY_SERVICE_SID && result.data.account_sid === config.TWILIO_ACCOUNT_SID,'Twilio service/account mismatch.');
+    ensure(result.data?.sid === config.TWILIO_VERIFY_SERVICE_SID && result.data.account_sid === config.TWILLIO_ACCOUNT_SID,'Twilio service/account mismatch.');
     return 'No SMS sent; does not prove destination delivery or geographic permissions.';
   });
   let token;
   await check('Firebase: private credential authenticates with Google',async()=>{
-    if(!config.FIREBASE_SERVICE_ACCOUNT_FILE) throw new Skip('Firebase private file not configured.');
+    if(!config.GCLOUD_SERVICEACCOUNT_KEYS && !config.FIREBASE_SERVICE_ACCOUNT_FILE) throw new Skip('Firebase private JSON or file not configured.');
     token=await firebaseToken(config); return 'OAuth token issued; send permission is checked separately.';
   });
   await check('Firebase: FCM validate_only request (no notification)',async()=>{
