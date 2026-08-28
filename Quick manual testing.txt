@@ -1,0 +1,31 @@
+Done—the checklist is included in **SETUP.html → “Remaining configuration”** inside [rezerva-app-qr-update.zip](sandbox:/workspace/scratch/e54d28157bf9/rezerva-app-qr-update.zip).
+
+Your existing Supabase configuration and `google-services.json` are preserved. To test the installed debug app:
+
+1. **Apply migration `005_reservation_qr.sql`** to Supabase.
+2. **Confirm Google login:** provider configured in Supabase, `ro.rezerva.app://auth/callback` allowed, and your business/customer Google accounts added as test users where required.
+3. **Confirm enrollment services:** Resend sender/domain, paid Twilio Verify credentials, Romania SMS permission, and business approval.
+4. **Confirm push notifications:** Firebase server credentials, deployed reminder function, active scheduler, and notification permission on your phone.
+5. **Activate a license:** `dev112233` works only for the verified platform-owner account; it does not skip enrollment verification.
+6. **Rebuild/install:** JDK 21, SDK 36, USB debugging and Google Play services are needed.
+
+Run from the extracted project in Git Bash:
+
+```bash
+npm ci
+npm run check:phone
+npm run test:local
+npm run android:sync
+npm run android:open
+```
+
+Then select your phone in Android Studio and click **Run ▶**.
+
+**Known configuration warnings:**
+
+* RevenueCat’s Google SDK key still needs configuration **only if testing purchases**. The authorized license flow does not require it.
+* Support/privacy/account-deletion URLs need real destinations, but do not block booking or QR debug testing.
+
+You **do not need to publish the app** for this license-based workflow. Use another screen or printout to display the customer QR while your phone scans it.
+
+Hosted settings and actual delivery remain unverified: I ran **76 passing local tests**, not live service tests or phone-camera tests.
