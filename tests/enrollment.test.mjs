@@ -20,7 +20,7 @@ test('Verified enrollment and universal developer access', async t => {
     grant usage on schema public,auth to anon,authenticated,service_role;
     grant execute on all functions in schema auth to anon,authenticated,service_role;
     alter default privileges in schema public grant all on tables to anon,authenticated,service_role;`);
-  for (const file of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql','006_universal_developer_license.sql','007_approval_email_details.sql','008_owner_approval_codes.sql','009_access_expiry_and_permanent_dev.sql','010_team_plan_and_member_limit.sql','011_all_team_calendars_shared.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+  for (const file of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql','006_universal_developer_license.sql','007_approval_email_details.sql','008_owner_approval_codes.sql','009_access_expiry_and_permanent_dev.sql','010_team_plan_and_member_limit.sql','011_all_team_calendars_shared.sql','012_booking_rejected_status.sql','013_customer_profiles_booking_approval.sql','014_drawn_screens_service_calendar.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
   const admin=randomUUID(), owner=randomUUID(), attacker=randomUUID();
   for (const [id,email] of [[admin,'davidnicolaparaschiv@gmail.com'],[owner,'business@example.com'],[attacker,'other@example.com']]) {
     await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[id,email]);
@@ -32,7 +32,7 @@ test('Verified enrollment and universal developer access', async t => {
   }
   const call = async (id,name,params=[],role='authenticated') => (await as(id,'select public.'+name+'('+params.map((_,i)=>'$'+(i+1)).join(',')+') result',params,role))[0].result;
   const issue = (id,kind) => call(admin,'issue_enrollment_link',[id,owner,kind],'service_role');
-  let request, emailLink, approvalLink;
+  let request, emailLink, approvalLink, businessId;
   const sid = 'VE'+'a'.repeat(32);
 
   await t.test('protected settings remain private and the developer key works for every verified Google account', async () => {
@@ -56,6 +56,7 @@ test('Verified enrollment and universal developer access', async t => {
     await assert.rejects(call(owner,'start_enrollment',['Salon','Salon','București','','business@example.com','0712345678']),/Completează/);
     await assert.rejects(call(owner,'start_enrollment',['Salon','Salon','București','12345678','business@example.com','']),/Completează/);
     request = await call(owner,'start_enrollment',['Salon Test','Salon','București','RO12345678','contact@example.com','0712345678']);
+    await assert.rejects(call(attacker,'start_enrollment',['Duplicat','Salon','București','12345678','other@example.com','0799999999']),/Există deja.*CUI/);
     assert.equal(request.ok,true);
     assert.equal((await db.query('select * from public.businesses')).rows.length,0);
     await assert.rejects(as(owner,'select * from private.enrollment_requests'),/permission denied/);
@@ -100,6 +101,7 @@ test('Verified enrollment and universal developer access', async t => {
     assert.equal((await call(attacker,'confirm_enrollment_link',[approvalLink.token,true])).ok,false);
     const result = await call(admin,'confirm_enrollment_link',[approvalLink.token,true]);
     assert.equal(result.ok,true);
+    businessId=result.businessId;
     const businesses=(await db.query('select * from public.businesses')).rows;
     assert.equal(businesses.length,1); assert.equal(businesses[0].owner_id,owner);
     assert.equal(businesses[0].cui,'12345678'); assert.equal(businesses[0].contact_email,'contact@example.com');
@@ -129,5 +131,31 @@ test('Verified enrollment and universal developer access', async t => {
     const rejected=await call(attacker,'redeem_license',[key.key]);
     assert.equal(rejected.ok,false);
     assert.equal(rejected.message,'Licență invalidă.');
+  });
+  await t.test('customer identity is stored once; booking approval and Romanian notification jobs are durable',async()=>{
+    const profile=await call(attacker,'complete_customer_profile',['Ana','Client']);
+    assert.equal(profile.completed,true);
+    const unchanged=await call(attacker,'complete_customer_profile',['Alt','Nume']);
+    assert.equal(unchanged.firstName,'Ana');
+    assert.equal(unchanged.lastName,'Client');
+    const setup=await call(owner,'setup_business',[businessId,'Tuns',30,10000,'Calendar principal','00:00','23:59',[1,2,3,4,5,6,7]]);
+    const added=await call(owner,'add_business_event',[businessId,setup.resource_id,'Tuns premium',[1,3,5],'09:00',40]);
+    assert.equal(added.durationMinutes,40);
+    await assert.rejects(call(owner,'add_business_event',[businessId,setup.resource_id,'tuns PREMIUM',[2],'10:00',40]),/există deja/);
+    const start=new Date(Date.now()+2*86400000); start.setUTCHours(10,0,0,0);
+    const bookingId=await call(attacker,'create_booking',[businessId,setup.event_type_id,setup.resource_id,start.toISOString(),'Nume ignorat',60]);
+    await assert.rejects(call(attacker,'create_booking',[businessId,setup.event_type_id,setup.resource_id,start.toISOString(),'Nume ignorat',60]),/nu mai este disponibil/);
+    assert.equal((await as(attacker,'select status from public.bookings where id=$1',[bookingId]))[0].status,'pending');
+    const requestJobs=(await db.query("select title,body,target_route from public.notification_jobs where booking_id=$1 and kind='booking_request'",[bookingId])).rows;
+    assert.equal(requestJobs.length,1);
+    assert.match(requestJobs[0].body,/Ana Client/);
+    assert.equal(requestJobs[0].target_route,'/business/notifications');
+    await call(owner,'set_booking_status',[bookingId,'confirmed']);
+    assert.equal((await as(attacker,'select status from public.bookings where id=$1',[bookingId]))[0].status,'confirmed');
+    const statusJobs=(await db.query("select title,target_route from public.notification_jobs where booking_id=$1 and kind='status_update'",[bookingId])).rows;
+    assert.equal(statusJobs.length,1);
+    assert.equal(statusJobs[0].title,'Programare confirmată');
+    assert.equal(statusJobs[0].target_route,'/customer/notifications');
+    await assert.rejects(as(owner,'select public.set_calendar_active($1,false)',[setup.resource_id]),/does not exist/);
   });
 });

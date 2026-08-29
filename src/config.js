@@ -26,8 +26,9 @@ export const config = Object.freeze({
     entitlementId: env.VITE_REVENUECAT_ENTITLEMENT_ID || 'business_pro',
   }),
   links: Object.freeze({
+    terms: env.VITE_TERMS_URL || '/terms.html',
     support: env.VITE_SUPPORT_URL || 'https://example.com/support',
-    privacy: env.VITE_PRIVACY_URL || 'https://example.com/confidentialitate',
+    privacy: env.VITE_PRIVACY_URL || '/privacy-policy.html',
     deleteAccount: env.VITE_DELETE_ACCOUNT_URL || 'https://example.com/stergere-cont',
   }),
   plans: Object.freeze({

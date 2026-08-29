@@ -23,14 +23,14 @@ Deno.serve(async (request) => {
     if (claimError || !claimed) continue;
     const { data: tokens } = await supabase.from('device_tokens').select('token').eq('user_id', job.user_id);
     try {
-      const { data: allowed, error: allowedError } = await supabase.rpc('notification_recipient_allowed', { p_booking: job.booking_id, p_user: job.user_id });
+      const { data: allowed, error: allowedError } = await supabase.rpc('notification_job_recipient_allowed', { p_job: job.id });
       if (allowedError) throw allowedError;
       if (!allowed) { await supabase.from('notification_jobs').update({ status: 'cancelled' }).eq('id', job.id); continue; }
       for (const item of tokens || []) {
         const response = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: { token: item.token, notification: { title: job.title, body: job.body }, data: { bookingId: job.booking_id } } }),
+          body: JSON.stringify({ message: { token: item.token, notification: { title: job.title, body: job.body }, data: { bookingId: job.booking_id, route: job.target_route || '/customer/notifications' } } }),
         });
         if (!response.ok) throw new Error(await response.text());
       }

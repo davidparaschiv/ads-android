@@ -66,13 +66,6 @@ export async function addCalendar(businessId, name) {
   await store.set({ demoCalendars: [...store.get().demoCalendars, { id: crypto.randomUUID(), name, is_active: true }] });
 }
 
-export async function setCalendarActive(id, active) {
-  if (config.mode !== 'demo') return rpc('set_calendar_active', { p_calendar_id: id, p_active: active });
-  const access = await getAccess();
-  if (active && (!access.active || access.activeCalendars >= access.calendarLimit)) throw new Error('Limita planului nu permite reactivarea.');
-  await store.set({ demoCalendars: store.get().demoCalendars.map(c => c.id === id ? { ...c, is_active: active } : c) });
-}
-
 export async function team(businessId) {
   if (config.mode !== 'demo') return rpc('list_team', { p_business_id: businessId });
   return { members: store.get().demoMembers, invitations: store.get().demoInvitations };

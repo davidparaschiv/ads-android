@@ -1,0 +1,52 @@
+REZERVARI.AI - TODO ÎNAINTE DE PUBLICARE
+Actualizat: 30 august 2026
+
+LEGAL / GDPR
+
+[ ] Completează în public/terms.html și public/privacy-policy.html numele juridic complet al operatorului, forma juridică, CUI/CIF, numărul Registrului Comerțului și sediul social.
+[ ] Completează adresa de contact generală și adresa dedicată solicitărilor privind datele personale. Nu publica documentele cu marcaje [DE COMPLETAT].
+[ ] Stabilește și documentează perioade concrete de retenție pentru: conturi, profiluri, afaceri, programări, notificări, jurnale tehnice, coduri de verificare, facturi și evidențe fiscale.
+[ ] Publică o pagină web accesibilă din afara aplicației pentru solicitarea ștergerii contului și a datelor; adaugă URL-ul în Google Play Console, secțiunea Data safety / Account deletion.
+[ ] Adaugă în aplicație un flux clar de solicitare a ștergerii contului sau explică exact traseul disponibil utilizatorului.
+[ ] Verifică exact ce date colectează aplicația și furnizorii (Supabase, Google Sign-In, Twilio, procesator plăți, push notifications) și completează declarația Data safety din Google Play fără omisiuni.
+[ ] Completează lista reală de destinatari / persoane împuternicite și țările în care sunt prelucrate datele. Verifică mecanismele de transfer internațional aplicabile.
+[ ] Decide temeiul juridic pentru fiecare prelucrare: executarea contractului, obligație legală, interes legitim sau consimțământ. Nu folosi consimțământul ca formulă generică.
+[ ] Documentează procedura pentru drepturile GDPR: acces, rectificare, ștergere, restricționare, portabilitate și opoziție, inclusiv termenul și verificarea identității solicitantului.
+[ ] Stabilește dacă este necesar un responsabil cu protecția datelor (DPO) și, dacă da, publică datele lui de contact.
+[ ] Verifică dacă este necesară o evaluare de impact (DPIA), în special pentru profilare, monitorizare sistematică ori prelucrare la scară mare.
+[ ] Stabilește procedura de incidente de securitate și notificare a încălcărilor de date.
+[ ] Cere revizuirea finală a Termenilor și Politicii de confidențialitate de către un avocat/jurist familiarizat cu dreptul român, GDPR, servicii online și protecția consumatorului.
+
+CONTRACTE / COMERCIAL
+
+[ ] Completează planurile, prețurile, moneda, perioada abonamentului, reînnoirea, facturarea, anularea, rambursarea și efectele expirării în Termeni.
+[ ] Precizează responsabilitatea afacerii pentru program, servicii, anulări, refuzuri și relația directă cu clientul.
+[ ] Verifică obligațiile pentru contracte la distanță și consumatori, inclusiv informațiile precontractuale și dreptul de retragere unde se aplică.
+[ ] Publică politica de anulare / neprezentare a programărilor și modul de soluționare a reclamațiilor.
+[ ] Completează datele și linkul către mecanismul aplicabil de soluționare a litigiilor, dacă este necesar legal la data lansării.
+
+GOOGLE PLAY / ANDROID
+
+[ ] Verifică numele aplicației „Rezervari.ai”, package id-ul și iconița în build-ul release semnat.
+[ ] Completează Privacy Policy URL și Account deletion URL în Google Play Console.
+[ ] Verifică declarațiile pentru permisiuni, notificări push, cameră/QR și orice identificatori utilizați.
+[ ] Rulează un test de instalare curată și un test de upgrade pe un telefon real înainte de release.
+
+SECURITATE / OPERAȚIUNI
+
+[ ] Confirmă că secretele Supabase, Twilio, push și plăți există numai în secret storage/server; nu le include în bundle-ul Android sau în logurile publice.
+[ ] Configurează rotația secretelor, accesul minim necesar și alerte pentru erori ale serviciilor externe.
+[ ] Decide perioada de păstrare și mascarea logurilor. Nu loga tokenuri, coduri OTP, chei de licență ori date personale complete.
+[ ] Configurează backup, restaurare testată și monitorizare pentru baza de date.
+[ ] Rulează migrarea 014 și verifică în staging unicitatea CUI și blocarea suprapunerilor pending/confirmed pe același calendar.
+[ ] Testează concurența cu două telefoane care solicită simultan același interval; exact o cerere trebuie acceptată.
+
+DOCUMENTE DE ACTUALIZAT
+
+- public/terms.html
+- public/privacy-policy.html
+- Google Play Console: Data safety, Privacy Policy, Account deletion
+
+Surse oficiale de reverificat la lansare:
+- https://commission.europa.eu/law/law-topic/data-protection/information-individuals_en
+- https://support.google.com/googleplay/android-developer/answer/10144311

@@ -1,0 +1,103 @@
+
+Urmeaza sa iti dau niste poze (de fapt toate pozele sunt in folderul "poze drawn" cu ecrane desenate pe hartie. acestea vor defini fiecare ecran din aplicatie mai putin :
+Login screen -> Alege business / client / Am invitatie de participare la business
+Business si client sunt deja facute. La business exista creare si verificare afacere si la client doar first name si last name.
+La am invitatie te duce la o pagina noua (muta functia de am invitatie din UI aici DOAR, nu si in alta parte). Te loghezi cu contul google apoi iti cere codul de invite si daca e corect te logheaza.
+Astea raman.
+
+In rest refaci paginile sa fie doar ce iti dau acum, fiecare pagina este desenata. Nu adaugi extra fields sau text. Sau alte functionalitati. Doar ce apare in desene.
+Daca este referita vreo poza si nu stii care e ma intrebi nu presupui decat daca e clar 100%.
+
+
+
+BV home part 1
+-Scan button goes to scan QR page
+-Reports are bar chart of number of reservation per day/week/month. Actually instead of day week month remove this part and always show current week (with dates) and arrows to navigate back and forward between weeks
+- To be continued is when you scroll and is another image
+- Navigation for BV is always home, cal. notif. and A from account. use the icons in the picture.
+===========================
+
+BV home part 2
+- Trimite will send an invite
+- Membri lists all members as gmail addresses only
+- When you see navigation you will replace same navigation (defined in BV home part 1)
+===========================
+
+BV calendar selector (apare cand sunt pe BV home si apas pe Cal. in bara de navigare)
+- adauga calendar "gata" adauga un nou calendar
+- lista calendare apare doar daca exista calendare altfel nu apare nimic. in dreapta la fiecare calendar este eye icon si daca dau tap pe ea ma duce la
+BV calendar view
+- navigation este inlocuit cum am zis
+===========================
+
+BV Acc view (apare cand apas A pe BV nav)
+- navigation inlocuit cum am zis
+===========================
+
+BV calendar view:
+- sus este saptamana curenta si sunt iconite stanga si dreapta de navigare
+- imediat jos e numele calendarului
+- apoi un selector pentru ziua saptamanii (Luni e selectat by default)
+- Lista de programari din ziua selectata mai sus
+- navigation e BV navigation cum am zis
+- cercul din dreapta jos cu plus este position absolute nu se misca si cand apas ma duce la BV add event
+
+
+===========================
+BV notif (apare cand dau BV navigare -> Notif.)
+-Sus scrie
+req 1		approve/reject
+req 2		approve/reject
+Va fi o lista (sau spatiu alb daca e gol) cu requests:
+	- req1 va fi nume prenume persoana care a facut rezervarea pentru serviciu/calendar si ora de inceput si sfarsit a programarii
+	- req2 la fel doar ca pentru a doua
+	...
+	Requests sunt ordonate in ordine crescatoare dupa timpul submiterii rezervarii (nu timpul rezervarii absolute)
+Approve si reject da approve sau reject la cerere.
+
+- selector calendar selecteaza unul din calendarele pentru business respectiv (deja create, nu creez aici)
+- partea cu Calendar <nume> pana la navigare e afisata doar cand selectez un calendar real. altfel e gol.
+- X care apare este numarul de minute si poate fi intre 2-30
+- Navigation e la fel
+
+===========================
+
+BV add event
+-Tip eveniment are sub el un text area liber sa scrii ce vrei (se verifica duplicate daca exista)
+-Apoi este un multi selector pentru zile de luni pana duminica. se pot selecta toate sau macar unul sau alte combinatii dar nu 0.
+-Interval orar contine doar start date selectabil ca timp din 15 in 15 minute din dropdown
+-Nu se vede in poza dar inainte de butonul Adauga care adauga am nevoie si de un camp Durata care are dropdown cu valorile (10m, 20m,30m,40m,
+50m, 1h, 2h, 3h, 4h, 5h, 6h)
+- deci textul Interval orar e pe o linie pe urmatoarea linie dropdown pentru start time iarasi next line apoi Durata ca text iarasi next line si dropdown pentru durata. dropdowns sunt centrate left-right
+-Navigation e acelasi navigation
+
+
+=================================================================================
+CV home (cand e apasat din CV navigation HOME)
+- sus e cauta afacere search box cu lupa icon in dreapta (merge ca filtru cand e gol sunt afisate toate, face search cu startsWith din javascript nu contains)
+- lista de afaceri cu sagetica icon in dreapta daca dau tap pe ea se duce la "CV FA prog" pentru afacerea respectiva
+- bara de navigare contine home cu iconita, Progr. mele si in loc de Account pune Cont ( va fi aceeasi bara numita CV navigation la toate CV poze)
+
+
+CV prog:
+-Lista de programari cu iconita eye in dreapta (inlocuieste cu un logo png mic QR code symbol de fapt)
+Formatul listei este:
+<afacere>
+<serviciu>
+<ora, durata in ore sau minute, data>
+- navigatia este aceeasi ca la toate CV
+
+CV FA prog:
+- alege serviciu are dropdown cu numele calendarelor disponibile
+- ore disponibile afiseaza toate orele pentru care nu exista deja rezervare aprobata pentru calendarul respectiv (deci aprobata si pentru calendarul respectiv, nu generic)
+- Durata in minute sau ore e luata automat din db event (creat cand se da pe buton la pagina BV add event) si e readonly aici.
+- Cand se apasa pe solicita se ia timpul curent (de pe server nu local) cand se salveaza cererea de rezervare in db si este folosit in pagina BV notif pentru ordonare requests
+-Navigatia este aceeasi ca la toate CV
+
+
+CV Account view / acc (cand se apasa pe Cont in CV nav)
+-Navigatia este aceeasi ca la toate CV
+
+
+
+Flowul CV si BV sunt complet separate si nu pot exista in acelasi flow. Unul e pentru login ca client altul ca firma.

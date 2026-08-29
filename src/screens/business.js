@@ -49,7 +49,7 @@ function planCard(id, selected) {
     <span class="plan-tag">${id === 'small' ? '1 calendar' : '5 calendare'}</span>
     <strong>${plan.name}</strong>
     <span class="plan-price"><b>${config.mode === 'demo' ? plan.price + ' €' : 'Preț în Google Play'}</b>${config.mode === 'demo' ? '/lună' : ''}</span>
-    <ul><li>${plan.locations} locație</li><li>${plan.resources === 1 ? '1 calendar' : 'Până la 5 calendare partajate'}</li><li>${plan.resources === 1 ? 'Un singur utilizator · fără Team flow' : 'Până la 15 membri acceptați'}</li><li>Gestionarea rezervărilor</li><li>${plan.reports ? 'Rapoarte pe zi, săptămână și lună' : 'Fără rapoarte'}</li><li>${plan.businessNotifications ? 'Notificări push pentru afacere' : 'Fără notificări pentru afacere'}</li></ul>
+    <ul><li>${plan.locations} locație</li><li>${plan.resources === 1 ? '1 calendar' : 'Până la 5 calendare partajate'}</li><li>${plan.resources === 1 ? 'Un singur utilizator · fără Team flow' : 'Până la 15 membri acceptați'}</li><li>Confirmare sau respingere rezervări</li><li>${plan.reports ? 'Rapoarte pe zi, săptămână și lună' : 'Fără rapoarte'}</li><li>${plan.businessNotifications ? 'Notificări push pentru afacere: aprobări și mementouri' : 'Aprobări de programări prin push'}</li></ul>
   </button>`;
 }
 

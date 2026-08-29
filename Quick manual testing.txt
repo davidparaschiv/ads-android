@@ -1,4 +1,6 @@
-search logs->android logcat:
+
+=====================================
+***search logs->android logcat:
 search for RezervariExternalAPI
 
 team flow:

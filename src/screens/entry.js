@@ -6,6 +6,7 @@ import { signInWithGoogle, businessEntryRoute } from '../services/auth.js';
 import { icon } from '../ui/icons.js';
 import { logo } from '../ui/logo.js';
 import { bindBack, loadingButton, page, toast } from '../ui/layout.js';
+import { store } from '../state/store.js';
 
 /** @param {HTMLElement} root */
 export function roleScreen(root) {
@@ -26,13 +27,24 @@ export function roleScreen(root) {
         <span><strong>Reprezint o afacere</strong><small>Organizează toate programările</small></span>
         ${icon('arrow')}
       </button>
+      <button class="role-card" data-role="invite">
+        <span class="role-card__icon">${icon('user')}</span>
+        <span><strong>Am invitație de participare la business</strong></span>
+        ${icon('arrow')}
+      </button>
     </section>
     <p class="welcome-note">O singură aplicație pentru clienți și afaceri.</p>
   </div>`;
   root.querySelectorAll('[data-role]').forEach((node) => node.addEventListener('click', () => {
     const role = node.getAttribute('data-role');
-    navigate(role === 'business' ? '/business/login' : '/customer/login');
+    navigate(role === 'business' ? '/business/login' : role === 'invite' ? '/business/invite-login' : '/customer/login');
   }));
+}
+
+export function invitationLoginScreen(root){
+  loginScreen(root,'business');
+  const button=root.querySelector('#google-login');
+  button?.addEventListener('click',()=>store.set({inviteFlow:true}),{capture:true});
 }
 
 /** @param {HTMLElement} root @param {'business'|'customer'} role */

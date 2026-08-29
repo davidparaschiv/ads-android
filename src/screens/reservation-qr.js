@@ -8,7 +8,7 @@ import { escapeHtml } from '../ui/dom.js';
 import { page, bindBack, loadingButton } from '../ui/layout.js';
 import { icon } from '../ui/icons.js';
 
-const statuses = { confirmed: 'Confirmată', pending: 'În așteptare', cancelled: 'Anulată', completed: 'Finalizată', no_show: 'Absent' };
+const statuses = { confirmed: 'Confirmată', pending: 'În așteptare', rejected: 'Respinsă', cancelled: 'Anulată', completed: 'Finalizată', no_show: 'Absent' };
 const dateTime = value => new Intl.DateTimeFormat('ro-RO', { dateStyle: 'full', timeStyle: 'short', timeZone: config.timezone }).format(new Date(value));
 const errorText = error => error instanceof Error ? error.message : 'Operația nu a reușit. Verifică internetul și reîncearcă.';
 

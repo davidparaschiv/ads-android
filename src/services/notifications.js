@@ -5,11 +5,26 @@ import { PushNotifications } from '@capacitor/push-notifications';
 import { config } from '../config.js';
 import { getSupabase } from '../api/supabase.js';
 import { loggedExternalCall } from '../observability/external-api-log.js';
+import { navigate } from '../router.js';
+import { store } from '../state/store.js';
 
 let registration = null;
+let navigationListenerInstalled = false;
+
+export async function initializePushNavigation() {
+  if (!Capacitor.isNativePlatform() || navigationListenerInstalled) return;
+  navigationListenerInstalled = true;
+  await PushNotifications.addListener('pushNotificationActionPerformed', event => {
+    const requested = String(event.notification?.data?.route || '');
+    const fallback = store.get().role === 'business' ? '/business/notifications' : '/customer/notifications';
+    navigate(['/business/notifications','/customer/notifications'].includes(requested) ? requested : fallback);
+  });
+}
+
 export async function registerPushNotifications() {
   if (config.mode === 'demo') return { enabled: true, demo: true };
   if (!Capacitor.isNativePlatform()) return { enabled: false, reason: 'native-only' };
+  await initializePushNavigation();
   if (registration) return registration;
   registration = loggedExternalCall('firebase', 'push-registration', register).finally(() => { registration = null; });
   return registration;

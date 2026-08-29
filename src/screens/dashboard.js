@@ -1,97 +1,48 @@
 // @ts-check
-import { config } from '../config.js';
-import { store } from '../state/store.js';
-import { demoBookings, todayIso } from '../data.js';
-import { listBusinessBookings, listBusinessReport } from '../services/businesses.js';
-import { calendars, getAccess, rpc, hasBusinessFeature } from '../services/access.js';
-import { teamFeatureScreen } from '../ui/plan-gate.js';
-import { escapeHtml, formatDate } from '../ui/dom.js';
-import { icon } from '../ui/icons.js';
-import { page, bindBack, toast, loadingButton } from '../ui/layout.js';
-import { accessNotice } from './team.js';
+import {store} from '../state/store.js';
+import {todayIso} from '../data.js';
+import {listBusinessBookings,addBusinessEvent} from '../services/businesses.js';
+import {calendars,addCalendar,inviteMember,team} from '../services/access.js';
+import {navigate} from '../router.js';
+import {escapeHtml,formData} from '../ui/dom.js';
+import {icon} from '../ui/icons.js';
+import {page,bindBack,toast,loadingButton} from '../ui/layout.js';
 
-export async function businessHomeScreen(root) {
-  const business = store.get().business;
-  const [access, bookings] = await Promise.all([getAccess(business.id), listBusinessBookings(business.id, '', todayIso(), todayIso())]);
-  root.innerHTML = page({
-    eyebrow: formatDate(todayIso()).toUpperCase(), title: escapeHtml(business.name), nav: 'business', active: 'home',
-    content: `${accessNotice(access)}${hasBusinessFeature(access, 'reports') ? `<section class="dashboard-hero"><div><span>Astăzi</span><strong>${bookings.filter(b => b.status === 'confirmed').length}</strong><small>programări confirmate</small></div><div class="hero-orbit">${icon('calendar')}</div></section>` : ''}
-      <div class="stack">${access.isOwner ? '<button class="button button--secondary" data-route="/business/team">Calendare și echipă</button><button class="text-button" data-route="/business/plans">Abonament și licență</button>' : '<p class="info-note">Toate calendarele afacerii sunt partajate cu echipa. Abonamentul este administrat de proprietar.</p>'}
-      ${store.get().role === 'business' ? `<button class="button button--primary" data-route="/business/scan">${icon('qr')} Scanează programarea</button>` : ''}
-      <button class="text-button" data-route="/business/workspaces">Schimbă afacerea · invitații · cont</button></div>
-      <section class="list-section"><h2>Programările de astăzi</h2>${bookings.length ? bookings.map(bookingRow).join('') : '<p>Nu există programări astăzi.</p>'}</section>`,
-  });
-  bindBack(root);
+const days=['L','Ma','Mi','J','V','S','D'];
+
+export async function businessHomeScreen(root,anchor=todayIso()){
+  const business=store.get().business;const [from,until]=weekBounds(anchor);
+  const [bookings,roster]=await Promise.all([listBusinessBookings(business.id,'',from,until),business.is_owner===false?Promise.resolve({members:[]}):team(business.id)]);
+  const counts=Array.from({length:7},(_,index)=>bookings.filter(item=>item.date===addDays(from,index)).length);const max=Math.max(1,...counts);
+  root.innerHTML=page({title:'Home',nav:'business',active:'home',content:`
+    <section class="draw-section draw-section--center"><h1>Scan QR</h1><button class="draw-button" data-route="/business/scan">Scan</button></section>
+    <section class="draw-section"><div class="week-heading"><button data-week="-7">${icon('arrow','icon--back')}</button><h1>Reports</h1><button data-week="7">${icon('arrow')}</button></div><p class="week-range">${formatRange(from,until)}</p><div class="draw-chart">${counts.map((count,index)=>`<div><span style="height:${Math.max(4,Math.round(count/max*120))}px"></span><small>${days[index]}<br>${Number(addDays(from,index).slice(8,10))}</small></div>`).join('')}</div><strong class="chart-label">Rezervări</strong></section>
+    ${business.is_owner===false?'':`<section class="draw-section"><h1>Invitații</h1><form id="home-invite" class="draw-inline-form"><label>Invită pe cineva<input name="email" type="email" required></label><button class="draw-button">Trimite</button></form></section><section class="draw-section"><h1>Membri</h1><div class="draw-list">${roster.members.map(item=>`<span>${escapeHtml(item.email)}</span>`).join('')}</div></section>`}`});
+  bindBack(root);root.querySelectorAll('[data-week]').forEach(button=>button.addEventListener('click',()=>businessHomeScreen(root,addDays(anchor,Number(button.getAttribute('data-week'))))));
+  root.querySelector('#home-invite')?.addEventListener('submit',async event=>{event.preventDefault();const form=/** @type {HTMLFormElement} */(event.currentTarget);const button=/** @type {HTMLButtonElement} */(form.querySelector('button'));try{loadingButton(button,true);await inviteMember(business.id,String(new FormData(form).get('email')),'viewer');await businessHomeScreen(root,anchor);}catch(error){loadingButton(button,false);toast(root,error.message,'error');}});
 }
 
-const statusLabels = { confirmed: 'Confirmată', pending: 'În așteptare', cancelled: 'Anulată', completed: 'Finalizată', no_show: 'Absent' };
-function bookingRow(booking) {
-  return `<article class="timeline-item"><time>${escapeHtml(booking.time)}</time><span class="timeline-dot"></span><div><strong>${escapeHtml(booking.customer)}</strong><small>${escapeHtml(booking.service)}</small><small>${escapeHtml(booking.email)}</small><small>${escapeHtml(booking.date)}</small></div><span class="status">${statusLabels[booking.status] || ''}</span></article>`;
+export async function businessCalendarScreen(root){
+  const business=store.get().business;const list=await calendars(business.id);
+  root.innerHTML=page({title:'Alege calendar',nav:'business',active:'calendar',content:`<section class="draw-section"><h1>Adaugă calendar</h1><form id="calendar-add" class="draw-inline-form"><input name="name" aria-label="Nume calendar" required><button class="draw-button">Gata</button></form></section>${list.length?`<section class="draw-section"><h1>Listă calendare</h1><div class="draw-list">${list.map(item=>`<button class="draw-list-row" data-calendar-view="${escapeHtml(item.id)}"><span>${escapeHtml(item.name)}</span>${icon('eye')}</button>`).join('')}</div></section>`:''}`});
+  bindBack(root);root.querySelector('#calendar-add')?.addEventListener('submit',async event=>{event.preventDefault();const form=/** @type {HTMLFormElement} */(event.currentTarget);try{await addCalendar(business.id,String(new FormData(form).get('name')));await businessCalendarScreen(root);}catch(error){toast(root,error.message,'error');}});root.querySelectorAll('[data-calendar-view]').forEach(button=>button.addEventListener('click',()=>navigate(`/business/calendar-view?calendar=${button.getAttribute('data-calendar-view')}`)));
 }
 
-function calendarFilter(list, selected) {
-  return `<label>Calendar<select id="calendar-filter"><option value="">Toate calendarele</option>${list.map(c => `<option value="${escapeHtml(c.id)}" ${c.id === selected ? 'selected' : ''}>${escapeHtml(c.name)}${c.is_active ? '' : ' (arhivat)'}</option>`).join('')}</select></label>`;
+export async function businessCalendarViewScreen(root){
+  const business=store.get().business;const params=routeParams();const calendarId=params.get('calendar')||'';const anchor=params.get('week')||todayIso();const selectedDay=Number(params.get('day')||1);const [from,until]=weekBounds(anchor);const list=await calendars(business.id);const calendar=list.find(item=>item.id===calendarId);if(!calendar){navigate('/business/calendar');return;}const date=addDays(from,selectedDay-1);const bookings=await listBusinessBookings(business.id,calendarId,date,date);
+  root.innerHTML=page({title:'',nav:'business',active:'calendar',content:`<section class="calendar-view-head"><div class="week-heading"><button data-view-week="-7">${icon('arrow','icon--back')}</button><h1>${formatRange(from,until)}</h1><button data-view-week="7">${icon('arrow')}</button></div><h2>${escapeHtml(calendar.name)}</h2><div class="weekday-tabs">${days.map((day,index)=>`<button class="${selectedDay===index+1?'is-active':''}" data-day="${index+1}">${day}</button>`).join('')}</div></section><section class="draw-section"><h1>Programări</h1><div class="draw-list">${bookings.map(appointmentRow).join('')}</div></section><button class="draw-fab" data-route="/business/add-event?calendar=${escapeHtml(calendarId)}">${icon('plus')}</button>`});
+  bindBack(root);root.querySelectorAll('[data-day]').forEach(button=>button.addEventListener('click',()=>navigate(`/business/calendar-view?calendar=${calendarId}&week=${from}&day=${button.getAttribute('data-day')}`)));root.querySelectorAll('[data-view-week]').forEach(button=>button.addEventListener('click',()=>navigate(`/business/calendar-view?calendar=${calendarId}&week=${addDays(from,Number(button.getAttribute('data-view-week')))}&day=${selectedDay}`)));
 }
 
-export async function businessCalendarScreen(root, date = todayIso(), calendarId = '') {
-  const business = store.get().business;
-  const [list, access, bookings] = await Promise.all([calendars(business.id), getAccess(business.id), listBusinessBookings(business.id, calendarId, date, date)]);
-  const manageIds = [];
-  for (const c of list) {
-    const canManage = config.mode === 'demo' ? business.is_owner : await rpc('can_manage_calendar', { p_calendar: c.id });
-    if (canManage) manageIds.push(c.id);
-  }
-  root.innerHTML = page({
-    eyebrow: 'PROGRAMĂRI', title: 'Calendar zilnic', nav: 'business', active: 'calendar',
-    content: `${accessNotice(access)}<div class="form-card">${calendarFilter(list, calendarId)}<label>Ziua<input type="date" id="calendar-date" value="${escapeHtml(date)}" required></label></div>
-    <section class="list-section">${bookings.map(b => `<div>${bookingRow(b)}${manageIds.includes(b.calendarId) && ['confirmed','pending'].includes(b.status) ? `<div class="booking-actions"><button class="text-button" data-status="completed" data-booking="${escapeHtml(b.id)}" ${!access.active ? 'disabled' : ''}>Finalizată</button><button class="text-button" data-status="no_show" data-booking="${escapeHtml(b.id)}" ${!access.active ? 'disabled' : ''}>Absent</button><button class="text-button" data-status="cancelled" data-booking="${escapeHtml(b.id)}">Anulează</button></div>` : ''}</div>`).join('') || '<p>Nu există programări pentru această selecție.</p>'}</section>`,
-  });
-  bindBack(root);
-  const refresh = async () => {
-    try { const value = root.querySelector('#calendar-date').value; if (value) await businessCalendarScreen(root, value, root.querySelector('#calendar-filter').value); }
-    catch (error) { toast(root, error.message, 'error'); }
-  };
-  root.querySelector('#calendar-date')?.addEventListener('change', refresh);
-  root.querySelector('#calendar-filter')?.addEventListener('change', refresh);
-  root.querySelectorAll('[data-booking]').forEach(button => button.addEventListener('click', async () => {
-    try {
-      loadingButton(button, true);
-      const id = button.getAttribute('data-booking'), status = button.getAttribute('data-status');
-      if (config.mode === 'demo') { const booking = demoBookings.find(b => b.id === id); if (booking) booking.status = status; }
-      else await rpc('set_booking_status', { p_booking_id: id, p_status: status });
-      await businessCalendarScreen(root, date, calendarId);
-    } catch (error) { loadingButton(button, false); toast(root, error.message, 'error'); }
-  }));
+export async function businessAddEventScreen(root){
+  const business=store.get().business;const calendarId=routeParams().get('calendar')||'';const list=await calendars(business.id);if(!list.some(item=>item.id===calendarId)){navigate('/business/calendar');return;}const times=Array.from({length:96},(_,index)=>`${String(Math.floor(index/4)).padStart(2,'0')}:${String(index%4*15).padStart(2,'0')}`);const durations=[[10,'10m'],[20,'20m'],[30,'30m'],[40,'40m'],[50,'50m'],[60,'1h'],[120,'2h'],[180,'3h'],[240,'4h'],[300,'5h'],[360,'6h']];
+  root.innerHTML=page({title:'Adaugă tip eveniment',nav:'business',active:'calendar',content:`<form class="draw-form" id="event-add"><label>Tip eveniment<textarea name="name" required></textarea></label><fieldset><legend>Zile</legend><div class="weekday-tabs weekday-tabs--checks">${days.map((day,index)=>`<label><input type="checkbox" name="day-${index+1}"><span>${day}</span></label>`).join('')}</div></fieldset><label>Interval orar<select name="startTime">${times.map(time=>`<option>${time}</option>`).join('')}</select></label><label>Durata<select name="duration">${durations.map(([value,label])=>`<option value="${value}">${label}</option>`).join('')}</select></label><button class="draw-button">Adaugă</button></form>`});
+  bindBack(root);root.querySelector('#event-add')?.addEventListener('submit',async event=>{event.preventDefault();const form=/** @type {HTMLFormElement} */(event.currentTarget);const values=formData(form);const weekdays=days.map((_,index)=>/** @type {HTMLInputElement|null} */(form.querySelector(`[name="day-${index+1}"]`))?.checked?index+1:0).filter(Boolean);try{await addBusinessEvent(business.id,calendarId,{name:String(values.name),weekdays,startTime:String(values.startTime),duration:Number(values.duration)});navigate(`/business/calendar-view?calendar=${calendarId}`);}catch(error){toast(root,error.message,'error');}});
 }
 
-function periodBounds(date, period) {
-  const start = new Date(date + 'T12:00:00Z');
-  const end = new Date(start);
-  if (period === 'week') { start.setUTCDate(start.getUTCDate() - (start.getUTCDay() + 6) % 7); end.setTime(start.getTime()); end.setUTCDate(end.getUTCDate() + 6); }
-  if (period === 'month') { start.setUTCDate(1); end.setUTCMonth(start.getUTCMonth() + 1, 0); }
-  return [start.toISOString().slice(0,10), end.toISOString().slice(0,10)];
-}
-
-export async function reportsScreen(root, period = 'week', date = todayIso(), calendarId = '') {
-  const business = store.get().business;
-  const access = await getAccess(business.id);
-  if (!hasBusinessFeature(access, 'reports')) return teamFeatureScreen(root, 'Rapoarte', access.isOwner);
-  const [from, until] = periodBounds(date, period);
-  const [list, bookings] = await Promise.all([calendars(business.id), listBusinessReport(business.id, calendarId, from, until)]);
-  root.innerHTML = page({
-    eyebrow: 'PROGRAMĂRI ȘI CLIENȚI', title: 'Rapoarte', nav: 'business', active: 'reports',
-    content: `<div class="form-card">${calendarFilter(list, calendarId)}<label>Data de referință<input type="date" id="report-date" value="${escapeHtml(date)}" required></label></div>
-    <div class="segmented">${[['day','Zi'],['week','Săptămână'],['month','Lună']].map(([id,label]) => `<button data-period="${id}" class="${period === id ? 'is-active' : ''}">${label}</button>`).join('')}</div>
-    <p class="info-note">${escapeHtml(from)} — ${escapeHtml(until)} · toate calendarele afacerii</p>
-    <section class="metrics-grid"><article><span>Total programări</span><strong>${bookings.length}</strong></article><article><span>Finalizate</span><strong>${bookings.filter(b => b.status === 'completed').length}</strong></article><article><span>Anulate</span><strong>${bookings.filter(b => b.status === 'cancelled').length}</strong></article><article><span>Confirmate</span><strong>${bookings.filter(b => b.status === 'confirmed').length}</strong></article></section>
-    <section class="list-section"><h2>Lista programărilor</h2>${bookings.length ? bookings.map(bookingRow).join('') : '<p>Nu există programări în această perioadă.</p>'}</section>`,
-  });
-  bindBack(root);
-  const refresh = async next => {
-    try { const value = root.querySelector('#report-date').value; if (value) await reportsScreen(root, typeof next === 'string' ? next : period, value, root.querySelector('#calendar-filter').value); }
-    catch (error) { toast(root, error.message, 'error'); }
-  };
-  root.querySelector('#calendar-filter')?.addEventListener('change', refresh);
-  root.querySelector('#report-date')?.addEventListener('change', refresh);
-  root.querySelectorAll('[data-period]').forEach(b => b.addEventListener('click', () => refresh(b.getAttribute('data-period'))));
-}
+export async function reportsScreen(root){return businessHomeScreen(root);}
+function appointmentRow(item){return `<article class="draw-appointment"><strong>${escapeHtml(item.time)} - ${escapeHtml(item.endTime||'')}</strong><span>${escapeHtml(item.service)}</span><span>${escapeHtml(item.customer)}</span></article>`;}
+function weekBounds(value){const date=new Date(`${value}T12:00:00Z`);date.setUTCDate(date.getUTCDate()-(date.getUTCDay()+6)%7);const from=date.toISOString().slice(0,10);return[from,addDays(from,6)];}
+function addDays(value,count){const date=new Date(`${value}T12:00:00Z`);date.setUTCDate(date.getUTCDate()+count);return date.toISOString().slice(0,10);}
+function formatRange(from,until){const fmt=new Intl.DateTimeFormat('ro-RO',{day:'2-digit',month:'short'});return `${fmt.format(new Date(`${from}T12:00:00Z`))} - ${fmt.format(new Date(`${until}T12:00:00Z`))}`;}
+function routeParams(){return new URLSearchParams(window.location.hash.split('?')[1]||'');}

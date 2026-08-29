@@ -5,11 +5,9 @@ import { startRouter } from './router.js';
 import { homeRoute, initializeAuth } from './services/auth.js';
 import { store } from './state/store.js';
 import {
-  businessNotificationsScreen,
   paymentScreen,
   plansScreen,
   scheduleSetupScreen,
-  notificationSettings,
 } from './screens/business.js';
 import {
   bookingScreen,
@@ -18,21 +16,34 @@ import {
   customerBookingsScreen,
   customerSearchScreen,
 } from './screens/customer.js';
-import { configurationScreen, loginScreen, roleScreen } from './screens/entry.js';
+import { configurationScreen, invitationLoginScreen, loginScreen, roleScreen } from './screens/entry.js';
 import { profileScreen } from './screens/profile.js';
 import { businessDetailsScreen, verificationScreen, approvalCodeScreen } from './screens/enrollment.js';
-import { businessHomeScreen, businessCalendarScreen, reportsScreen } from './screens/dashboard.js';
+import { businessHomeScreen, businessCalendarScreen, businessCalendarViewScreen, businessAddEventScreen, reportsScreen } from './screens/dashboard.js';
 import { invitationScreen, licenseScreen, teamScreen, workspaceScreen } from './screens/team.js';
 import { workspaces, getAccess } from './services/access.js';
 import { page, bindBack } from './ui/layout.js';
 import { escapeHtml } from './ui/dom.js';
 import { navigate, currentRoute } from './router.js';
 import { businessQrScreen, customerQrScreen } from './screens/reservation-qr.js';
+import { customerProfileSetupScreen } from './screens/customer-profile.js';
+import { notificationsScreen } from './screens/notifications.js';
+import { getCustomerProfile } from './services/customer-profile.js';
+import { initializePushNavigation, registerPushNotifications } from './services/notifications.js';
 
 export async function startApp() {
   assertLiveConfiguration();
   await store.load();
   await initializeAuth();
+  await initializePushNavigation();
+  let pushUserId = store.get().user?.id || '';
+  if (pushUserId) void registerPushNotifications().catch(() => undefined);
+  store.subscribe(state => {
+    if (state.user?.id && state.user.id !== pushUserId) {
+      pushUserId = state.user.id;
+      void registerPushNotifications().catch(() => undefined);
+    } else if (!state.user) pushUserId = '';
+  });
   const root = document.querySelector('#app');
   if (!(root instanceof HTMLElement)) throw new Error('Elementul #app lipsește.');
   root.addEventListener('click', event => {
@@ -41,7 +52,11 @@ export async function startApp() {
   });
 
   startRouter(async ({ path }) => {
-    const publicPaths = ['/', '/configuration', '/business/login', '/customer/login'];
+    const publicPaths = ['/', '/configuration', '/business/login', '/business/invite-login', '/customer/login'];
+    if (store.get().user && publicPaths.includes(path) && path !== '/configuration') {
+      navigate(homeRoute());
+      return;
+    }
     if (!publicPaths.includes(path) && !store.get().user) {
       navigate(path.startsWith('/customer') ? '/customer/login' : '/business/login');
       return;
@@ -51,6 +66,7 @@ export async function startApp() {
       '/': () => roleScreen(root),
       '/configuration': () => configurationScreen(root),
       '/business/login': () => loginScreen(root, 'business'),
+      '/business/invite-login': () => invitationLoginScreen(root),
       '/business/workspaces': () => workspaceScreen(root),
       '/business/license': () => licenseScreen(root),
       '/business/approve': () => approvalCodeScreen(root),
@@ -63,22 +79,32 @@ export async function startApp() {
       '/business/setup': () => scheduleSetupScreen(root),
       '/business/home': () => businessHomeScreen(root),
       '/business/calendar': () => businessCalendarScreen(root),
+      '/business/calendar-view': () => businessCalendarViewScreen(root),
+      '/business/add-event': () => businessAddEventScreen(root),
       '/business/scan': () => businessQrScreen(root),
       '/business/reports': () => reportsScreen(root),
-      '/business/notifications': () => businessNotificationsScreen(root),
       '/customer/login': () => loginScreen(root, 'customer'),
+      '/customer/profile-setup': () => customerProfileSetupScreen(root),
       '/customer/search': () => customerSearchScreen(root),
       '/customer/company': () => companyScreen(root),
       '/customer/book': () => bookingScreen(root),
       '/customer/booking-success': () => bookingSuccessScreen(root),
       '/customer/bookings': () => customerBookingsScreen(root),
       '/customer/booking-qr': () => customerQrScreen(root),
-      '/customer/notifications': () => notificationSettings(root, 'customer'),
+      '/customer/notifications': () => notificationsScreen(root, 'customer'),
+      '/business/notifications': () => notificationsScreen(root, 'business'),
       '/profile': () => profileScreen(root),
     };
     const render = screens[path] || screens['/'];
     try {
-      const requiresBusiness = ['/business/home','/business/calendar','/business/reports','/business/team','/business/setup','/business/notifications'];
+      if (store.get().role === 'customer' && path.startsWith('/customer/') && path !== '/customer/profile-setup'
+        && !store.get().customerProfileComplete) {
+        const profile = await getCustomerProfile();
+        if (!profile?.completed) { navigate('/customer/profile-setup'); return; }
+        await store.set({ customerProfileComplete: true,
+          user: { ...store.get().user, name: `${profile.firstName} ${profile.lastName}`.trim() } });
+      }
+      const requiresBusiness = ['/business/home','/business/calendar','/business/calendar-view','/business/add-event','/business/reports','/business/team','/business/setup','/business/notifications'];
       if (requiresBusiness.includes(path)) {
         const list = await workspaces();
         if (currentRoute().path !== path) return;

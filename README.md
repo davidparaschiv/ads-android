@@ -59,7 +59,7 @@ Deschide proiectul în Android Studio și instalează SDK/JDK-urile cerute de ve
 
 ### 1. Supabase
 
-1. Creează proiectul și rulează în ordine migrațiile din `supabase/migrations/`, inclusiv `008_owner_approval_codes.sql`, `009_access_expiry_and_permanent_dev.sql`, `010_team_plan_and_member_limit.sql` și `011_all_team_calendars_shared.sql`.
+1. Creează proiectul și rulează în ordine migrațiile din `supabase/migrations/`, inclusiv `008_owner_approval_codes.sql`–`014_drawn_screens_service_calendar.sql`. Migrarea `012_booking_rejected_status.sql` trebuie confirmată înainte de `013`, deoarece PostgreSQL nu permite folosirea unei valori enum noi în aceeași tranzacție în care a fost creată. Migrarea `014` adaugă serviciile legate de calendare și blochează atomic suprapunerile `pending`/`confirmed` pe același calendar.
 2. Rulează numai migrațiile încă neaplicate; nu rerula 001 pe baza existentă. Fă backup înainte. Migrarea 002 presupune o afacere deținută per cont; dacă există duplicate, migrarea se oprește și trebuie rezolvate fără a șterge istoricul. Pentru un proiect v0.2, aplică 003 și 004; pentru v0.3, numai `004_team_features.sql`.
 3. Activează providerul Google și configurează clientul OAuth. Adaugă `ro.rezerva.app://auth/callback` la URL-urile redirect autorizate. Pentru test web, adaugă originea locală exactă.
 4. În `.env` completează `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, apoi `VITE_APP_MODE=live`.
@@ -126,7 +126,7 @@ npm run test:backend:setup
 npm run test:backend
 ```
 
-Testele live sunt opt-in. Emailurile, SMS-urile, notificările și scrierile persistente cer acord explicit prin opțiuni CLI. `npm test` rămâne offline. Nu sunt necesare migrații noi pentru această actualizare.
+Testele live sunt opt-in. Emailurile, SMS-urile, notificările și scrierile persistente cer acord explicit prin opțiuni CLI. `npm test` rămâne offline. Pentru această actualizare aplică migrațiile noi `012`, `013` și `014`, apoi republică funcția `send-reminders`.
 
 ```bash
 npm run check

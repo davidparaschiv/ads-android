@@ -4,7 +4,7 @@ import { store } from '../state/store.js';
 import { navigate } from '../router.js';
 import { escapeHtml } from '../ui/dom.js';
 import { bindBack, page, toast, loadingButton } from '../ui/layout.js';
-import { getAccess, redeemLicense, workspaces, calendars, team, addCalendar, setCalendarActive, inviteMember, acceptInvitation, revokeInvitation, setMemberAccess, afterAccessRoute } from '../services/access.js';
+import { getAccess, redeemLicense, workspaces, calendars, team, addCalendar, inviteMember, acceptInvitation, revokeInvitation, setMemberAccess, afterAccessRoute } from '../services/access.js';
 import { takePendingInvitation } from '../services/auth.js';
 import { isPlatformOwnerAccount } from '../services/enrollment.js';
 
@@ -12,14 +12,13 @@ const dateLabel = value => value === 'infinity' || value === null ? 'Fără expi
 
 export function accessNotice(access) {
   if (!access.active) return `<div class="demo-callout">Abonament sau licență inactivă. Accesul afacerii este blocat până la activarea unui plan. ${access.isOwner ? '<button class="text-button" data-route="/business/plans">Activează un plan</button>' : 'Contactează proprietarul.'}</div>`;
-  return `<div class="access-banner"><strong>${access.calendarLimit} ${access.calendarLimit === 1 ? 'calendar' : 'calendare'} · ${access.source === 'license' ? 'Licență' : 'Abonament'}</strong><span>Valabil până la ${dateLabel(access.expiresAt)}</span>${access.overLimit ? '<p>Planul permite mai puține calendare. Proprietarul trebuie să arhiveze calendarele în plus pentru a relua programările noi. Istoricul nu se șterge.</p>' : ''}</div>`;
+  return `<div class="access-banner"><strong>${access.calendarLimit} ${access.calendarLimit === 1 ? 'calendar' : 'calendare'} · ${access.source === 'license' ? 'Licență' : 'Abonament'}</strong><span>Valabil până la ${dateLabel(access.expiresAt)}</span>${access.overLimit ? '<p>Planul curent nu acoperă toate calendarele. Activează planul Complete pentru a relua programările noi.</p>' : ''}</div>`;
 }
 
 export async function workspaceScreen(root) {
   const [list, platformOwner] = await Promise.all([workspaces(), isPlatformOwnerAccount()]);
   root.innerHTML = page({ title: 'Afaceri și invitații', backTo: '/', content: `<section class="section-heading"><h1>Bine ai venit</h1><p>${escapeHtml(store.get().user?.email || '')}</p><p>Membrii invitați intră direct în toate calendarele afacerii, fără plată.</p></section>
     <div class="stack">${list.map(b => `<button class="button button--secondary" data-workspace="${escapeHtml(b.id)}">${escapeHtml(b.name)} · ${b.is_owner ? 'Proprietar' : 'Membru'}</button>`).join('') || '<p>Nu ai încă o afacere asociată.</p>'}
-    <button class="button button--secondary" data-route="/business/invite">Am cod de invitație</button>
     ${platformOwner ? '<button class="button button--secondary" data-route="/business/approve">Verificări</button>' : ''}
     <button class="text-button" data-route="/business/verification">Starea înscrierii afacerii</button>
     ${!list.some(b => b.is_owner) ? '<button class="button button--primary" id="new-business">Înregistrează propria afacere</button>' : ''}
@@ -87,7 +86,7 @@ export function invitationScreen(root) {
       const result = await acceptInvitation(value);
       if (!result.ok) throw new Error(result.message);
       const list = await workspaces();
-      await store.set({ business: list.find(b => b.id === result.businessId) });
+      await store.set({ business: list.find(b => b.id === result.businessId), inviteFlow: false });
       navigate('/business/home');
     } catch (error) { toast(root, error.message || 'Invitație indisponibilă.', 'error'); loadingButton(button, false); }
   });
@@ -103,8 +102,8 @@ export async function teamScreen(root) {
   const teamEnabled = access.active && access.planId === 'large';
   root.innerHTML = page({ title: 'Calendare și echipă', backTo: '/business/home', content: `${accessNotice(access)}
     <div class="section-heading"><h1>Calendarele afacerii</h1><p>${list.filter(c => c.is_active).length} active din ${access.calendarLimit}. Toate calendarele sunt partajate automat cu întreaga echipă.</p></div>
-    <div class="stack">${list.map(c => `<div class="team-card"><strong>${escapeHtml(c.name)}</strong><span>${c.is_active ? 'Activ' : 'Arhivat · istoric păstrat'}</span><button class="text-button" data-toggle-calendar="${escapeHtml(c.id)}">${c.is_active ? 'Arhivează' : 'Reactivează'}</button></div>`).join('')}</div>
-    <form class="form-card" id="add-calendar"><label>Calendar nou<input name="name" required minlength="2" maxlength="80" placeholder="Ex.: Ana · Manichiură"></label><button class="button button--secondary" ${!access.active || access.activeCalendars >= access.calendarLimit ? 'disabled' : ''}>Adaugă calendar</button><p class="info-note">Preia programul săptămânal al primului calendar. Arhivarea oprește rezervările noi, nu anulează cele existente.</p></form>
+    <div class="stack">${list.map(c => `<div class="team-card" data-calendar="${escapeHtml(c.id)}"><strong>${escapeHtml(c.name)}</strong><span>Activ · partajat cu toată echipa</span></div>`).join('')}</div>
+    <form class="form-card" id="add-calendar"><label>Calendar nou<input name="name" required minlength="2" maxlength="80" placeholder="Ex.: Ana · Manichiură"></label><button class="button button--secondary" ${!access.active || access.activeCalendars >= access.calendarLimit ? 'disabled' : ''}>Adaugă calendar</button><p class="info-note">Preia programul săptămânal al primului calendar și este partajat automat cu toată echipa.</p></form>
     <section class="section-heading"><h2>Invită prin e-mail</h2><p>Invitația expiră în 48 de ore. Destinatarul folosește aceeași adresă în Google.</p></section>
     ${teamEnabled ? '' : '<div class="demo-callout">Team flow este disponibil numai cu planul Complete sau cu o licență de 5 calendare. Planul Small este pentru un singur utilizator.</div>'}
     <form class="form-card" id="invite-member"><label>E-mail Google<input name="email" type="email" required maxlength="254" ${!teamEnabled ? 'disabled' : ''}></label>${permissionSelect('viewer')}<p class="info-note">Membrul va avea automat acces la toate calendarele actuale și viitoare ale afacerii.</p><button class="button button--primary" ${!teamEnabled ? 'disabled' : ''}>Trimite invitația</button></form>
@@ -115,7 +114,6 @@ export async function teamScreen(root) {
   bindBack(root, '/business/home');
   const action = async (button, callback) => { try { loadingButton(button, true); await callback(); await teamScreen(root); } catch (error) { loadingButton(button, false); toast(root, error.message || 'Operația a eșuat.', 'error'); } };
   root.querySelector('#add-calendar')?.addEventListener('submit', e => { e.preventDefault(); const f = e.currentTarget; action(f.querySelector('button'), () => addCalendar(business.id, new FormData(f).get('name'))); });
-  root.querySelectorAll('[data-toggle-calendar]').forEach(b => b.addEventListener('click', () => { const c = list.find(c => c.id === b.getAttribute('data-toggle-calendar')); action(b, () => setCalendarActive(c.id, !c.is_active)); }));
   root.querySelector('#invite-member')?.addEventListener('submit', e => {
     e.preventDefault(); const f = e.currentTarget; const data = new FormData(f);
     action(f.querySelector('button'), () => inviteMember(business.id, String(data.get('email')).trim().toLowerCase(), data.get('permission')));

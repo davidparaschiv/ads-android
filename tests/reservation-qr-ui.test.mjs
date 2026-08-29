@@ -112,7 +112,7 @@ test('Reservation app link survives Google login in memory and clears on sign-ou
     Capacitor:{isNativePlatform:()=>true},navigate:path=>navigation.push(path),
     Browser:{close:async()=>{}},Preferences:{get:async()=>({value:null}),remove:async()=>{}},
     App:{addListener:async(name,callback)=>{listeners[name]=callback;},getLaunchUrl:async()=>({url:link})},
-    getSupabase:()=>({auth:{getUser:async()=>({data:{user:null}}),onAuthStateChange:()=>{},
+    getSupabase:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{},
       exchangeCodeForSession:async code=>{assert.equal(code,'offline-code');exchanges++;return {data:{user:{id:'owner',email:'owner@example.invalid',user_metadata:{full_name:'Owner'}}},error:null};},signOut:async()=>{}}}),
   };
   globalThis.qrAuthFixture=fixture;

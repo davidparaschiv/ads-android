@@ -12,6 +12,8 @@ const initialState = {
   selectedPlan: null,
   selectedBusinessId: null,
   notificationPreference: 60,
+  customerProfileComplete: false,
+  inviteFlow: false,
   demoAccess: null,
   demoEnrollment: null,
   demoCalendars: [],

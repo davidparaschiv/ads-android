@@ -11,13 +11,14 @@ import { navigate } from '../router.js';
 import { loggedExternalCall } from '../observability/external-api-log.js';
 
 let listenerInstalled = false;
+let explicitSignOut = false;
 // In memory only: never persist invitation or license secrets in Preferences.
 let pendingInvitation = '';
 let pendingEnrollment = '';
 export const takePendingEnrollment = () => pendingEnrollment;
 export const clearPendingEnrollment = () => { pendingEnrollment = ''; };
 export const setDemoEnrollmentToken = token => { if (config.mode === 'demo') pendingEnrollment = token; };
-export const businessEntryRoute = () => pendingEnrollment ? '/business/verification' : pendingInvitation ? '/business/invite' : hasPendingReservationQr() ? '/business/scan' : '/business/workspaces';
+export const businessEntryRoute = () => pendingEnrollment ? '/business/verification' : (pendingInvitation || store.get().inviteFlow) ? '/business/invite' : hasPendingReservationQr() ? '/business/scan' : '/business/workspaces';
 export const homeRoute = () => {
   const state = store.get();
   if (state.user) return state.role === 'customer' ? '/customer/search' : '/business/workspaces';
@@ -74,13 +75,15 @@ export async function initializeAuth() {
     const supabase = getSupabase();
     if (supabase) {
       // Never trust cached UI identity as proof of authentication.
-      const { data } = await supabase.auth.getUser();
-      if (data.user) await saveUser(data.user);
-      else await store.set({ user: null, business: null });
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) await saveUser(data.session.user);
+      // A temporary refresh/network failure must not erase the persisted UI
+      // identity. Server authorization still protects every data operation.
+      else if (!store.get().user) await store.set({ user: null, business: null });
       supabase.auth.onAuthStateChange((_event, session) => {
         // Avoid another Supabase call inside this callback.
         if (session?.user) void saveUser(session.user);
-        else void store.set({ user: null, business: null });
+        else if (explicitSignOut) void store.set({ user: null, business: null });
       });
       if (!Capacitor.isNativePlatform() && new URL(window.location.href).searchParams.has('code')) {
         window.history.replaceState(null, '', window.location.pathname);
@@ -122,14 +125,19 @@ export async function signInWithGoogle(role) {
 }
 
 export async function signOut() {
+  explicitSignOut = true;
   const supabase = getSupabase();
-  if (supabase) {
-    const user = store.get().user;
-    // Prevent push on a device after sign-out. Server policies still check recipient identity.
-    const { value: token } = await Preferences.get({ key: 'rezerva.push.token' });
-    if (token && user) await supabase.from('device_tokens').delete().eq('user_id', user.id).eq('token', token);
-    await Preferences.remove({ key: 'rezerva.push.token' });
-    await supabase.auth.signOut();
+  try {
+    if (supabase) {
+      const user = store.get().user;
+      // Prevent push on a device after sign-out. Server policies still check recipient identity.
+      const { value: token } = await Preferences.get({ key: 'rezerva.push.token' });
+      if (token && user) await supabase.from('device_tokens').delete().eq('user_id', user.id).eq('token', token);
+      await Preferences.remove({ key: 'rezerva.push.token' });
+      await supabase.auth.signOut();
+    }
+  } finally {
+    explicitSignOut = false;
   }
   pendingInvitation = '';
   pendingEnrollment = '';
@@ -141,7 +149,7 @@ export async function signOut() {
 async function saveUser(user) {
   const previous = store.get().user;
   await store.set({
-    ...(previous?.id !== user.id ? { business: null } : {}),
+    ...(previous?.id !== user.id ? { business: null, customerProfileComplete: false } : {}),
     user: { id: user.id, email: user.email || '', name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilizator' },
   });
 }

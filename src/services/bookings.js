@@ -11,10 +11,16 @@ export async function availableSlots(businessId, resourceId, eventTypeId, date) 
   return ['09:00','10:30','12:00','14:30','16:00'].map(time => ({ start_at: new Date(date + 'T' + time + ':00' + zone).toISOString() }));
 }
 
+export async function availableServiceSlots(businessId,resourceId,eventTypeId) {
+  const dates=Array.from({length:30},(_,index)=>{const date=new Date();date.setDate(date.getDate()+index);return date.toISOString().slice(0,10);});
+  const groups=await Promise.all(dates.map(date=>availableSlots(businessId,resourceId,eventTypeId,date)));
+  return groups.flat().sort((a,b)=>Date.parse(a.start_at)-Date.parse(b.start_at));
+}
+
 /** @param {{businessId:string,eventTypeId:string,resourceId:string,startAt:string,customerName:string,reminderMinutes:number}} input */
 export async function createBooking(input) {
   if (config.mode === 'demo') {
-    return { id: `demo-${crypto.randomUUID()}`, ...input, status: 'confirmed' };
+    return { id: `demo-${crypto.randomUUID()}`, ...input, status: 'pending' };
   }
   const supabase = getSupabase();
   if (!supabase) throw new Error('Supabase nu este configurat.');
@@ -36,7 +42,7 @@ export async function listCustomerBookings() {
   if (!supabase) return [];
   const { data: authData } = await supabase.auth.getUser();
   if (!authData.user) throw new Error('Autentificare necesară.');
-  const { data, error } = await supabase.from('bookings').select('*, businesses(name), event_types(name)').eq('customer_id', authData.user.id).order('start_at');
+  const { data, error } = await supabase.from('bookings').select('*, businesses(name), event_types(name,duration_minutes)').eq('customer_id', authData.user.id).order('start_at');
   if (error) throw error;
   return (data || []).map((item) => ({
     id: item.id,
@@ -46,6 +52,7 @@ export async function listCustomerBookings() {
     email: item.customer_email_snapshot,
     date: new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: config.timezone }).format(new Date(item.start_at)),
     time: new Intl.DateTimeFormat('ro-RO', { hour: '2-digit', minute: '2-digit', timeZone: config.timezone }).format(new Date(item.start_at)),
+    duration: item.event_types?.duration_minutes || Math.round((Date.parse(item.end_at)-Date.parse(item.start_at))/60000),
     status: item.status,
   }));
 }
