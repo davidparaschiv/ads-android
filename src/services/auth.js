@@ -17,6 +17,13 @@ export const takePendingEnrollment = () => pendingEnrollment;
 export const clearPendingEnrollment = () => { pendingEnrollment = ''; };
 export const setDemoEnrollmentToken = token => { if (config.mode === 'demo') pendingEnrollment = token; };
 export const businessEntryRoute = () => pendingEnrollment ? '/business/enrollment-link' : pendingInvitation ? '/business/invite' : hasPendingReservationQr() ? '/business/scan' : '/business/workspaces';
+export const homeRoute = () => {
+  const state = store.get();
+  if (state.user) return state.role === 'customer' ? '/customer/search' : '/business/workspaces';
+  if (state.role === 'customer') return '/customer/login';
+  if (state.role === 'business') return '/business/login';
+  return '/';
+};
 export const takePendingInvitation = () => { const token = pendingInvitation; pendingInvitation = ''; return token; };
 export const hasPendingInvitation = () => Boolean(pendingInvitation);
 const businessRoute = businessEntryRoute;
@@ -82,6 +89,10 @@ export async function initializeAuth() {
   }
   if (Capacitor.isNativePlatform()) {
     await App.addListener('appUrlOpen', ({ url }) => { void handleUrl(url); });
+    await App.addListener('backButton', ({ canGoBack }) => {
+      if (canGoBack) window.history.back();
+      else navigate(homeRoute());
+    });
     const launch = await App.getLaunchUrl();
     if (launch?.url) await handleUrl(launch.url);
   }

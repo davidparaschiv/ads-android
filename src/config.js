@@ -12,7 +12,7 @@ export const config = Object.freeze({
   features: Object.freeze({
     licenseRedemption: env.VITE_ENABLE_LICENSE_REDEMPTION !== 'false',
   }),
-  appName: env.VITE_APP_NAME || 'Rezerva',
+  appName: env.VITE_APP_NAME || 'Rezervari.ai',
   appId: 'ro.rezerva.app',
   locale: 'ro-RO',
   timezone: 'Europe/Bucharest',

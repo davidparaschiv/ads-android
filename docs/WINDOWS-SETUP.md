@@ -118,8 +118,11 @@ For a new database, the pending files must be these four, in this order:
 | --- | --- |
 | `001_initial_schema.sql` | Core tables, booking logic, initial policies and extensions |
 | `002_plans_licenses_invitations.sql` | Plans, private licenses, staff/calendar permissions and revised policies |
-| `003_verified_enrollment.sql` | Email/SMS/admin enrollment and restricted developer-key access |
+| `003_verified_enrollment.sql` | Email/SMS/admin enrollment and initial developer-key support |
 | `004_team_features.sql` | Complete-only business reports and reminders; Small keeps calendar access |
+| `005_reservation_qr.sql` | Signed reservation QR payloads and scoped check-in |
+| `006_universal_developer_license.sql` | Universal developer key and neutral invalid-license responses |
+| `007_approval_email_details.sql` | Complete business details in administrator approval emails |
 
 If that matches the intended empty project:
 
@@ -410,7 +413,7 @@ Sign in through the real Google account chooser. Check Supabase Authentication â
 
 ### 17. Complete real enrollment, then create a real booking
 
-For your simplest developer test, sign in as `davidnicolaparaschiv@gmail.com`, choose the license route and enter `dev112233`. The live server grants five calendars for 30 days to that verified account only. It pins the owner's Auth UID on valid redemption/approval. The key does not bypass enrollment or create a business by itself.
+For your simplest developer test, sign in with any verified Google account, choose the license route and enter `dev112233`. The live server grants that account five calendars for 30 days. The key does not bypass enrollment or create a business by itself; administrator approval remains restricted separately.
 
 Complete the business form with test business details, a unique CUI-format value in this isolated development project, your real contact email and a mobile number you control. Do not impersonate a real business. The app checks CUI format, not ANAF ownership.
 
@@ -557,7 +560,7 @@ Keep `.env`, backend secrets, private JSON credentials and signing keys out of s
 | Google `redirect_uri_mismatch` | Google callback must be Supabase's HTTPS callback, not Android scheme |
 | Login works but enrollment fails | All four migrations, deployed `enrollment`, Resend/Twilio secrets and function logs |
 | Business not in search | Pending approval or inactive; check `public.businesses` after final approval |
-| `dev112233` rejected | Real verified David Google account, pinned UID, grant revocation and rate limit; other owners need normal keys |
+| `dev112233` rejected | Verified Google account, developer grant enabled, migration 006 applied, and rate limit not exceeded |
 | Permission denied / RLS error | Check identity, migrations and membership; do not disable RLS to make it pass |
 | License inactive | Correct Google email, start already reached, not expired/revoked |
 | Invitation opens wrong account | Sign in with exact invited Google email and reopen/paste original token |

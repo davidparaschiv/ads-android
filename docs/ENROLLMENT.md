@@ -52,7 +52,7 @@ Nu mai există un comutator de configurare care să sară peste plată. O config
 Introdu `dev112233` în ecranul de licență:
 
 - În demo: acordă 5 calendare în simularea locală, pentru 30 de zile. Nu transmite mesaje sau plăți.
-- În live: serverul cere contul Google verificat `davidnicolaparaschiv@gmail.com` și UUID-ul administratorului fixat. Alte conturi sunt refuzate, chiar dacă știu codul.
+- În live: serverul acceptă cheia de dezvoltare pentru orice cont Google verificat. Aprobarea înscrierii rămâne separată și rezervată administratorului platformei.
 - Acordă 5 calendare pentru 30 de zile de la introducere; reintroducerea poate reînnoi accesul dezvoltatorului.
 - Nu confirmă emailuri, telefoane sau cereri și nu ocolește aprobarea înscrierii.
 - Codul este cunoscut și scurt, deci **nu este tratat ca un secret de securitate**. Verificarea contului și regulile server sunt protecția reală.

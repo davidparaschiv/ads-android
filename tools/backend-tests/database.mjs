@@ -30,9 +30,9 @@ export async function inspectDatabase(config, check) {
   const db = await connectDb(config);
   try {
     await db.query('begin read only');
-    await check('Database: all five migration versions recorded', async () => {
+    await check('Database: all seven migration versions recorded', async () => {
       const rows = (await db.query('select version from supabase_migrations.schema_migrations')).rows;
-      ensure(['001', '002', '003', '004', '005'].every(v => rows.some(r => r.version === v)), 'Migration history is incomplete; apply/record only the SQL files that actually succeeded.');
+      ensure(['001', '002', '003', '004', '005', '006', '007'].every(v => rows.some(r => r.version === v)), 'Migration history is incomplete; apply/record only the SQL files that actually succeeded.');
     });
     await check('Database: required tables use RLS; private schema is not client-accessible', async () => {
       const names = ['profiles','businesses','business_members','subscriptions','resources','event_types','bookings','device_tokens','notification_jobs','calendar_members'];
@@ -117,7 +117,7 @@ export async function databaseCases(db, check) {
     for (let i=0;i<2;i++) ensure((await scalar('license','select public.redeem_license($1) result',[license.key])).access.calendarLimit === 5, 'License grant is not idempotent.');
     await db.query('update private.license_keys set revoked_at=now() where key_hash=$1',[license.hash]);
     ensure(!(await access('license')).active, 'Revoked license still grants access.');
-    ensure(!(await scalar('other','select public.redeem_license($1) result',['dev112233'])).ok, 'Developer key accepted for non-owner.');
+    ensure((await scalar('other','select public.redeem_license($1) result',['dev112233'])).access.calendarLimit === 5, 'Universal developer key was rejected.');
   });
   await run('DB: future/expired licenses and rate limiting', async () => {
     for (const [offset, expectedOk] of [[10,true],[-500,false]]) {

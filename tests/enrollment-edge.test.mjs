@@ -18,7 +18,7 @@ test('Enrollment edge adapter: authentication, SMS provider proof, and fixed rec
     }}}; },
     serviceClient:()=>({rpc:async(name,args)=>{
       calls.push({kind:'service',name,args});
-      return {data:name==='issue_enrollment_link'?{ok:true,token:'RZA-'+'A'.repeat(64),recipient:'davidnicolaparaschiv@gmail.com',name:'Salon',cui:'12345678',phone:'+40712345678',email:'contact@example.com'}:true,error:null};
+      return {data:name==='issue_enrollment_link'?{ok:true,token:'RZA-'+'A'.repeat(64),recipient:'davidnicolaparaschiv@gmail.com',name:'Salon Aurora',category:'Salon',address:'Strada Florilor 10, București',cui:'12345678',phone:'+40712345678',email:'contact@example.com'}:true,error:null};
     }}),
   };
   globalThis.fetch=async(url,options)=>{
@@ -55,6 +55,8 @@ test('Enrollment edge adapter: authentication, SMS provider proof, and fixed rec
     assert.equal((await handleEnrollment(request({action:'approval',id:'request-id',owner:'attacker',recipient:'attacker@example.com'}))).status,200);
     const issue=calls.find(c=>c.name==='issue_enrollment_link'); assert.equal(issue.args.p_owner,'actual-owner');
     const mail=calls.find(c=>c.kind==='fetch' && c.url.includes('resend'));
-    assert.deepEqual(JSON.parse(mail.options.body).to,['davidnicolaparaschiv@gmail.com']);
+    const message=JSON.parse(mail.options.body);
+    assert.deepEqual(message.to,['davidnicolaparaschiv@gmail.com']);
+    for(const detail of ['Nume afacere: Salon Aurora','Categorie: Salon','CUI: 12345678','Adresă: Strada Florilor 10, București','E-mail: contact@example.com','Telefon: +40712345678']) assert.match(message.text,new RegExp(detail.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
   });
 });

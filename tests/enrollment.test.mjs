@@ -8,7 +8,7 @@ import { btree_gist } from '@electric-sql/pglite/contrib/btree_gist';
 import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
 import { generateLicense } from '../tools/license-core.mjs';
 
-test('Verified enrollment and restricted developer access (all three migrations)', async t => {
+test('Verified enrollment and universal developer access', async t => {
   const db = new PGlite({ extensions: { btree_gist, pgcrypto } });
   t.after(() => db.close());
   await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
@@ -20,7 +20,7 @@ test('Verified enrollment and restricted developer access (all three migrations)
     grant usage on schema public,auth to anon,authenticated,service_role;
     grant execute on all functions in schema auth to anon,authenticated,service_role;
     alter default privileges in schema public grant all on tables to anon,authenticated,service_role;`);
-  for (const file of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+  for (const file of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql','006_universal_developer_license.sql','007_approval_email_details.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
   const admin=randomUUID(), owner=randomUUID(), attacker=randomUUID();
   for (const [id,email] of [[admin,'davidnicolaparaschiv@gmail.com'],[owner,'business@example.com'],[attacker,'other@example.com']]) {
     await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[id,email]);
@@ -35,10 +35,11 @@ test('Verified enrollment and restricted developer access (all three migrations)
   let request, emailLink, approvalLink;
   const sid = 'VE'+'a'.repeat(32);
 
-  await t.test('protected owner record and developer key cannot be changed or used by another account', async () => {
+  await t.test('protected settings remain private and the developer key works for every verified Google account', async () => {
     await assert.rejects(as(attacker,"update private.platform_settings set owner_email='other@example.com'"),/permission denied/);
     await assert.rejects(db.query("update private.platform_settings set owner_email='other@example.com'"),/check constraint/);
-    assert.equal((await call(attacker,'redeem_license',['dev112233'])).ok,false);
+    assert.equal((await call(attacker,'redeem_license',['dev112233'])).access.calendarLimit,5);
+    assert.equal((await call(attacker,'get_access',[])).source,'developer');
     assert.equal((await call(admin,'redeem_license',['dev112233'])).access.calendarLimit,5);
     assert.equal((await call(admin,'get_access',[])).source,'developer');
     assert.equal((await call(owner,'get_access',[])).active,false);
@@ -64,6 +65,8 @@ test('Verified enrollment and restricted developer access (all three migrations)
   await t.test('email link is account-bound, single-use, and not an approval', async () => {
     emailLink = await issue(request.id,'email');
     assert.equal(emailLink.recipient,'contact@example.com');
+    assert.equal(emailLink.category,'Salon');
+    assert.equal(emailLink.address,'București');
     await assert.rejects(call(attacker,'enrollment_link_details',[emailLink.token]),/Acces interzis/);
     assert.equal((await call(attacker,'confirm_enrollment_link',[emailLink.token,true])).ok,false);
     assert.equal((await call(owner,'confirm_enrollment_link',[emailLink.token,true])).ok,true);
@@ -115,6 +118,8 @@ test('Verified enrollment and restricted developer access (all three migrations)
     await db.exec(key.sql);
     assert.equal((await call(owner,'redeem_license',[key.key])).ok,true);
     assert.equal((await call(owner,'get_access',[])).source,'license');
-    assert.equal((await call(attacker,'redeem_license',[key.key])).ok,false);
+    const rejected=await call(attacker,'redeem_license',[key.key]);
+    assert.equal(rejected.ok,false);
+    assert.equal(rejected.message,'Licență invalidă.');
   });
 });

@@ -41,8 +41,7 @@ export async function verificationScreen(root) {
     ${pending && !request.phoneVerified ? `<button class="button button--secondary" data-action="sendSms" ${!request.emailVerified ? 'disabled' : ''}>Trimite cod SMS</button><form id="sms-form"><label>Cod SMS<input name="code" inputmode="numeric" autocomplete="one-time-code" required pattern="[0-9]{4,10}" maxlength="10"></label><button class="button button--primary" ${!request.emailVerified ? 'disabled' : ''}>Confirmă telefonul</button></form>` : ''}</div>
     <div class="access-banner"><strong>3. Aprobarea administratorului</strong><span>${{ pending: 'În așteptare', approved: 'Aprobată', rejected: 'Respinsă', expired: 'Cerere expirată', superseded: 'Înlocuită cu o cerere nouă' }[request.status]}</span>
     ${pending ? `<button class="button button--secondary" data-action="approval" ${!request.emailVerified || !request.phoneVerified ? 'disabled' : ''}>Solicită / retrimite aprobarea</button>` : ''}</div>
-    <div class="stack"><button class="button button--secondary" id="refresh-verification">Actualizează starea</button>${request.status === 'approved' ? '<button class="button button--primary" id="finish-enrollment">Continuă la abonament și calendar</button>' : '<button class="text-button" data-route="/business/details">Corectează datele · reia verificările</button>'}
-    <button class="text-button" data-route="/business/enrollment-link">Deschide codul unui link</button></div>
+    <div class="stack"><button class="button button--secondary" id="refresh-verification">Actualizează starea</button>${request.status === 'approved' ? '<button class="button button--primary" id="finish-enrollment">Continuă la abonament și calendar</button>' : '<button class="text-button" data-route="/business/details">Corectează datele · reia verificările</button>'}</div>
     ${config.mode === 'demo' && pending ? `<div class="demo-callout">Simulare locală: niciun e-mail sau SMS nu este trimis. Cod SMS demo: 123456.<div class="stack"><button class="button button--secondary" data-demo-link="RZE-DEMO">Simulează linkul de e-mail</button><button class="button button--secondary" data-demo-link="RZA-DEMO" ${!request.emailVerified || !request.phoneVerified ? 'disabled' : ''}>Simulează linkul administratorului</button></div></div>` : ''}` });
   bindBack(root);
   if (store.get().enrollmentWarning) toast(root, store.get().enrollmentWarning, 'error');
@@ -77,7 +76,7 @@ export async function enrollmentLinkScreen(root) {
         try {
           box.querySelectorAll('button').forEach(b => { b.disabled = true; });
           await enrollmentAction('confirm', { token, approve }); token = ''; clearPendingEnrollment();
-          box.innerHTML = `<div class="access-banner">${data.kind === 'email' ? 'E-mail confirmat. Continuă verificarea SMS.' : approve ? 'Afacerea a fost aprobată și înregistrată.' : 'Cererea a fost respinsă.'}<button class="button button--secondary" data-route="/business/verification">Vezi starea cererii tale</button><button class="text-button" data-route="/business/workspaces">Afaceri și invitații</button></div>`;
+          box.innerHTML = `<div class="access-banner">${data.kind === 'email' ? 'E-mail confirmat. Continuă verificarea SMS.' : approve ? 'Afacerea a fost aprobată și înregistrată.' : 'Cererea a fost respinsă.'}<button class="button button--secondary" data-route="/business/verification">Vezi starea cererii tale</button></div>`;
           bindBack(box);
         } catch (error) { box.querySelectorAll('button').forEach(b => { b.disabled = false; }); toast(root, error.message, 'error'); }
       };

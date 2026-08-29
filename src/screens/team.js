@@ -41,11 +41,11 @@ export async function licenseScreen(root) {
   if (business?.is_owner === false) throw new Error('Doar proprietarul activează abonamentul.');
   const access = await getAccess(business?.id || null);
   root.innerHTML = page({ title: 'Activează o licență', backTo: '/business/plans', content: `${accessNotice(access)}
-    <section class="section-heading"><h1>Ai primit o cheie?</h1><p>Licența include 5 calendare. Trebuie să fie asociată adresei tale Google: <strong>${escapeHtml(store.get().user?.email || '')}</strong>.</p></section>
+    <section class="section-heading"><h1>Ai primit o cheie?</h1><p>Licența include 5 calendare. Licențele obișnuite sunt asociate adresei Google, iar cheia de dezvoltare poate fi folosită de orice cont Google verificat.</p></section>
     <form class="form-card" id="license-form"><label>Cheie de licență<textarea name="key" required maxlength="100" rows="3" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="RZL-…"></textarea></label>
     <button class="button button--primary" type="submit">Verifică și activează</button></form>
     <p class="info-note">Valabilitatea începe la data stabilită de administrator, nu la introducerea cheii. Cheia nu generează o taxare automată. Dacă ai deja un abonament Google Play, acesta continuă să se reînnoiască până îl anulezi din Google Play.</p>
-    ${config.mode === 'demo' ? '<div class="demo-callout">Cheie de dezvoltare: <code>dev112233</code>. În live funcționează numai pentru contul verificat al proprietarului platformei. Nu sare peste verificarea înscrierii.</div>' : ''}
+    ${config.mode === 'demo' ? '<div class="demo-callout">Cheie de dezvoltare: <code>dev112233</code>. Poate fi folosită de orice cont Google verificat și nu sare peste verificarea înscrierii.</div>' : ''}
     <div id="license-result" aria-live="polite"></div>` });
   bindBack(root, '/business/plans');
   root.querySelector('#license-form')?.addEventListener('submit', async event => {
@@ -58,11 +58,11 @@ export async function licenseScreen(root) {
     try {
       loadingButton(button, true, 'Se verifică pe server…');
       const result = await redeemLicense(key);
-      if (!result.ok) throw new Error(result.message);
+      if (!result.ok) throw new Error(result.message || 'Licență invalidă.');
       const panel = root.querySelector('#license-result');
       panel.innerHTML = `<div class="access-banner"><strong>${result.scheduled ? 'Licență înregistrată. Începe la ' + dateLabel(result.startsAt) : 'Licență activată: 5 calendare'}</strong><span>Expiră la ${dateLabel(result.expiresAt)}</span><button class="button button--secondary" data-route="${result.scheduled ? '/business/workspaces' : await afterAccessRoute()}">Continuă</button></div>`;
       bindBack(panel);
-    } catch (error) { toast(root, error.message || 'Cheia nu poate fi activată.', 'error'); }
+    } catch (error) { toast(root, error.message || 'Licență invalidă.', 'error'); }
     finally { key = ''; loadingButton(button, false); }
   });
 }

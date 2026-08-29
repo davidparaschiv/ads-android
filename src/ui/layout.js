@@ -16,7 +16,7 @@ export function page(options) {
         ${options.eyebrow ? `<span>${options.eyebrow}</span>` : ''}
         ${options.title ? `<strong>${options.title}</strong>` : ''}
       </div>
-      ${config.mode === 'demo' ? '<span class="demo-badge">DEMO</span>' : '<span></span>'}
+      ${options.backTo ? logo('compact') : config.mode === 'demo' ? '<span class="demo-badge">DEMO</span>' : '<span></span>'}
     </header>
     <main class="screen">${options.content}</main>
     ${options.nav ? bottomNavigation(options.nav, options.active || '') : ''}

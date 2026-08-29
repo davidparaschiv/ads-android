@@ -104,14 +104,14 @@ test('Android QR wiring: plugin registration, optional camera and pinned native 
 test('Reservation app link survives Google login in memory and clears on sign-out', async t => {
   const token='RZB-'+'D'.repeat(64), link='ro.rezerva.app://reservation?token='+token;
   const state={user:null,role:null,business:null}, navigation=[];
-  let onUrl, exchanges=0;
+  const listeners={}; let exchanges=0;
   const originalWindow=globalThis.window;
   globalThis.window={location:{hash:''}};
   const fixture={config:{mode:'live',authRedirectUrl:'ro.rezerva.app://auth/callback'},
     store:{get:()=>structuredClone(state),set:async patch=>Object.assign(state,patch),clear:async()=>{state.user=null;state.business=null;state.role=null;}},
     Capacitor:{isNativePlatform:()=>true},navigate:path=>navigation.push(path),
     Browser:{close:async()=>{}},Preferences:{get:async()=>({value:null}),remove:async()=>{}},
-    App:{addListener:async(_name,callback)=>{onUrl=callback;},getLaunchUrl:async()=>({url:link})},
+    App:{addListener:async(name,callback)=>{listeners[name]=callback;},getLaunchUrl:async()=>({url:link})},
     getSupabase:()=>({auth:{getUser:async()=>({data:{user:null}}),onAuthStateChange:()=>{},
       exchangeCodeForSession:async code=>{assert.equal(code,'offline-code');exchanges++;return {data:{user:{id:'owner',email:'owner@example.invalid',user_metadata:{full_name:'Owner'}}},error:null};},signOut:async()=>{}}}),
   };
@@ -126,11 +126,12 @@ test('Reservation app link survives Google login in memory and clears on sign-ou
   const auth=await import('data:text/javascript;base64,'+Buffer.from(built.outputFiles[0].text).toString('base64'));
   await auth.initializeAuth(); assert.equal(navigation.at(-1),'/business/login');
   assert.equal(auth.businessEntryRoute(),'/business/scan'); assert(!JSON.stringify(state).includes(token));
-  onUrl({url:'ro.rezerva.app://auth/callback?code=offline-code'});
+  listeners.appUrlOpen({url:'ro.rezerva.app://auth/callback?code=offline-code'});
   for(let i=0;i<20 && !state.user;i++) await new Promise(r=>setTimeout(r,5));
   await new Promise(r=>setTimeout(r,5));
   assert.equal(exchanges,1); assert.equal(globalThis.window.location.hash,'/business/scan');
-  onUrl({url:link}); await new Promise(r=>setTimeout(r,5));
+  listeners.appUrlOpen({url:link}); await new Promise(r=>setTimeout(r,5));
   assert.equal(navigation.at(-1),'/business/scan');
+  assert.equal(typeof listeners.backButton,'function');
   await auth.signOut(); assert.equal(auth.businessEntryRoute(),'/business/workspaces');
 });

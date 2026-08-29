@@ -1,6 +1,6 @@
 {
   "appId": "ro.rezerva.app",
-  "appName": "Rezerva",
+  "appName": "Rezervari.ai",
   "webDir": "dist",
   "server": {
     "androidScheme": "https"

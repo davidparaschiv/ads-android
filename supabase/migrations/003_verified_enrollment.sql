@@ -55,7 +55,7 @@ begin
   if not private.take_attempt('license',5) then return jsonb_build_object('ok',false,'message','Prea multe încercări. Reîncearcă peste 15 minute.'); end if;
   select * into s from private.platform_settings where singleton for update;
   if not s.developer_bypass_enabled or not private.is_platform_owner() then
-    return jsonb_build_object('ok',false,'message','Cheie indisponibilă pentru acest cont.');
+    return jsonb_build_object('ok',false,'message','Licență invalidă.');
   end if;
   update private.platform_settings set owner_user_id=auth.uid() where singleton and owner_user_id is null;
   v_expiry:=now()+interval '30 days';
@@ -201,7 +201,8 @@ begin
   v_token:=case when p_kind='email' then 'RZE-' else 'RZA-' end||upper(replace(gen_random_uuid()::text||gen_random_uuid()::text,'-',''));
   insert into private.enrollment_links(request_id,kind,token_hash)
     values(r.id,p_kind,encode(sha256(convert_to(v_token,'UTF8')),'hex'));
-  return jsonb_build_object('ok',true,'token',v_token,'recipient',v_email,'name',r.name,'cui',r.cui,'phone',r.phone,'email',r.contact_email);
+  return jsonb_build_object('ok',true,'token',v_token,'recipient',v_email,'name',r.name,
+    'category',r.category,'address',r.address,'cui',r.cui,'phone',r.phone,'email',r.contact_email);
 end;
 $$;
 

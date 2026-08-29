@@ -128,13 +128,13 @@ begin
   end if;
   v_key:=upper(btrim(p_key));
   if length(v_key) <> 75 or v_key !~ '^RZL-([A-F0-9]{8}-){7}[A-F0-9]{8}$' then
-    return jsonb_build_object('ok',false,'message','Cheie indisponibilă pentru acest cont.');
+    return jsonb_build_object('ok',false,'message','Licență invalidă.');
   end if;
   select * into v_row from private.license_keys
     where key_hash=encode(sha256(convert_to(replace(substr(v_key,5),'-',''),'UTF8')),'hex') for update;
   if not found or v_row.bound_email<>v_email or v_row.revoked_at is not null or now()>=v_row.expires_at
     or (v_row.redeemed_by is not null and v_row.redeemed_by<>auth.uid()) then
-    return jsonb_build_object('ok',false,'message','Cheie indisponibilă pentru acest cont.');
+    return jsonb_build_object('ok',false,'message','Licență invalidă.');
   end if;
   update private.license_keys set redeemed_by=auth.uid(), redeemed_at=coalesce(redeemed_at,now()) where id=v_row.id;
   return jsonb_build_object('ok',true,'startsAt',v_row.starts_at,'expiresAt',v_row.expires_at,

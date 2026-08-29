@@ -2,7 +2,7 @@
 
 import { assertLiveConfiguration } from './config.js';
 import { startRouter } from './router.js';
-import { initializeAuth } from './services/auth.js';
+import { homeRoute, initializeAuth } from './services/auth.js';
 import { store } from './state/store.js';
 import {
   businessNotificationsScreen,
@@ -35,6 +35,10 @@ export async function startApp() {
   await initializeAuth();
   const root = document.querySelector('#app');
   if (!(root instanceof HTMLElement)) throw new Error('Elementul #app lipsește.');
+  root.addEventListener('click', event => {
+    const target = event.target instanceof Element ? event.target.closest('[data-home]') : null;
+    if (target) navigate(homeRoute());
+  });
 
   startRouter(async ({ path }) => {
     const publicPaths = ['/', '/configuration', '/business/login', '/customer/login'];

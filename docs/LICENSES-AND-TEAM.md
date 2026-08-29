@@ -1,6 +1,6 @@
 # Licențe și invitații — ghid administrator
 
-Actualizare v0.3: înscrierea afacerii necesită email confirmat, telefon verificat prin SMS și aprobarea administratorului. Vezi [ENROLLMENT.md](ENROLLMENT.md). Bypass-ul de dezvoltare este numai prin `dev112233`, restricționat în live la contul Google verificat al lui David. Nu mai există comutator frontend pentru sărit plata.
+Actualizare: înscrierea afacerii necesită email confirmat, telefon verificat prin SMS și aprobarea administratorului. Vezi [ENROLLMENT.md](ENROLLMENT.md). Bypass-ul de dezvoltare este numai prin `dev112233` și poate fi activat de orice cont Google verificat. Nu mai există comutator frontend pentru sărit plata.
 
 ## Reguli implementate
 
@@ -56,7 +56,7 @@ order by created_at desc;
 
 Trimite proprietarului numai cheia și perioada, nu acces la baza de date. El intră cu Google → Înregistrează propria afacere/Alege planul → Am o cheie de licență. Serverul compară adresa Google verificată cu `bound_email`, fără diferență între litere mari/mici. Nu elimină puncte sau sufixe `+` din adrese: folosește exact adresa din cont.
 
-O cheie poate fi legată de un singur cont. Reintroducerea ei în același cont este sigură și nu prelungește termenul. Poate fi înregistrată înainte de început, dar nu acordă acces anticipat. Cheile pentru un alt cont, expirate, revocate sau inexistente au același mesaj generic.
+O cheie obișnuită poate fi legată de un singur cont. Reintroducerea ei în același cont este sigură și nu prelungește termenul. Poate fi înregistrată înainte de început, dar nu acordă acces anticipat. Cheile pentru alt cont, expirate, revocate sau inexistente răspund identic cu „Licență invalidă”. `dev112233` este excepția universală.
 
 ### Revocare sau schimbare de perioadă
 

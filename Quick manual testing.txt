@@ -1,6 +1,5 @@
-- vezi ca apar prea multe link-uri duplicate in aplicatie de exemplu am invitatie, confirma email cu invitatie adica sunt superfluu. elimina duplicatele si pune doar pe un singur ecran un singur link de acelasi tip cu posibilitate de a merge back.
-- licenta dev112233 trebuie sa fie valabila pentru orice cont nu doar unele, e exceptia de obicei licenta e bound to a mail. dar nu mai scrie ca licenta nu e buna pentru "acest mail" ca mesaj dai tip la hackeri scrii doar licenta invalida.
-
+update cloud backend:
+ npx supabase functions deploy send-reminders --use-api
 
 
 

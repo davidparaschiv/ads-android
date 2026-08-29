@@ -24,8 +24,14 @@ test('Romanian demo: license, five calendars, invites, reports and staff without
   const text = () => d.body.textContent;
   await until(() => d.querySelector('[data-role="business"]'));
   click('[data-role="business"]'); await until(() => d.querySelector('#google-login')); click('#google-login');
-  await until(() => d.querySelector('#new-business')); click('#new-business');
+  await until(() => d.querySelector('#new-business'));
+  assert.equal(d.querySelectorAll('[data-route="/business/invite"]').length,1);
+  assert.equal(d.querySelectorAll('[data-route="/business/enrollment-link"]').length,1);
+  click('[data-home]'); await until(() => d.querySelector('#new-business'));
+  click('#new-business');
   await until(() => d.querySelector('[data-plan="large"]'));
+  assert.equal(d.querySelector('[data-route="/business/invite"]'),null);
+  assert.ok(d.querySelector('[data-home]'));
   assert.match(text(), /50 €/); assert.match(text(), /150 €/);
   assert.match(d.querySelector('[data-plan="small"]').textContent, /Small/);
   assert.match(d.querySelector('[data-plan="small"]').textContent, /Fără rapoarte/);

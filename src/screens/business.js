@@ -23,8 +23,7 @@ export function plansScreen(root) {
         ${planCard('large', selected)}
       </div>
       <button class="button button--primary" id="continue-plan">${store.get().business ? 'Continuă' : 'Continuă la verificarea afacerii'}</button>
-      ${config.features.licenseRedemption ? '<button class="button button--secondary" data-route="/business/license">Am o cheie de licență · 5 calendare</button>' : ''}
-      <button class="text-button" data-route="/business/invite">Sunt invitat într-o echipă</button>`,
+      ${config.features.licenseRedemption ? '<button class="button button--secondary" data-route="/business/license">Am o cheie de licență · 5 calendare</button>' : ''}`,
   });
   bindBack(root, '/business/workspaces');
   root.querySelectorAll('[data-plan]').forEach((node) => node.addEventListener('click', async () => {

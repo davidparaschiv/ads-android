@@ -9,11 +9,11 @@ async function sendLink(id, ownerId, kind) {
   const page = Deno.env.get('ENROLLMENT_WEB_URL');
   const link = page ? `${page}#token=${encodeURIComponent(data.token)}` : `ro.rezerva.app://enrollment?token=${encodeURIComponent(data.token)}`;
   const text = kind === 'approval'
-    ? `Cerere nouă Rezerva: ${data.name}\nCUI: ${data.cui}\nE-mail verificat: ${data.email}\nTelefon verificat: ${data.phone}\n\nVerifică datele și aprobă sau respinge în aplicație, conectat cu contul proprietarului platformei.\n${link}\n\nCod alternativ: ${data.token}`
+    ? `Cerere nouă Rezervari.ai\n\nNume afacere: ${data.name}\nCategorie: ${data.category}\nCUI: ${data.cui}\nAdresă: ${data.address}\nE-mail: ${data.email}\nTelefon: ${data.phone}\n\nE-mailul și telefonul au fost verificate. Verifică toate datele și aprobă sau respinge în aplicație, conectat cu contul proprietarului platformei.\n${link}\n\nCod alternativ: ${data.token}`
     : `Confirmă adresa de contact pentru ${data.name}, CUI ${data.cui}.\n\n${link}\n\nDeschide aplicația cu același cont Google cu care ai început cererea, apoi confirmă.\nCod alternativ: ${data.token}\n\nDacă nu ai făcut această cerere, ignoră mesajul.`;
   const sent = await fetch('https://api.resend.com/emails', {
     method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from, to: [data.recipient], subject: kind === 'approval' ? 'Rezerva · Cerere de aprobare afacere' : 'Rezerva · Confirmă adresa de e-mail', text: text + '\n\nLinkul expiră în 24 de ore.' }),
+    body: JSON.stringify({ from, to: [data.recipient], subject: kind === 'approval' ? 'Rezervari.ai · Cerere de aprobare afacere' : 'Rezervari.ai · Confirmă adresa de e-mail', text: text + '\n\nLinkul expiră în 24 de ore.' }),
   });
   if (!sent.ok) throw new Error('E-mailul nu a putut fi trimis. Poți retrimite din ecranul de verificare.');
 }

@@ -38,7 +38,7 @@ export async function demoGrant(planId, source = 'demo') {
 
 export async function redeemLicense(key) {
   if (config.mode !== 'demo') return rpc('redeem_license', { p_key: key });
-  if (key.trim() !== 'dev112233') return { ok: false, message: 'În demo este disponibilă doar cheia de dezvoltare. Cheile reale se verifică pe server.' };
+  if (key.trim() !== 'dev112233') return { ok: false, message: 'Licență invalidă.' };
   const access = await demoGrant('large', 'developer');
   return { ok: true, scheduled: false, startsAt: new Date().toISOString(), expiresAt: access.expiresAt, access };
 }
