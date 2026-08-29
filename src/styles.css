@@ -260,9 +260,6 @@ p { color: var(--muted); line-height: 1.6; }
 .access-banner { display: grid; gap: 8px; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 18px; padding: 18px; margin: 16px 0; }
 .access-banner span, .team-card span { color: #63616b; font-size: .85rem; }
 .team-card { display: grid; gap: 10px; border: 1px solid #e9e7ed; border-radius: 16px; padding: 16px; overflow-wrap: anywhere; }
-.calendar-checks { display: grid; gap: 10px; margin: 12px 0; }
-.calendar-checks label { display: flex; align-items: center; gap: 12px; }
-.calendar-checks input { width: 22px; height: 22px; accent-color: #ed2648; }
 .form-card textarea { width: 100%; box-sizing: border-box; padding: 14px; border: 1px solid #dedbe4; border-radius: 12px; font: inherit; resize: vertical; }
 .verification-form { margin-top: 16px; padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: #fff; }
 .form-card .verification-code { min-height: 64px; border-width: 2px; border-color: #f1c8ce; background: linear-gradient(180deg, #fff, #fff8f9); color: var(--ink); font-size: 1.55rem; font-weight: 800; letter-spacing: .32em; text-align: center; caret-color: var(--red); }

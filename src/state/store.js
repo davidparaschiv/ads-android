@@ -16,7 +16,7 @@ const initialState = {
   demoEnrollment: null,
   demoCalendars: [],
   demoInvitations: [],
-  demoMembers: [{ userId: 'demo-staff', email: 'coleg@demo.ro', role: 'staff', calendars: [] }],
+  demoMembers: [{ userId: 'demo-staff', email: 'coleg@demo.ro', role: 'staff', permission: 'viewer' }],
 };
 
 let state = { ...initialState };

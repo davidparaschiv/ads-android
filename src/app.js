@@ -20,9 +20,9 @@ import {
 } from './screens/customer.js';
 import { configurationScreen, loginScreen, roleScreen } from './screens/entry.js';
 import { profileScreen } from './screens/profile.js';
-import { businessDetailsScreen, verificationScreen, enrollmentLinkScreen, approvalCodeScreen } from './screens/enrollment.js';
+import { businessDetailsScreen, verificationScreen, approvalCodeScreen } from './screens/enrollment.js';
 import { businessHomeScreen, businessCalendarScreen, reportsScreen } from './screens/dashboard.js';
-import { licenseScreen, teamScreen, workspaceScreen } from './screens/team.js';
+import { invitationScreen, licenseScreen, teamScreen, workspaceScreen } from './screens/team.js';
 import { workspaces, getAccess } from './services/access.js';
 import { page, bindBack } from './ui/layout.js';
 import { escapeHtml } from './ui/dom.js';
@@ -53,15 +53,13 @@ export async function startApp() {
       '/business/login': () => loginScreen(root, 'business'),
       '/business/workspaces': () => workspaceScreen(root),
       '/business/license': () => licenseScreen(root),
-      '/business/code': () => enrollmentLinkScreen(root),
       '/business/approve': () => approvalCodeScreen(root),
-      '/business/invite': () => enrollmentLinkScreen(root),
+      '/business/invite': () => invitationScreen(root),
       '/business/team': () => teamScreen(root),
       '/business/plans': () => plansScreen(root),
       '/business/payment': () => paymentScreen(root),
       '/business/details': () => businessDetailsScreen(root),
       '/business/verification': () => verificationScreen(root),
-      '/business/enrollment-link': () => enrollmentLinkScreen(root),
       '/business/setup': () => scheduleSetupScreen(root),
       '/business/home': () => businessHomeScreen(root),
       '/business/calendar': () => businessCalendarScreen(root),

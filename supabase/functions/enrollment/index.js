@@ -7,8 +7,8 @@ async function sendLink(id, ownerId, kind) {
   const { data, error } = await serviceClient().rpc('issue_enrollment_link', { p_request_id: id, p_owner: ownerId, p_kind: kind });
   if (error || !data?.ok) throw new Error(data?.message || 'Linkul nu poate fi trimis acum.');
   const text = kind === 'approval'
-    ? `Rezervari.ai · Aprobare afacere\n\nDenumire: ${data.name}\nCategorie: ${data.category}\nCUI: ${data.cui}\nAdresă: ${data.address}\nE-mail business: ${data.email}\nTelefon: ${data.phone}\n\nCod aprobare: ${data.email}/${data.token}\nValabil 30 de zile.`
-    : `Rezervari.ai · Confirmare cont business\n\nDenumire: ${data.name}\nCategorie: ${data.category}\nCUI: ${data.cui}\nAdresă: ${data.address}\nE-mail business: ${data.email}\nTelefon: ${data.phone}\n\nCod confirmare: ${data.token}\nValabil 30 de zile.`;
+    ? `Rezervari.ai · Aprobare afacere\n\nDenumire: ${data.name}\nCategorie: ${data.category}\nCUI: ${data.cui}\nAdresă: ${data.address}\nE-mail business: ${data.email}\nTelefon: ${data.phone}\n\nCod aprobare:\n${data.email}/${data.token}\nValabil 30 de zile.`
+    : `Rezervari.ai · Confirmare cont business\n\nDenumire: ${data.name}\nCategorie: ${data.category}\nCUI: ${data.cui}\nAdresă: ${data.address}\nE-mail business: ${data.email}\nTelefon: ${data.phone}\n\nCod confirmare:\n${data.token}\nValabil 30 de zile.`;
   const sent = await fetch('https://api.resend.com/emails', {
     method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ from, to: [data.recipient], subject: kind === 'approval' ? 'Rezervari.ai · Cod pentru aprobarea afacerii' : 'Rezervari.ai · Confirmă contul de business', text }),
@@ -45,7 +45,7 @@ export async function handleEnrollment(request) {
     if (body.action === 'start') {
       const data = await call('start_enrollment', { p_name: body.name, p_category: body.category, p_address: body.address, p_cui: body.cui, p_email: body.email, p_phone: body.phone });
       try { await sendLink(data.id, actor.user.id, 'email'); return json(request, { ok: true, id: data.id }); }
-      catch { return json(request, { ok: true, id: data.id, warning: 'Cererea privată a fost salvată, dar e-mailul nu a fost trimis. Folosește Retrimite linkul.' }); }
+      catch { return json(request, { ok: true, id: data.id, warning: 'Cererea privată a fost salvată, dar e-mailul nu a fost trimis. Folosește Retrimite codul.' }); }
     }
     if (body.action === 'email' || body.action === 'approval') {
       // ownerId comes from authenticated JWT, never request body; recipient comes from DB only.

@@ -16,7 +16,7 @@ export async function businessHomeScreen(root) {
   root.innerHTML = page({
     eyebrow: formatDate(todayIso()).toUpperCase(), title: escapeHtml(business.name), nav: 'business', active: 'home',
     content: `${accessNotice(access)}${hasBusinessFeature(access, 'reports') ? `<section class="dashboard-hero"><div><span>Astăzi</span><strong>${bookings.filter(b => b.status === 'confirmed').length}</strong><small>programări confirmate</small></div><div class="hero-orbit">${icon('calendar')}</div></section>` : ''}
-      <div class="stack">${access.isOwner ? '<button class="button button--secondary" data-route="/business/team">Calendare și echipă</button><button class="text-button" data-route="/business/plans">Abonament și licență</button>' : '<p class="info-note">Vezi numai calendarele alocate. Abonamentul este administrat de proprietar.</p>'}
+      <div class="stack">${access.isOwner ? '<button class="button button--secondary" data-route="/business/team">Calendare și echipă</button><button class="text-button" data-route="/business/plans">Abonament și licență</button>' : '<p class="info-note">Toate calendarele afacerii sunt partajate cu echipa. Abonamentul este administrat de proprietar.</p>'}
       ${store.get().role === 'business' ? `<button class="button button--primary" data-route="/business/scan">${icon('qr')} Scanează programarea</button>` : ''}
       <button class="text-button" data-route="/business/workspaces">Schimbă afacerea · invitații · cont</button></div>
       <section class="list-section"><h2>Programările de astăzi</h2>${bookings.length ? bookings.map(bookingRow).join('') : '<p>Nu există programări astăzi.</p>'}</section>`,
@@ -30,7 +30,7 @@ function bookingRow(booking) {
 }
 
 function calendarFilter(list, selected) {
-  return `<label>Calendar<select id="calendar-filter"><option value="">Toate calendarele alocate</option>${list.map(c => `<option value="${escapeHtml(c.id)}" ${c.id === selected ? 'selected' : ''}>${escapeHtml(c.name)}${c.is_active ? '' : ' (arhivat)'}</option>`).join('')}</select></label>`;
+  return `<label>Calendar<select id="calendar-filter"><option value="">Toate calendarele</option>${list.map(c => `<option value="${escapeHtml(c.id)}" ${c.id === selected ? 'selected' : ''}>${escapeHtml(c.name)}${c.is_active ? '' : ' (arhivat)'}</option>`).join('')}</select></label>`;
 }
 
 export async function businessCalendarScreen(root, date = todayIso(), calendarId = '') {
@@ -82,7 +82,7 @@ export async function reportsScreen(root, period = 'week', date = todayIso(), ca
     eyebrow: 'PROGRAMĂRI ȘI CLIENȚI', title: 'Rapoarte', nav: 'business', active: 'reports',
     content: `<div class="form-card">${calendarFilter(list, calendarId)}<label>Data de referință<input type="date" id="report-date" value="${escapeHtml(date)}" required></label></div>
     <div class="segmented">${[['day','Zi'],['week','Săptămână'],['month','Lună']].map(([id,label]) => `<button data-period="${id}" class="${period === id ? 'is-active' : ''}">${label}</button>`).join('')}</div>
-    <p class="info-note">${escapeHtml(from)} — ${escapeHtml(until)} · numai calendarele alocate</p>
+    <p class="info-note">${escapeHtml(from)} — ${escapeHtml(until)} · toate calendarele afacerii</p>
     <section class="metrics-grid"><article><span>Total programări</span><strong>${bookings.length}</strong></article><article><span>Finalizate</span><strong>${bookings.filter(b => b.status === 'completed').length}</strong></article><article><span>Anulate</span><strong>${bookings.filter(b => b.status === 'cancelled').length}</strong></article><article><span>Confirmate</span><strong>${bookings.filter(b => b.status === 'confirmed').length}</strong></article></section>
     <section class="list-section"><h2>Lista programărilor</h2>${bookings.length ? bookings.map(bookingRow).join('') : '<p>Nu există programări în această perioadă.</p>'}</section>`,
   });

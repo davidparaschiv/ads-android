@@ -125,6 +125,8 @@ For a new database, the pending files must be these four, in this order:
 | `007_approval_email_details.sql` | Complete business details in administrator approval emails |
 | `008_owner_approval_codes.sql` | Code-only business confirmation/owner approval and 30-day superseding codes |
 | `009_access_expiry_and_permanent_dev.sql` | Full business lock after expiry and permanent universal `dev112233` grants |
+| `010_team_plan_and_member_limit.sql` | Small single-user enforcement; Complete-only Team flow and 15 accepted-member limit |
+| `011_all_team_calendars_shared.sql` | Removes selective calendar assignments and shares all calendars with every accepted member |
 
 If that matches the intended empty project:
 
@@ -437,7 +439,7 @@ node tools\generate-license.mjs --email owner@example.com --start "2026-09-01T00
 
 Replace the email and start with your actual tester and intended date. A future start grants no early access. Paste only the generator's SQL block into Supabase SQL Editor; it stores the hash, email and period, not the plaintext key. Give the tester the key privately. Enrollment verification still applies.
 
-On another device or browser session, sign in as a customer, find the approved business, and book a slot. Refresh the business calendar on the first device. Once you have a verified sending domain, invite a separate staff Google account to a specific calendar and verify it cannot read unassigned calendars. Resend's single-inbox test sender does not support delivery to that other address.
+On another device or browser session, sign in as a customer, find the approved business, and book a slot. Refresh the business calendar on the first device. Once you have a verified sending domain, invite a separate staff Google account and verify that all existing calendars are visible automatically. Add another calendar and verify it also appears without another assignment step. Resend's single-inbox test sender does not support delivery to that other address.
 
 **Checkpoint:** A booking created by a real customer appears in `public.bookings` and in the authorized business calendar after refresh. This is the first genuine multi-user demonstration.
 

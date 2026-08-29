@@ -22,7 +22,7 @@ test('PostgreSQL integration: licenses, billing limits, invitations and RLS', as
     grant execute on all functions in schema auth to anon,authenticated,service_role;
     alter default privileges in schema public grant all on tables to anon,authenticated,service_role;
   `);
-  for (const filename of ['001_initial_schema.sql','002_plans_licenses_invitations.sql']) {
+  for (const filename of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','011_all_team_calendars_shared.sql']) {
     await db.exec(await readFile(new URL('../supabase/migrations/' + filename, import.meta.url), 'utf8'));
   }
   const owner = randomUUID(), staff = randomUUID(), other = randomUUID(), customer = randomUUID();
@@ -54,13 +54,13 @@ test('PostgreSQL integration: licenses, billing limits, invitations and RLS', as
     await assert.rejects(as(owner,"insert into public.resources(business_id,name) values($1,'Bypass')",[business]), /permission denied/);
   });
   let invitation;
-  await t.test('invites are owner-only, email-bound, single-use and calendar-scoped', async () => {
+  await t.test('invites are owner-only, email-bound, single-use and share every calendar', async () => {
     await assert.rejects(as(other,'select public.issue_calendar_invitation($1,$2,$3,$4)',[business,'staff@example.com',[calendarIds[0]],'viewer']), /Acces interzis/);
     invitation = (await as(owner,'select public.issue_calendar_invitation($1,$2,$3,$4) result',[business,'staff@example.com',[calendarIds[0]],'viewer']))[0].result;
     assert.equal((await as(other,'select public.accept_calendar_invitation($1) result',[invitation.token]))[0].result.ok,false);
     assert.equal((await as(staff,'select public.accept_calendar_invitation($1) result',[invitation.token]))[0].result.ok,true);
     assert.equal((await as(staff,'select public.accept_calendar_invitation($1) result',[invitation.token]))[0].result.ok,false);
-    assert.equal((await as(staff,'select * from public.list_my_calendars($1)',[business])).length,1);
+    assert.equal((await as(staff,'select * from public.list_my_calendars($1)',[business])).length,5);
     assert.equal((await as(staff,'select public.get_access($1) result',[business]))[0].result.isOwner,false);
     await assert.rejects(as(staff,'select public.list_team($1)',[business]), /Acces interzis/);
   });
@@ -69,7 +69,7 @@ test('PostgreSQL integration: licenses, billing limits, invitations and RLS', as
   await t.test('bookings and reports are protected by calendar RLS; viewer cannot modify', async () => {
     booking = (await as(customer,'select public.create_booking($1,$2,$3,$4,$5,60) id',[business,setup.event_type_id,calendarIds[0],date.toISOString(),'Client Test']))[0].id;
     await as(customer,'select public.create_booking($1,$2,$3,$4,$5,60)',[business,setup.event_type_id,calendarIds[1],date.toISOString(),'Alt Client']);
-    assert.equal((await as(staff,'select * from public.bookings')).length,1);
+    assert.equal((await as(staff,'select * from public.bookings')).length,2);
     assert.equal((await as(other,'select * from public.bookings')).length,0);
     assert.equal((await as(owner,'select * from public.bookings')).length,2);
     const slots = await as(other,'select * from public.available_slots($1,$2,$3,$4)',[business,calendarIds[0],setup.event_type_id,date.toISOString().slice(0,10)]);
@@ -81,7 +81,7 @@ test('PostgreSQL integration: licenses, billing limits, invitations and RLS', as
   await t.test('revocation removes booking visibility and cancels queued staff reminders', async () => {
     await as(owner,"select public.set_member_access($1,$2,$3,'manager')",[business,staff,[calendarIds[0]]]);
     await as(staff,"select public.set_booking_status($1,'no_show')",[booking]);
-    assert.equal((await as(staff,'select status from public.bookings'))[0].status,'no_show');
+    assert.equal((await as(staff,'select status from public.bookings where id=$1',[booking]))[0].status,'no_show');
     await as(owner,"select public.set_member_access($1,$2,'{}'::uuid[],'viewer')",[business,staff]);
     assert.equal((await as(staff,'select * from public.bookings')).length,0);
     assert.equal((await as(staff,'select * from public.get_my_workspaces()')).length,0);

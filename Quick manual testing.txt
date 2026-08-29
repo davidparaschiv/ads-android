@@ -1,3 +1,14 @@
+
+team flow:
+login -> am cod de invitatie -> bag codul in text area -> am acces
+
+verify flow:
+login -> create business -> send email code -> introduce manually in text area -> get sms -> introduce manually in text area -> pending admin flow
+
+admin flow:
+send email to admin -> send mail to admin with business details and code -> admin enters the app -> goes to verifications tab -> enters code manually in text area -> business will see that update in the app
+
+=====================================
 update cloud backend:
  npx supabase functions deploy send-reminders --use-api
 

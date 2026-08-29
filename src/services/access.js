@@ -78,15 +78,15 @@ export async function team(businessId) {
   return { members: store.get().demoMembers, invitations: store.get().demoInvitations };
 }
 
-export async function inviteMember(businessId, email, calendarIds, permission) {
+export async function inviteMember(businessId, email, permission) {
   if (config.mode === 'demo') {
     const invitations = store.get().demoInvitations.map(i => i.email === email && ['pending','sent'].includes(i.status) ? { ...i, status: 'revoked' } : i);
-    await store.set({ demoInvitations: [...invitations, { id: crypto.randomUUID(), email, calendarIds, permission, status: 'sent', expiresAt: new Date(Date.now() + 48 * 3600000).toISOString() }] });
+    await store.set({ demoInvitations: [...invitations, { id: crypto.randomUUID(), email, permission, status: 'sent', expiresAt: new Date(Date.now() + 48 * 3600000).toISOString() }] });
     return;
   }
   const client = getSupabase();
   if (!client) throw new Error('Server neconfigurat.');
-  const { data, error } = await client.functions.invoke('send-calendar-invite', { body: { businessId, email, calendarIds, permission } });
+  const { data, error } = await client.functions.invoke('send-calendar-invite', { body: { businessId, email, permission } });
   if (error || !data?.ok) throw new Error(data?.error || 'Invitația nu a putut fi trimisă. Verifică Echipă și configurarea e-mailului.');
 }
 
@@ -104,7 +104,8 @@ export async function revokeInvitation(id) {
   await store.set({ demoInvitations: store.get().demoInvitations.map(i => i.id === id ? { ...i, status: 'revoked' } : i) });
 }
 
-export async function setMemberAccess(businessId, userId, calendarIds, permission) {
-  if (config.mode !== 'demo') return rpc('set_member_access', { p_business_id: businessId, p_user_id: userId, p_calendar_ids: calendarIds, p_permission: permission });
-  await store.set({ demoMembers: store.get().demoMembers.filter(m => m.userId !== userId).concat(calendarIds.length ? [{ userId, email: store.get().demoMembers.find(m => m.userId === userId)?.email || '', role: 'staff', calendars: calendarIds.map(id => ({ id, permission })) }] : []) });
+export async function setMemberAccess(businessId, userId, permission, remove = false) {
+  if (config.mode !== 'demo') return rpc('set_team_member', { p_business_id: businessId, p_user_id: userId, p_permission: permission, p_remove: remove });
+  const existing = store.get().demoMembers.find(m => m.userId === userId);
+  await store.set({ demoMembers: store.get().demoMembers.filter(m => m.userId !== userId).concat(remove ? [] : [{ userId, email: existing?.email || '', role: 'staff', permission }]) });
 }

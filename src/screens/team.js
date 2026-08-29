@@ -17,10 +17,10 @@ export function accessNotice(access) {
 
 export async function workspaceScreen(root) {
   const [list, platformOwner] = await Promise.all([workspaces(), isPlatformOwnerAccount()]);
-  root.innerHTML = page({ title: 'Afaceri și invitații', backTo: '/', content: `<section class="section-heading"><h1>Bine ai venit</h1><p>${escapeHtml(store.get().user?.email || '')}</p><p>Membrii invitați intră direct în calendarele alocate, fără plată.</p></section>
+  root.innerHTML = page({ title: 'Afaceri și invitații', backTo: '/', content: `<section class="section-heading"><h1>Bine ai venit</h1><p>${escapeHtml(store.get().user?.email || '')}</p><p>Membrii invitați intră direct în toate calendarele afacerii, fără plată.</p></section>
     <div class="stack">${list.map(b => `<button class="button button--secondary" data-workspace="${escapeHtml(b.id)}">${escapeHtml(b.name)} · ${b.is_owner ? 'Proprietar' : 'Membru'}</button>`).join('') || '<p>Nu ai încă o afacere asociată.</p>'}
-    <button class="button button--secondary" data-route="/business/code">Am primit un cod</button>
-    ${platformOwner ? '<button class="button button--secondary" data-route="/business/approve">Aprobă cerere</button>' : ''}
+    <button class="button button--secondary" data-route="/business/invite">Am cod de invitație</button>
+    ${platformOwner ? '<button class="button button--secondary" data-route="/business/approve">Verificări</button>' : ''}
     <button class="text-button" data-route="/business/verification">Starea înscrierii afacerii</button>
     ${!list.some(b => b.is_owner) ? '<button class="button button--primary" id="new-business">Înregistrează propria afacere</button>' : ''}
     <button class="text-button" data-route="/profile">Cont și deconectare</button></div>` });
@@ -72,7 +72,7 @@ export async function licenseScreen(root) {
 
 export function invitationScreen(root) {
   const token = takePendingInvitation();
-  root.innerHTML = page({ title: 'Acceptă invitația', backTo: '/business/workspaces', content: `<section class="section-heading"><h1>Intră în echipă</h1><p>Conectat ca ${escapeHtml(store.get().user?.email || '')}. Aceasta trebuie să fie adresa invitată. Nu ai nevoie de abonament personal.</p></section>
+  root.innerHTML = page({ title: 'Team flow', backTo: '/business/workspaces', content: `<section class="section-heading"><h1>Am cod de invitație</h1><p>Conectat ca ${escapeHtml(store.get().user?.email || '')}. Aceasta trebuie să fie adresa invitată. Nu ai nevoie de abonament personal.</p></section>
     <form class="form-card" id="accept-invite"><label>Cod din e-mail<textarea name="token" rows="3" required maxlength="100" autocomplete="off" spellcheck="false">${escapeHtml(token || '')}</textarea></label><button class="button button--primary" type="submit">Acceptă invitația</button></form>
     ${config.mode === 'demo' ? '<p class="demo-callout">Simulare: DEMO-INVITATIE. În demo nu se trimit e-mailuri.</p>' : ''}<button class="text-button" data-route="/profile">Schimbă contul Google</button>` });
   bindBack(root, '/business/workspaces');
@@ -93,7 +93,6 @@ export function invitationScreen(root) {
   });
 }
 
-const checkboxes = (list, selected = []) => `<div class="calendar-checks">${list.map(c => `<label><input type="checkbox" name="calendar" value="${escapeHtml(c.id)}" ${selected.includes(c.id) ? 'checked' : ''}>${escapeHtml(c.name)}${c.is_active ? '' : ' (arhivat)'}</label>`).join('')}</div>`;
 const permissionSelect = value => `<label>Permisiune<select name="permission"><option value="viewer" ${value === 'viewer' ? 'selected' : ''}>Vizualizare · programări și rapoarte</option><option value="manager" ${value === 'manager' ? 'selected' : ''}>Gestionare · inclusiv starea programărilor</option></select></label>`;
 const statuses = { sent: 'Trimisă', pending: 'În curs', accepted: 'Acceptată', revoked: 'Revocată', delivery_failed: 'Trimitere eșuată' };
 
@@ -101,14 +100,16 @@ export async function teamScreen(root) {
   const business = store.get().business;
   if (!business || business.is_owner === false) throw new Error('Doar proprietarul poate administra echipa.');
   const [access, list, roster] = await Promise.all([getAccess(business.id), calendars(business.id), team(business.id)]);
+  const teamEnabled = access.active && access.planId === 'large';
   root.innerHTML = page({ title: 'Calendare și echipă', backTo: '/business/home', content: `${accessNotice(access)}
-    <div class="section-heading"><h1>Calendarele afacerii</h1><p>${list.filter(c => c.is_active).length} active din ${access.calendarLimit}. Membrii invitați nu ocupă calendare suplimentare.</p></div>
+    <div class="section-heading"><h1>Calendarele afacerii</h1><p>${list.filter(c => c.is_active).length} active din ${access.calendarLimit}. Toate calendarele sunt partajate automat cu întreaga echipă.</p></div>
     <div class="stack">${list.map(c => `<div class="team-card"><strong>${escapeHtml(c.name)}</strong><span>${c.is_active ? 'Activ' : 'Arhivat · istoric păstrat'}</span><button class="text-button" data-toggle-calendar="${escapeHtml(c.id)}">${c.is_active ? 'Arhivează' : 'Reactivează'}</button></div>`).join('')}</div>
     <form class="form-card" id="add-calendar"><label>Calendar nou<input name="name" required minlength="2" maxlength="80" placeholder="Ex.: Ana · Manichiură"></label><button class="button button--secondary" ${!access.active || access.activeCalendars >= access.calendarLimit ? 'disabled' : ''}>Adaugă calendar</button><p class="info-note">Preia programul săptămânal al primului calendar. Arhivarea oprește rezervările noi, nu anulează cele existente.</p></form>
     <section class="section-heading"><h2>Invită prin e-mail</h2><p>Invitația expiră în 48 de ore. Destinatarul folosește aceeași adresă în Google.</p></section>
-    <form class="form-card" id="invite-member"><label>E-mail Google<input name="email" type="email" required maxlength="254"></label>${checkboxes(list.filter(c => c.is_active))}${permissionSelect('viewer')}<button class="button button--primary" ${!access.active ? 'disabled' : ''}>Trimite invitația</button></form>
+    ${teamEnabled ? '' : '<div class="demo-callout">Team flow este disponibil numai cu planul Complete sau cu o licență de 5 calendare. Planul Small este pentru un singur utilizator.</div>'}
+    <form class="form-card" id="invite-member"><label>E-mail Google<input name="email" type="email" required maxlength="254" ${!teamEnabled ? 'disabled' : ''}></label>${permissionSelect('viewer')}<p class="info-note">Membrul va avea automat acces la toate calendarele actuale și viitoare ale afacerii.</p><button class="button button--primary" ${!teamEnabled ? 'disabled' : ''}>Trimite invitația</button></form>
     <section class="section-heading"><h2>Membri</h2></section>
-    ${roster.members.filter(m => m.userId !== store.get().user?.id).map(m => `<form class="form-card member-form" data-user="${escapeHtml(m.userId)}"><strong>${escapeHtml(m.email)}</strong>${checkboxes(list, m.calendars.map(c => c.id))}${permissionSelect(m.calendars[0]?.permission || 'viewer')}<button class="button button--secondary">Salvează accesul</button><button class="text-button" type="button" data-remove-member="${escapeHtml(m.userId)}">Elimină accesul</button></form>`).join('') || '<p>Nu există alți membri.</p>'}
+    ${roster.members.filter(m => m.userId !== store.get().user?.id).map(m => `<form class="form-card member-form" data-user="${escapeHtml(m.userId)}"><strong>${escapeHtml(m.email)}</strong><span>Acces la toate calendarele</span>${permissionSelect(m.permission || 'viewer')}<button class="button button--secondary">Salvează permisiunea</button><button class="text-button" type="button" data-remove-member="${escapeHtml(m.userId)}">Elimină accesul</button></form>`).join('') || '<p>Nu există alți membri.</p>'}
     <section class="section-heading"><h2>Invitații</h2></section><div class="stack">${roster.invitations.map(i => `<div class="team-card"><strong>${escapeHtml(i.email)}</strong><span>${statuses[i.status] || escapeHtml(i.status)} · expiră ${dateLabel(i.expiresAt)}</span>${!['accepted','revoked'].includes(i.status) ? `<div><button class="text-button" data-resend="${escapeHtml(i.id)}">Retrimite</button><button class="text-button" data-revoke="${escapeHtml(i.id)}">Revocă</button></div>` : ''}</div>`).join('') || '<p>Nicio invitație.</p>'}</div>
     ${config.mode === 'demo' ? '<p class="demo-callout">Invitațiile sunt simulate. Nu se trimite niciun e-mail.</p>' : ''}` });
   bindBack(root, '/business/home');
@@ -117,10 +118,10 @@ export async function teamScreen(root) {
   root.querySelectorAll('[data-toggle-calendar]').forEach(b => b.addEventListener('click', () => { const c = list.find(c => c.id === b.getAttribute('data-toggle-calendar')); action(b, () => setCalendarActive(c.id, !c.is_active)); }));
   root.querySelector('#invite-member')?.addEventListener('submit', e => {
     e.preventDefault(); const f = e.currentTarget; const data = new FormData(f);
-    action(f.querySelector('button'), async () => { if (!data.getAll('calendar').length) throw new Error('Alege cel puțin un calendar.'); await inviteMember(business.id, String(data.get('email')).trim().toLowerCase(), data.getAll('calendar'), data.get('permission')); });
+    action(f.querySelector('button'), () => inviteMember(business.id, String(data.get('email')).trim().toLowerCase(), data.get('permission')));
   });
-  root.querySelectorAll('.member-form').forEach(f => f.addEventListener('submit', e => { e.preventDefault(); const data = new FormData(f); action(f.querySelector('button'), () => setMemberAccess(business.id, f.getAttribute('data-user'), data.getAll('calendar'), data.get('permission'))); }));
-  root.querySelectorAll('[data-remove-member]').forEach(b => b.addEventListener('click', () => action(b, () => setMemberAccess(business.id, b.getAttribute('data-remove-member'), [], 'viewer'))));
+  root.querySelectorAll('.member-form').forEach(f => f.addEventListener('submit', e => { e.preventDefault(); const data = new FormData(f); action(f.querySelector('button'), () => setMemberAccess(business.id, f.getAttribute('data-user'), data.get('permission'))); }));
+  root.querySelectorAll('[data-remove-member]').forEach(b => b.addEventListener('click', () => action(b, () => setMemberAccess(business.id, b.getAttribute('data-remove-member'), 'viewer', true))));
   root.querySelectorAll('[data-revoke]').forEach(b => b.addEventListener('click', () => action(b, () => revokeInvitation(b.getAttribute('data-revoke')))));
-  root.querySelectorAll('[data-resend]').forEach(b => b.addEventListener('click', () => { const i = roster.invitations.find(i => i.id === b.getAttribute('data-resend')); action(b, () => inviteMember(business.id, i.email, i.calendarIds, i.permission)); }));
+  root.querySelectorAll('[data-resend]').forEach(b => b.addEventListener('click', () => { const i = roster.invitations.find(i => i.id === b.getAttribute('data-resend')); action(b, () => inviteMember(business.id, i.email, i.permission)); }));
 }

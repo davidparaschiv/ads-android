@@ -25,8 +25,8 @@ test('Romanian demo: license, five calendars, invites, reports and staff without
   await until(() => d.querySelector('[data-role="business"]'));
   click('[data-role="business"]'); await until(() => d.querySelector('#google-login')); click('#google-login');
   await until(() => d.querySelector('#new-business'));
-  assert.equal(d.querySelectorAll('[data-route="/business/code"]').length,1);
-  assert.equal(d.querySelector('[data-route="/business/invite"]'),null);
+  assert.equal(d.querySelectorAll('[data-route="/business/invite"]').length,1);
+  assert.equal(d.querySelector('[data-route="/business/code"]'),null);
   assert.equal(d.querySelector('[data-route="/business/enrollment-link"]'),null);
   click('[data-home]'); await until(() => d.querySelector('#new-business'));
   click('#new-business');
@@ -52,14 +52,16 @@ test('Romanian demo: license, five calendars, invites, reports and staff without
   click('#license-result [data-route]'); await until(() => d.querySelector('#business-form'));
   d.querySelector('[name="name"]').value = 'Salon Demo'; d.querySelector('[name="address"]').value = 'București';
   d.querySelector('[name="cui"]').value='12345678'; d.querySelector('[name="phone"]').value='0712345678'; submit('#business-form');
-  await until(() => d.querySelector('[data-demo-link="RZE-DEMO"]'));
+  await until(() => d.querySelector('#email-code-form'));
   assert.equal(w.testApi.store.get().business,null);
-  click('[data-demo-link="RZE-DEMO"]'); await until(() => d.querySelector('#confirm-link')); click('#confirm-link');
-  await until(() => text().includes('E-mail confirmat.')); click('[data-route="/business/verification"]');
+  d.querySelector('#email-code-form [name="token"]').value='RZE-DEMO'; submit('#email-code-form');
+  await until(() => text().includes('E-mail: confirmat'));
   await until(() => d.querySelector('#sms-form')); d.querySelector('[name="code"]').value='123456'; submit('#sms-form');
-  await until(() => d.querySelector('[data-demo-link="RZA-DEMO"]')?.disabled === false);
+  await until(() => d.querySelector('[data-action="approval"]')?.disabled === false); click('[data-action="approval"]');
   assert.equal(w.testApi.store.get().business,null);
-  click('[data-demo-link="RZA-DEMO"]'); await until(() => d.querySelector('#approve-request')); click('#approve-request');
+  w.testApi.navigate('/business/approve'); await until(() => d.querySelector('#approval-code-form'));
+  d.querySelector('#approval-code-form [name="approvalCode"]').value='andrei@demo.ro/RZA-DEMO'; submit('#approval-code-form');
+  await until(() => d.querySelector('#approve-request')); click('#approve-request');
   await until(() => text().includes('Afacerea a fost aprobată')); w.testApi.navigate('/business/verification');
   await until(() => d.querySelector('#finish-enrollment')); click('#finish-enrollment');
   await until(() => d.querySelector('#schedule-form')); submit('#schedule-form');
@@ -71,14 +73,15 @@ test('Romanian demo: license, five calendars, invites, reports and staff without
   }
   assert.equal(d.querySelector('#add-calendar button').disabled,true);
   d.querySelector('#invite-member [name="email"]').value = 'colleague@example.com';
-  d.querySelector('#invite-member [name="calendar"]').checked = true; submit('#invite-member');
+  assert.equal(d.querySelector('#invite-member [name="calendar"]'),null);
+  assert.match(d.querySelector('#invite-member').textContent,/toate calendarele actuale și viitoare/);
+  submit('#invite-member');
   await until(() => d.querySelector('[data-revoke]'));
   click('[data-revoke]'); await until(() => text().includes('Revocată'));
   w.testApi.navigate('/business/reports'); await until(() => d.querySelector('[data-period="month"]'));
   click('[data-period="month"]'); await until(() => d.querySelector('[data-period="month"]').classList.contains('is-active'));
-  w.testApi.navigate('/business/code'); await until(() => d.querySelector('#link-form'));
-  d.querySelector('[name="token"]').value = 'DEMO-INVITATIE'; submit('#link-form');
-  await until(() => d.querySelector('#accept-link')); click('#accept-link');
+  w.testApi.navigate('/business/invite'); await until(() => d.querySelector('#accept-invite'));
+  d.querySelector('[name="token"]').value = 'DEMO-INVITATIE'; submit('#accept-invite');
   await until(() => text().includes('Abonamentul este administrat de proprietar'));
   assert.equal(d.querySelector('[data-route="/business/team"]'),null);
   assert.equal(d.querySelector('#purchase'),null);
@@ -100,7 +103,11 @@ test('Romanian demo: license, five calendars, invites, reports and staff without
   assert.match(d.querySelector('.toast').textContent,/salvat/);
   await w.testApi.store.set({demoAccess:{source:'demo',calendarLimit:1,expiresAt:new Date(Date.now()+86400000).toISOString()}});
   submit('#notification-form'); await until(() => d.querySelector('[data-plan-gate]'));
-  await w.testApi.store.set({business:{...w.testApi.store.get().business,is_owner:true},demoAccess:null});
+  await w.testApi.store.set({business:{...w.testApi.store.get().business,is_owner:true},demoAccess:{source:'developer',calendarLimit:1,expiresAt:null}});
+  w.testApi.navigate('/business/team'); await until(() => d.querySelector('#invite-member'));
+  assert.equal(d.querySelector('#invite-member button').disabled,true);
+  assert.match(text(),/Planul Small este pentru un singur utilizator/);
+  await w.testApi.store.set({demoAccess:null});
   w.testApi.navigate('/business/reports'); await until(() => d.querySelector('[data-plan="small"]') && text().includes('Alege planul'));
   assert.equal(d.querySelector('[data-period]'),null);
   // Only customer mode exposes the reservation QR, and demo never invents a live QR.

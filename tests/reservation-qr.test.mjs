@@ -35,7 +35,7 @@ test('Reservation QR SQL: customer display, tenant/calendar authorization, statu
     grant execute on all functions in schema auth to anon,authenticated,service_role;
     alter default privileges in schema public grant all on tables to anon,authenticated,service_role;`);
   const migrate = async name => db.exec(await readFile(new URL('../supabase/migrations/'+name, import.meta.url), 'utf8'));
-  for (const file of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql','004_team_features.sql']) await migrate(file);
+  for (const file of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql','004_team_features.sql','011_all_team_calendars_shared.sql']) await migrate(file);
   const people = Object.fromEntries(['small','large','staff','customer','other','unverified'].map(name => [name, randomUUID()]));
   for (const [name,id] of Object.entries(people)) {
     await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,$3)',[id,name+'@example.invalid',name==='unverified'?null:new Date()]);
@@ -95,9 +95,9 @@ test('Reservation QR SQL: customer display, tenant/calendar authorization, statu
     assert.equal((await resolve('small',codes.large)).ok,false);
     assert.equal((await resolve('large',codes.large,biz.small)).ok,false);
   });
-  await t.test('staff lookup is limited to assigned calendars; revocation takes effect immediately', async () => {
+  await t.test('staff lookup includes every shared calendar; revocation takes effect immediately', async () => {
     assert.equal((await resolve('staff',codes.large)).ok,true);
-    assert.equal((await resolve('staff',codes.second)).ok,false);
+    assert.equal((await resolve('staff',codes.second)).ok,true);
     await as('large',"select public.set_member_access($1,$2,'{}'::uuid[],'viewer')",[biz.large,people.staff]);
     assert.equal((await resolve('staff',codes.large)).ok,false);
   });

@@ -57,6 +57,8 @@ test('Small/Complete feature entitlements: migration, report RPC and reminder de
   await migrate('004_team_features.sql');
   await migrate('006_universal_developer_license.sql');
   await migrate('009_access_expiry_and_permanent_dev.sql');
+  await migrate('010_team_plan_and_member_limit.sql');
+  await migrate('011_all_team_calendars_shared.sql');
   const allowed=(booking,user) => scalar(customer,'select public.notification_recipient_allowed($1,$2) result',[booking,user],'service_role');
   const report=(user,business,calendar=null,from=day,until=day,offset=0) => as(user,'select * from public.get_business_report($1,$2,$3,$4,$5)',[business,from,until,calendar,offset]);
 
@@ -74,14 +76,39 @@ test('Small/Complete feature entitlements: migration, report RPC and reminder de
     await assert.rejects(report(customer,largeBusiness),/Acces interzis/);
     assert.equal((await report(complete,largeBusiness)).length,2);
     const staffRows=await report(staff,largeBusiness);
-    assert.equal(staffRows.length,1); assert.equal(staffRows[0].resource_id,calendars[1]);
-    await assert.rejects(report(staff,largeBusiness,calendars[2]),/Acces interzis/);
+    assert.equal(staffRows.length,2);
+    assert.deepEqual(new Set(staffRows.map(row=>row.resource_id)),new Set([calendars[1],calendars[2]]));
+    assert.equal((await report(staff,largeBusiness,calendars[2])).length,1);
     await assert.rejects(report(complete,largeBusiness,calendars[0]),/Acces interzis/);
     assert.equal((await report(complete,largeBusiness,null,day,day,500)).length,0);
     await assert.rejects(report(complete,largeBusiness,null,day,day,-1),/Perioadă invalidă/);
     await assert.rejects(report(complete,largeBusiness,null,'2020-01-01','2022-01-01'),/Perioadă invalidă/);
   });
-  await t.test('Small queues customer only; Complete queues assigned staff and owner; dual-role customer stays eligible', async () => {
+  await t.test('Team flow requires Complete and counts accepted members, not pending invitations', async () => {
+    await assert.rejects(
+      scalar(small,'select public.issue_calendar_invitation($1,$2,$3,$4) result',[smallBusiness,'new@example.com',[calendars[0]],'viewer']),
+      /Team flow necesită planul Complete/
+    );
+
+    // One staff member already exists. Fourteen more fill the 15 accepted seats.
+    for(let i=1;i<15;i++) {
+      const id=randomUUID();
+      await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[id,`staff${i}@example.com`]);
+      await db.query("insert into public.business_members(business_id,user_id,role) values($1,$2,'staff')",[largeBusiness,id]);
+    }
+    const sixteenth=randomUUID();
+    await db.query("insert into auth.users(id,email,email_confirmed_at) values($1,'staff16@example.com',now())",[sixteenth]);
+    await assert.rejects(
+      db.query("insert into public.business_members(business_id,user_id,role) values($1,$2,'staff')",[largeBusiness,sixteenth]),
+      /maximum 15 membri acceptați/
+    );
+
+    // A pending invitation is still allowed at 15 accepted members and does not consume a seat.
+    const invite=await scalar(complete,'select public.issue_calendar_invitation($1,$2,$3,$4) result',[largeBusiness,'pending@example.com',[calendars[1]],'viewer']);
+    assert.match(invite.token,/^RZI-/);
+    assert.equal((await db.query("select count(*)::int count from private.calendar_invitations where business_id=$1 and accepted_at is null",[largeBusiness])).rows[0].count,1);
+  });
+  await t.test('Small queues customer only; Complete queues all shared staff and owner; dual-role customer stays eligible', async () => {
     const next=await book(0,customer,new Date(date.getTime()+3600000).toISOString());
     const jobs=(await db.query('select user_id from public.notification_jobs where booking_id=$1',[next])).rows;
     assert.deepEqual(jobs.map(j=>j.user_id),[customer]);
@@ -93,6 +120,8 @@ test('Small/Complete feature entitlements: migration, report RPC and reminder de
   });
   await t.test('downgrade and expiry recheck queued jobs and reports without deleting calendar history', async () => {
     await db.query("update public.subscriptions set plan_id='small' where owner_id=$1",[complete]);
+    assert.equal(await scalar(complete,'select public.can_read_calendar($1) result',[calendars[1]]),true);
+    assert.equal(await scalar(staff,'select public.can_read_calendar($1) result',[calendars[1]]),false);
     assert.equal(await allowed(largeBooking,complete),false);
     assert.equal(await allowed(largeBooking,staff),false);
     assert.equal(await allowed(largeBooking,customer),true);
@@ -110,7 +139,7 @@ test('Small/Complete feature entitlements: migration, report RPC and reminder de
     await db.exec(license.sql);
     assert.equal((await scalar(complete,'select public.redeem_license($1) result',[license.key])).ok,true);
     assert.equal((await access(complete,largeBusiness)).features.reports,true);
-    assert.equal((await report(staff,largeBusiness)).length,1);
+    assert.equal((await report(staff,largeBusiness)).length,2);
     assert.equal(await allowed(largeBooking,staff),true);
     assert.equal((await scalar(outsider,"select public.redeem_license('dev112233') result")).ok,true);
     assert.equal((await access(outsider)).features.businessNotifications,true);

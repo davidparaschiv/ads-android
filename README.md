@@ -14,12 +14,12 @@ Aplicație Android de programări, în română, alb/roșu. HTML, CSS, JavaScrip
 - Înscriere cu CUI, e-mail de contact și telefon obligatorii; confirmare prin cod, SMS prin Twilio Verify și aprobare prin cod de către ownerul fixat în DB. Emailurile nu conțin linkuri. Afacerea este creată numai după aprobarea finală. [Ghidul înscrierii și al cheii dev112233](docs/ENROLLMENT.md).
 - Comutatorul de test care sărea peste plată a fost eliminat. Bypass-ul de dezvoltare necesită introducerea cheii `dev112233`; cheia poate fi folosită de orice cont Google verificat.
 
-- Small: **50 EUR/lună, 1 calendar, fără rapoarte sau notificări pentru afacere**. Complete: **150 EUR/lună, 5 calendare, cu rapoarte și notificări pentru afacere**. Doar proprietarul plătește. Notificările personale ale clienților rămân disponibile la ambele planuri.
+- Small: **50 EUR/lună, 1 calendar, un singur utilizator, fără Team flow, rapoarte sau notificări pentru afacere**. Complete: **150 EUR/lună, 5 calendare partajate și maximum 15 membri acceptați, cu rapoarte și notificări pentru afacere**. Doar proprietarul plătește. Notificările personale ale clienților rămân disponibile la ambele planuri.
 - Chei generate local prin CMD, înregistrate manual în DB cu hash, e-mail, început și luni de valabilitate. Orice cheie acordă 5 calendare, niciodată planul de 1 calendar.
 - Activare și expirare verificate pe server; cheia nu este salvată în Preferences. La expirare accesul operațional este blocat până la un drept nou, fără ștergerea datelor.
 - Invitații pe e-mail, selectarea calendarelor, vizualizare/gestionare, retrimitere, revocare și editarea accesului membrilor.
 - Angajații invitați intră direct în spațiul afacerii, fără achiziție personală.
-- Calendar zilnic la ambele planuri. Rapoarte pe zi/săptămână/lună doar la Complete activ, prin RPC verificat pe server și limitat la calendarele alocate.
+- Calendar zilnic la ambele planuri. Pe Complete, toate cele 5 calendare sunt partajate automat cu toți membrii acceptați; rapoartele pe zi/săptămână/lună rămân verificate pe server.
 - Crearea/reactivarea calendarelor este limitată tranzacțional. Clienții aleg calendarul și orele calculate pe server, fără expunerea altor clienți.
 - Remindere numai push; e-mail pentru invitații/verificări/aprobare; SMS pentru verificarea telefonului.
 
@@ -42,7 +42,7 @@ VITE_ENABLE_LICENSE_REDEMPTION=true
 ```
 
 - Test licență: Reprezint o afacere → Google → Înregistrează propria afacere → Am o cheie → `dev112233`.
-- Test invitat: Google → Am primit un cod → `DEMO-INVITATIE`.
+- Test invitat: Google → Am cod de invitație → `DEMO-INVITATIE`.
 - Invitația demo este numai locală. Cheia `dev112233` este disponibilă oricărui cont Google verificat și în live. În demo nu se trimit emailuri/SMS-uri reale.
 - Nu există un flag care să sară peste plată. Plata demo nu acordă abonament; numai cheia de dezvoltare activează accesul de test. În live rămân disponibile și licențele normale verificate pe server.
 
@@ -59,7 +59,7 @@ Deschide proiectul în Android Studio și instalează SDK/JDK-urile cerute de ve
 
 ### 1. Supabase
 
-1. Creează proiectul și rulează în ordine migrațiile din `supabase/migrations/`, inclusiv `008_owner_approval_codes.sql` și `009_access_expiry_and_permanent_dev.sql`.
+1. Creează proiectul și rulează în ordine migrațiile din `supabase/migrations/`, inclusiv `008_owner_approval_codes.sql`, `009_access_expiry_and_permanent_dev.sql`, `010_team_plan_and_member_limit.sql` și `011_all_team_calendars_shared.sql`.
 2. Rulează numai migrațiile încă neaplicate; nu rerula 001 pe baza existentă. Fă backup înainte. Migrarea 002 presupune o afacere deținută per cont; dacă există duplicate, migrarea se oprește și trebuie rezolvate fără a șterge istoricul. Pentru un proiect v0.2, aplică 003 și 004; pentru v0.3, numai `004_team_features.sql`.
 3. Activează providerul Google și configurează clientul OAuth. Adaugă `ro.rezerva.app://auth/callback` la URL-urile redirect autorizate. Pentru test web, adaugă originea locală exactă.
 4. În `.env` completează `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, apoi `VITE_APP_MODE=live`.

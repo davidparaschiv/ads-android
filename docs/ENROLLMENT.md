@@ -4,7 +4,7 @@
 
 1. Solicitantul intră cu Google și completează denumirea, categoria, adresa, CUI, e-mailul de contact și telefonul mobil românesc.
 2. Se creează doar o cerere temporară în schema **privată**. Nu există încă un rând în `public.businesses`, iar afacerea nu apare la căutare.
-3. Solicitantul primește numai un cod `RZE-…` la e-mailul de contact. Îl introduce în „Am primit un cod”, conectat cu contul Google care a început cererea, și confirmă explicit contul business. Adresa de contact poate fi diferită de adresa Google.
+3. Solicitantul primește numai un cod `RZE-…` la e-mailul de contact. Îl introduce manual în câmpul din partea de sus a ecranului „Verificarea afacerii”, conectat cu contul Google care a început cererea. Adresa de contact poate fi diferită de adresa Google.
 4. Solicită un SMS, apoi introduce codul primit. Numărul verificat este cel din cererea din DB, nu unul furnizat separat de client la verificare.
 5. Apasă „Solicită aprobarea”. E-mailul trimis **exclusiv la `davidnicolaparaschiv@gmail.com`** conține datele afacerii și codul `email-business/RZA-…`, fără link.
 6. Contul owner vede pagina „Aprobă cerere”, introduce codul, inspectează datele și aprobă sau respinge. Cererile existente nu sunt listate. Numai aprobarea validă, după ambele verificări, creează afacerea.

@@ -161,7 +161,7 @@ export async function databaseCases(db, check) {
     ensure(!(await scalar('other','select public.accept_calendar_invitation($1) result',[invitation.token])).ok, 'Wrong account accepted invitation.');
     ensure((await scalar('staff','select public.accept_calendar_invitation($1) result',[invitation.token])).ok, 'Staff could not accept invitation.');
     ensure(!(await scalar('staff','select public.accept_calendar_invitation($1) result',[invitation.token])).ok, 'Invitation replay accepted.');
-    ensure((await as('staff','select * from public.list_my_calendars($1)',[biz.large])).length === 1, 'Staff has excessive calendar scope.');
+    ensure((await as('staff','select * from public.list_my_calendars($1)',[biz.large])).length === 5, 'Staff did not receive every shared calendar.');
   });
   await run('DB: booking creation, slot exclusion and customer ownership', async () => {
     ctx.smallBooking=await book('small'); ctx.largeBooking=await book('large');
@@ -174,12 +174,12 @@ export async function databaseCases(db, check) {
     ensure(!(await as('other','select id from public.bookings where id=$1',[ctx.largeBooking])).length, 'Another customer sees booking.');
     await denied(() => as('unverified','select public.create_booking($1,$2,$3,$4,\'Test\',5)',[biz.large,ctx.large.event_type_id,ctx.large.resource_id,new Date(date.getTime()+3600000)]));
   });
-  await run('DB: calendar RLS, viewer restrictions and Complete-only reports', async () => {
-    ensure((await as('staff','select id from public.bookings where business_id=$1',[biz.large])).length === 1, 'Staff sees unassigned bookings.');
+  await run('DB: shared-calendar RLS, viewer restrictions and Complete-only reports', async () => {
+    ensure((await as('staff','select id from public.bookings where business_id=$1',[biz.large])).length === 2, 'Staff cannot see every shared calendar.');
     await denied(() => as('staff',"select public.set_booking_status($1,'completed')",[ctx.largeBooking]));
     await denied(() => report('small','small'));
-    ensure((await report('large','large')).length === 2 && (await report('staff','large')).length === 1, 'Report rows do not match permissions.');
-    await denied(() => report('staff','large',ctx.largeCalendars[1]));
+    ensure((await report('large','large')).length === 2 && (await report('staff','large')).length === 2, 'Report rows do not match shared access.');
+    ensure((await report('staff','large',ctx.largeCalendars[1])).length === 1, 'Shared calendar report is unavailable.');
     await denied(() => report('other','large'));
   });
   await run('DB: reminder recipients, opt-out and cancellation', async () => {

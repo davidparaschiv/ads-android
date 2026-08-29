@@ -45,7 +45,7 @@ test('Provider adapters: invitation authorization, correct recipient and Resend 
     assert.equal((await handler(post({email:'attacker@example.invalid'}))).status,200);
     const message=JSON.parse(calls[0].options.body);
     assert.deepEqual(message.to,['controlled@example.invalid']);
-    assert.match(message.text,/Cod invitație: RZI-/);
+    assert.match(message.text,/Cod invitație:\nRZI-/);
     assert.doesNotMatch(message.text,/https?:\/\/|ro\.rezerva\.app:\/\/|Cod alternativ/);
     assert.equal(calls[0].options.headers['Idempotency-Key'],'calendar-invite/invite-id');
     assert.equal(marks.at(-1).args.p_sent,true);

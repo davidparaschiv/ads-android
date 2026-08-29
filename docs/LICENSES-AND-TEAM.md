@@ -9,11 +9,11 @@ Actualizare: înscrierea afacerii necesită email confirmat, telefon verificat p
 | Small · 50 EUR/lună | 1 | Proprietarul |
 | Complete · 150 EUR/lună | 5 | Proprietarul |
 | Cheie de licență | 5 | Fără plată pe durata licenței |
-| Membru invitat | Numai calendarele alocate | Nu plătește separat |
+| Membru invitat | Toate calendarele afacerii, automat | Nu plătește separat |
 
-Din v0.4, numai Complete include rapoarte și notificări pentru afacere. Licențele active de 5 calendare includ aceste beneficii. Small păstrează gestionarea rezervărilor și invitațiile. Notificările personale ale clienților nu depind de plan. Aplică migrarea 004: [PLAN-UPDATE.md](PLAN-UPDATE.md).
+Numai Complete include Team flow, rapoarte și notificări pentru afacere. Licențele active de 5 calendare includ aceleași beneficii. Small este strict pentru proprietar: un calendar, un singur utilizator și fără invitații de echipă. Notificările personale ale clienților nu depind de plan. Aplică și migrarea 010 pentru aceste reguli server-side: [PLAN-UPDATE.md](PLAN-UPDATE.md).
 
-Un calendar este o resursă care acceptă o singură programare simultană: un angajat, un post de lucru sau o barcă. Cinci calendare nu înseamnă cinci conturi: mai mulți membri pot colabora pe același calendar. Modelul nu acoperă automat zece angajați cu zece programări simultane. O afacere deținută per cont Google; același cont poate fi invitat în alte afaceri.
+Un calendar este o resursă care acceptă o singură programare simultană: un angajat, un post de lucru sau o barcă. Cele 5 calendare Complete se pot denumi diferit și se partajează între membrii echipei conform alocărilor. Complete permite maximum 15 membri staff complet înscriși; invitațiile încă neacceptate nu consumă locuri. O afacere deținută per cont Google; același cont poate fi invitat în alte afaceri.
 
 ## 1. Generează cheia local, în CMD
 
@@ -100,12 +100,12 @@ Verifică domeniul expeditorului în Resend și publică `send-calendar-invite`.
 
 Proprietarul deschide Acasă → Calendare și echipă, introduce adresa Google, selectează calendarele și permisiunea:
 
-- **Vizualizare:** programări, nume/e-mailuri ale clienților și rapoarte numai pentru calendarele alocate.
+- **Vizualizare:** programări, nume/e-mailuri ale clienților și rapoarte pentru toate calendarele afacerii.
 - **Gestionare:** aceleași date, plus anulare/finalizare/marcare absent. Nu poate modifica abonamentul, invita alte persoane sau administra membrii.
 
 Invitația expiră în 48 de ore și este de unică folosință. Retrimiterea creează un cod nou și invalidează linkul anterior. Revocarea unei invitații neacceptate blochează acceptarea; pentru un membru deja acceptat folosește „Elimină accesul”. Modificarea permisiunilor și eliminarea membrilor sunt verificate pe server. Eliminarea blochează citirile viitoare, nu poate retrage date deja văzute/copiate.
 
-Destinatarul deschide aplicația → Reprezint o afacere → Google → Am primit un cod. Folosește exact adresa destinatară, apoi vede numai calendarele alocate. Nu plătește separat, dar accesul depinde de planul activ al proprietarului.
+Destinatarul deschide aplicația → Reprezint o afacere → Google → Am cod de invitație, apoi introduce manual codul `RZI-…`. Folosește exact adresa destinatară și primește automat acces la toate calendarele actuale și viitoare. Nu plătește separat, dar accesul cere plan Complete/licență de 5 calendare activă la proprietar.
 
 E-mailurile sunt folosite pentru invitații și, în v0.3, pentru verificarea înscrierii/aprobare. Reminderele pentru programări sunt push. La livrare se verifică din nou apartenența și preferința destinatarului; retragerea accesului anulează reminderele încă în așteptare. Un push deja trimis nu poate fi retras.
 

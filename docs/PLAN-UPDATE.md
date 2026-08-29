@@ -4,13 +4,13 @@
 | --- | --- | --- |
 | Calendare active | 1 | 5 |
 | Rezervări și calendar zilnic | Da | Da |
-| Colegi invitați prin e-mail | Da, pe calendarul alocat | Da, pe calendarele alocate |
+| Colegi invitați prin e-mail | Nu — un singur utilizator | Da — maximum 15 membri acceptați |
 | Rapoarte zi/săptămână/lună | Nu | Da |
 | Notificări push înaintea rezervărilor afacerii | Nu | Da |
 
 Notificările personale ale clienților sunt disponibile indiferent de planul afacerii. E-mailurile de înscriere, aprobare și invitație, precum și SMS-ul de verificare, nu sunt beneficii premium și nu au fost dezactivate.
 
-Cheile normale și cheia de dezvoltare autorizată `dev112233` acordă Complete (5 calendare plus rapoarte/notificări), doar în perioada lor de valabilitate. Un coleg primește beneficiile planului afacerii, fără să plătească separat. Drepturile rămân limitate la calendarele alocate.
+Cheile normale acordă Complete (5 calendare partajate automat cu toată echipa, Team flow, rapoarte/notificări) în perioada lor de valabilitate; `dev112233` nu expiră. Un coleg nu plătește separat. Sunt numărați numai membrii care au acceptat invitația; invitațiile pending nu consumă din limita de 15.
 
 ## Dacă ai aplicat deja migrațiile 001–003
 
@@ -42,7 +42,7 @@ Pentru o bază nouă, aplică toate migrațiile: 001 → 002 → 003 → 004. Nu
 ## Verificări pe servicii reale
 
 - Small: calendarul și rezervările funcționează. Rapoarte/Notificări afișează mesajul de acces Complete, fără formular sau date de raport.
-- Complete: rapoartele și setările de notificare funcționează inclusiv pentru colegii invitați, numai pe calendarele alocate.
+- Complete: rapoartele și setările de notificare funcționează pentru colegii invitați pe toate calendarele afacerii.
 - La o rezervare nouă pe Small se programează doar notificarea clientului. Complete include proprietarul și colegii alocați care acceptă notificări.
 - Expirarea sau downgrade-ul blochează livrarea notificărilor afacerii deja programate, la următoarea verificare a workerului. Mesajele deja trimise nu pot fi retrase. Upgrade-ul nu recreează automat notificările rezervărilor vechi.
 - Licența activă de 5 calendare acordă Complete chiar dacă există și o plată Small. Pentru verificarea Small folosește un cont fără licență/grant activ; nu modifica verificările sau politicile de securitate.

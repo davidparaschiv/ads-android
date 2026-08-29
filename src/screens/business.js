@@ -17,7 +17,7 @@ export function plansScreen(root) {
   const selected = store.get().selectedPlan || 'small';
   root.innerHTML = page({
     eyebrow: 'ABONAMENTUL AFACERII', title: 'Alege planul', backTo: '/business/workspaces',
-    content: `<section class="section-heading"><h1>Un plan pentru fiecare echipă</h1><p>Plătește doar proprietarul. Membrii invitați au acces gratuit la calendarele alocate.</p></section>
+    content: `<section class="section-heading"><h1>Un plan pentru fiecare echipă</h1><p>Plătește doar proprietarul. Pe Complete, membrii au automat acces la toate calendarele afacerii.</p></section>
       <div class="plan-grid">
         ${planCard('small', selected)}
         ${planCard('large', selected)}
@@ -49,7 +49,7 @@ function planCard(id, selected) {
     <span class="plan-tag">${id === 'small' ? '1 calendar' : '5 calendare'}</span>
     <strong>${plan.name}</strong>
     <span class="plan-price"><b>${config.mode === 'demo' ? plan.price + ' €' : 'Preț în Google Play'}</b>${config.mode === 'demo' ? '/lună' : ''}</span>
-    <ul><li>${plan.locations} locație</li><li>${plan.resources === 1 ? '1 calendar' : 'Până la 5 calendare'}</li><li>Membri invitați fără taxă individuală</li><li>Gestionarea rezervărilor</li><li>${plan.reports ? 'Rapoarte pe zi, săptămână și lună' : 'Fără rapoarte'}</li><li>${plan.businessNotifications ? 'Notificări push pentru afacere' : 'Fără notificări pentru afacere'}</li></ul>
+    <ul><li>${plan.locations} locație</li><li>${plan.resources === 1 ? '1 calendar' : 'Până la 5 calendare partajate'}</li><li>${plan.resources === 1 ? 'Un singur utilizator · fără Team flow' : 'Până la 15 membri acceptați'}</li><li>Gestionarea rezervărilor</li><li>${plan.reports ? 'Rapoarte pe zi, săptămână și lună' : 'Fără rapoarte'}</li><li>${plan.businessNotifications ? 'Notificări push pentru afacere' : 'Fără notificări pentru afacere'}</li></ul>
   </button>`;
 }
 
