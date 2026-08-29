@@ -1,6 +1,8 @@
 update cloud backend:
  npx supabase functions deploy send-reminders --use-api
 
+mark as done sql:
+npx supabase migration repair 006 --status applied
 
 
 Done—the checklist is included in **SETUP.html → “Remaining configuration”** inside [rezerva-app-qr-update.zip](sandbox:/workspace/scratch/e54d28157bf9/rezerva-app-qr-update.zip).
