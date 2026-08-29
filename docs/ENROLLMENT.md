@@ -30,7 +30,7 @@ Migrarea setează adresa administratorului. Nu pune un `OWNER_EMAIL` în client 
 | `INVITE_FROM_EMAIL` | Expeditor pe un domeniu verificat în Resend, nu neapărat Gmail-ul administratorului |
 | `TWILLIO_ACCOUNT_SID` | Contul Twilio |
 | `TWILLIO_AUTH_TOKEN` | Secretul Twilio, niciodată în APK |
-| `TWILLIO_VERIFY_SERVICE_SID` | Serviciul Twilio Verify; începe cu VA |
+| `TWILIO_VERIFY_SERVICE_SID` | Serviciul Twilio Verify; începe cu VA |
 
 Publică funcția:
 

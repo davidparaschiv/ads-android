@@ -24,12 +24,29 @@ Deno.serve(async (request) => {
         text: `Rezervari.ai · Invitație în echipă\n\nE-mail invitat: ${data.email}\nCod invitație:\n${data.token}\nValabil 48 de ore.`,
       }),
     });
-    if (!response.ok) throw new Error('Email delivery failed');
+    if (!response.ok) {
+      let provider = null;
+      try { provider = await response.json(); } catch { /* Provider did not return JSON. */ }
+      const failure = new Error('Email delivery failed');
+      failure.diagnostic = {
+        provider: 'resend', operation: 'send-team-invitation', httpStatus: response.status,
+        providerCode: typeof provider?.code === 'string' || typeof provider?.code === 'number' ? provider.code : null,
+        providerType: typeof provider?.name === 'string' ? provider.name : null,
+        requestId: response.headers.get('x-request-id') || response.headers.get('cf-ray') || null,
+      };
+      throw failure;
+    }
     const { error: deliveryError } = await serviceClient().rpc('mark_invitation_delivery', { p_id: data.id, p_sent: true });
     if (deliveryError) throw deliveryError;
     return json(request, { ok: true });
-  } catch {
+  } catch (error) {
     if (invitationId) await serviceClient().rpc('mark_invitation_delivery', { p_id: invitationId, p_sent: false });
-    return json(request, { error: 'Invitația nu a putut fi trimisă. Verifică configurarea e-mailului sau retrimite din Echipă.' }, 502);
+    const message = error instanceof Error ? error.message : '';
+    const missingSetting = message.startsWith('Missing server setting:') ? message.slice('Missing server setting:'.length).trim() : '';
+    return json(request, {
+      error: 'Invitația nu a putut fi trimisă. Verifică configurarea e-mailului sau retrimite din Echipă.',
+      ...(error?.diagnostic ? { diagnostic: error.diagnostic } : {}),
+      ...(missingSetting ? { diagnostic: { provider: 'resend', operation: 'configuration', missingSetting } } : {}),
+    }, 502);
   }
 });

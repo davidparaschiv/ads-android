@@ -47,9 +47,9 @@ export async function smoke(config, check) {
     ensure(match && result.data.name === match[1].split('@')[1],'Resend domain does not match the configured sender.');
   });
   await check('Twilio: real Verify service credentials',async()=>{
-    if(!config.TWILLIO_VERIFY_SERVICE_SID) throw new Skip('Twilio not configured yet.');
+    if(!config.TWILIO_VERIFY_SERVICE_SID) throw new Skip('Twilio not configured yet.');
     const result=await twilio(config); ok(result);
-    ensure(result.data?.sid === config.TWILLIO_VERIFY_SERVICE_SID && result.data.account_sid === config.TWILLIO_ACCOUNT_SID,'Twilio service/account mismatch.');
+    ensure(result.data?.sid === config.TWILIO_VERIFY_SERVICE_SID && result.data.account_sid === config.TWILLIO_ACCOUNT_SID,'Twilio service/account mismatch.');
     return 'No SMS sent; does not prove destination delivery or geographic permissions.';
   });
   let token;

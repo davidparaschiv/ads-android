@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { config } from '../config.js';
+import { loggedFetch } from '../observability/external-api-log.js';
 
 let client = null;
 
@@ -9,6 +10,7 @@ export function getSupabase() {
   if (config.mode === 'demo') return null;
   if (!client) {
     client = createClient(config.supabase.url, config.supabase.anonKey, {
+      global: { fetch: loggedFetch },
       auth: {
         flowType: 'pkce',
         persistSession: true,

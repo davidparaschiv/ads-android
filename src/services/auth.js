@@ -8,6 +8,7 @@ import { getSupabase } from '../api/supabase.js';
 import { store } from '../state/store.js';
 import { rememberReservationQr, hasPendingReservationQr, clearPendingReservationQr } from './qr-session.js';
 import { navigate } from '../router.js';
+import { loggedExternalCall } from '../observability/external-api-log.js';
 
 let listenerInstalled = false;
 // In memory only: never persist invitation or license secrets in Preferences.
@@ -59,7 +60,7 @@ async function handleUrl(url) {
   const code = parsed.searchParams.get('code');
   const supabase = getSupabase();
   if (!code || !supabase) return;
-  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+  const { data, error } = await loggedExternalCall('google-oauth', 'exchange-code', () => supabase.auth.exchangeCodeForSession(code));
   await Browser.close().catch(() => undefined);
   if (error) { window.location.hash = '/business/login'; return; }
   if (data.user) await saveUser(data.user);
@@ -111,12 +112,12 @@ export async function signInWithGoogle(role) {
   const supabase = getSupabase();
   if (!supabase) throw new Error('Supabase nu este configurat.');
   const redirectTo = Capacitor.isNativePlatform() ? config.authRedirectUrl : window.location.origin + '/';
-  const { data, error } = await supabase.auth.signInWithOAuth({
+  const { data, error } = await loggedExternalCall('google-oauth', 'create-authorization-url', () => supabase.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo, skipBrowserRedirect: Capacitor.isNativePlatform(), queryParams: { prompt: 'select_account' } },
-  });
+  }));
   if (error) throw error;
-  if (Capacitor.isNativePlatform() && data.url) await Browser.open({ url: data.url });
+  if (Capacitor.isNativePlatform() && data.url) await loggedExternalCall('google-oauth', 'open-authorization-browser', () => Browser.open({ url: data.url }));
   return { user: null, demo: false };
 }
 

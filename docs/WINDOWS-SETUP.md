@@ -225,7 +225,7 @@ Use Supabase Dashboard → Edge Functions → Secrets. Add the values below ther
 | `INVITE_FROM_EMAIL` | `Rezerva <onboarding@resend.dev>` for your own Resend inbox, or a verified-domain sender |
 | `TWILLIO_ACCOUNT_SID` | Twilio account SID — numele coincide exact cu secretul existent |
 | `TWILLIO_AUTH_TOKEN` | Twilio Auth Token — numele coincide exact cu secretul existent |
-| `TWILLIO_VERIFY_SERVICE_SID` | Verify service SID — numele coincide exact cu secretul existent |
+| `TWILIO_VERIFY_SERVICE_SID` | Verify service SID — numele coincide exact cu secretul existent |
 | `ALLOWED_ORIGINS` | `https://localhost,http://localhost,http://localhost:5173` |
 
 If you use another browser port, add its exact origin with commas and no extra spaces. Optional `INVITE_WEB_URL` and `ENROLLMENT_WEB_URL` are explained in the optional HTTPS section. Leave unset until you have real hosted pages.

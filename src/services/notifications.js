@@ -4,13 +4,14 @@ import { Preferences } from '@capacitor/preferences';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { config } from '../config.js';
 import { getSupabase } from '../api/supabase.js';
+import { loggedExternalCall } from '../observability/external-api-log.js';
 
 let registration = null;
 export async function registerPushNotifications() {
   if (config.mode === 'demo') return { enabled: true, demo: true };
   if (!Capacitor.isNativePlatform()) return { enabled: false, reason: 'native-only' };
   if (registration) return registration;
-  registration = register().finally(() => { registration = null; });
+  registration = loggedExternalCall('firebase', 'push-registration', register).finally(() => { registration = null; });
   return registration;
 }
 async function register() {

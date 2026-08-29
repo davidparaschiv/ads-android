@@ -49,8 +49,8 @@ test('Android assets: density icons, transparent white notification glyph and na
   assert.equal(config.plugins.SplashScreen, undefined, 'No ignored SplashScreen plugin configuration');
 });
 
-test('The three existing TWILLIO Supabase secret names are required exactly', () => {
-  const config = { TWILLIO_ACCOUNT_SID: 'AC' + 'a'.repeat(32), TWILLIO_AUTH_TOKEN: 'offline-only', TWILLIO_VERIFY_SERVICE_SID: 'VA' + 'b'.repeat(32) };
+test('The three existing Supabase Twilio secret names are required exactly', () => {
+  const config = { TWILLIO_ACCOUNT_SID: 'AC' + 'a'.repeat(32), TWILLIO_AUTH_TOKEN: 'offline-only', TWILIO_VERIFY_SERVICE_SID: 'VA' + 'b'.repeat(32) };
   assert.equal(twilioHeaders(config).Authorization, 'Basic ' + Buffer.from(config.TWILLIO_ACCOUNT_SID + ':offline-only').toString('base64'));
   assert.throws(() => twilioHeaders({ TWILIO_ACCOUNT_SID: config.TWILLIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN: 'old' }), /TWILLIO_ACCOUNT_SID/);
 });
@@ -117,7 +117,7 @@ test('HTML setup: all steps, exact secret names, safe local commands and no exec
   for (let i = 1; i <= 13; i++) assert(doc.getElementById(`step-${i}`));
   for (const link of doc.querySelectorAll('a[href^="#"]')) assert(doc.getElementById(link.getAttribute('href').slice(1)));
   assert.equal(doc.querySelectorAll('script, iframe, form').length, 0);
-  for (const name of ['GCLOUD_SERVICEACCOUNT_KEYS', 'SUPABASEGOOGLEOAUTH_CLIENTID', 'SUPABASEGOOGLEOAUTH_CLIENTSECRET', 'TWILLIO_ACCOUNT_SID', 'TWILLIO_AUTH_TOKEN', 'FIREBASE_PROJID', 'TWILLIO_VERIFY_SERVICE_SID']) assert(doc.body.textContent.includes(name));
+  for (const name of ['GCLOUD_SERVICEACCOUNT_KEYS', 'SUPABASEGOOGLEOAUTH_CLIENTID', 'SUPABASEGOOGLEOAUTH_CLIENTSECRET', 'TWILLIO_ACCOUNT_SID', 'TWILLIO_AUTH_TOKEN', 'FIREBASE_PROJID', 'TWILIO_VERIFY_SERVICE_SID']) assert(doc.body.textContent.includes(name));
   for (const command of ['npm run assets', 'npm run test:local', 'npm run android:sync', 'npm run check:phone']) assert(doc.body.textContent.includes(command));
   const pkg = JSON.parse(await read('package.json'));
   assert.equal(pkg.scripts['test:local'], 'npm test');

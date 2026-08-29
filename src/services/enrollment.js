@@ -3,6 +3,7 @@ import { config } from '../config.js';
 import { getSupabase } from '../api/supabase.js';
 import { rpc } from './access.js';
 import { store } from '../state/store.js';
+import { externalApiLog } from '../observability/external-api-log.js';
 
 export const enrollmentStatus = async () => config.mode === 'demo' ? store.get().demoEnrollment : rpc('get_enrollment_status');
 export const isPlatformOwnerAccount = async () => config.mode === 'demo' ? true : rpc('is_platform_owner_account');
@@ -14,8 +15,16 @@ export async function enrollmentAction(action, values = {}) {
   const { data, error } = await client.functions.invoke('enrollment', { body: { ...values, action } });
   if (error) {
     const response = await error.context?.json?.().catch(() => null);
+    externalApiLog('error', response?.diagnostic?.provider || 'supabase', `enrollment:${action}`, {
+      phase: 'provider-failure',
+      diagnostic: response?.diagnostic || null,
+      publicError: response?.error || null,
+    });
     throw new Error(response?.error || 'Verificarea nu poate fi efectuată. Verifică serviciile configurate.');
   }
+  if (data?.diagnostic) externalApiLog('error', data.diagnostic.provider || 'supabase', `enrollment:${action}`, {
+    phase: 'provider-failure', diagnostic: data.diagnostic, publicError: data.warning || data.error || null,
+  });
   if (!data?.ok) throw new Error(data?.error || 'Operație indisponibilă.');
   return data;
 }

@@ -1,3 +1,5 @@
+search logs->android logcat:
+search for RezervariExternalAPI
 
 team flow:
 login -> am cod de invitatie -> bag codul in text area -> am acces

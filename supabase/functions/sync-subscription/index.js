@@ -12,7 +12,13 @@ Deno.serve(async (request) => {
     const { data, error } = await actor.client.rpc('get_access');
     if (error) throw error;
     return json(request, data);
-  } catch {
-    return json(request, { error: 'Abonamentul nu a putut fi verificat. Reîncearcă restaurarea achizițiilor.' }, 502);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    const missingSetting = message.startsWith('Missing server setting:') ? message.slice('Missing server setting:'.length).trim() : '';
+    return json(request, {
+      error: 'Abonamentul nu a putut fi verificat. Reîncearcă restaurarea achizițiilor.',
+      ...(error?.diagnostic ? { diagnostic: error.diagnostic } : {}),
+      ...(missingSetting ? { diagnostic: { provider: 'revenuecat', operation: 'configuration', missingSetting } } : {}),
+    }, 502);
   }
 });

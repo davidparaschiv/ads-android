@@ -6,7 +6,17 @@ export async function synchronizeSubscription(ownerId) {
   const response = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(ownerId)}`, {
     headers: { Authorization: `Bearer ${env('REVENUECAT_SECRET_API_KEY')}`, Accept: 'application/json' },
   });
-  if (!response.ok) throw new Error('Subscription verification unavailable');
+  if (!response.ok) {
+    let provider = null;
+    try { provider = await response.json(); } catch { /* Provider did not return JSON. */ }
+    const failure = new Error('Subscription verification unavailable');
+    failure.diagnostic = {
+      provider: 'revenuecat', operation: 'get-subscriber', httpStatus: response.status,
+      providerCode: typeof provider?.code === 'number' || typeof provider?.code === 'string' ? provider.code : null,
+      requestId: response.headers.get('x-request-id') || response.headers.get('cf-ray') || null,
+    };
+    throw failure;
+  }
   const { subscriber } = await response.json();
   const entitlement = subscriber?.entitlements?.[Deno.env.get('REVENUECAT_ENTITLEMENT_ID') || 'business_pro'];
   const productId = entitlement?.product_identifier || '';
