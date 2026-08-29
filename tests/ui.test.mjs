@@ -25,8 +25,9 @@ test('Romanian demo: license, five calendars, invites, reports and staff without
   await until(() => d.querySelector('[data-role="business"]'));
   click('[data-role="business"]'); await until(() => d.querySelector('#google-login')); click('#google-login');
   await until(() => d.querySelector('#new-business'));
-  assert.equal(d.querySelectorAll('[data-route="/business/invite"]').length,1);
-  assert.equal(d.querySelectorAll('[data-route="/business/enrollment-link"]').length,1);
+  assert.equal(d.querySelectorAll('[data-route="/business/code"]').length,1);
+  assert.equal(d.querySelector('[data-route="/business/invite"]'),null);
+  assert.equal(d.querySelector('[data-route="/business/enrollment-link"]'),null);
   click('[data-home]'); await until(() => d.querySelector('#new-business'));
   click('#new-business');
   await until(() => d.querySelector('[data-plan="large"]'));
@@ -58,8 +59,8 @@ test('Romanian demo: license, five calendars, invites, reports and staff without
   await until(() => d.querySelector('#sms-form')); d.querySelector('[name="code"]').value='123456'; submit('#sms-form');
   await until(() => d.querySelector('[data-demo-link="RZA-DEMO"]')?.disabled === false);
   assert.equal(w.testApi.store.get().business,null);
-  click('[data-demo-link="RZA-DEMO"]'); await until(() => d.querySelector('#confirm-link')); click('#confirm-link');
-  await until(() => text().includes('Afacerea a fost aprobată')); click('[data-route="/business/verification"]');
+  click('[data-demo-link="RZA-DEMO"]'); await until(() => d.querySelector('#approve-request')); click('#approve-request');
+  await until(() => text().includes('Afacerea a fost aprobată')); w.testApi.navigate('/business/verification');
   await until(() => d.querySelector('#finish-enrollment')); click('#finish-enrollment');
   await until(() => d.querySelector('#schedule-form')); submit('#schedule-form');
   await until(() => d.querySelector('[data-route="/business/team"]')); click('[data-route="/business/team"]');
@@ -75,8 +76,9 @@ test('Romanian demo: license, five calendars, invites, reports and staff without
   click('[data-revoke]'); await until(() => text().includes('Revocată'));
   w.testApi.navigate('/business/reports'); await until(() => d.querySelector('[data-period="month"]'));
   click('[data-period="month"]'); await until(() => d.querySelector('[data-period="month"]').classList.contains('is-active'));
-  w.testApi.navigate('/business/invite'); await until(() => d.querySelector('#accept-invite'));
-  d.querySelector('[name="token"]').value = 'DEMO-INVITATIE'; submit('#accept-invite');
+  w.testApi.navigate('/business/code'); await until(() => d.querySelector('#link-form'));
+  d.querySelector('[name="token"]').value = 'DEMO-INVITATIE'; submit('#link-form');
+  await until(() => d.querySelector('#accept-link')); click('#accept-link');
   await until(() => text().includes('Abonamentul este administrat de proprietar'));
   assert.equal(d.querySelector('[data-route="/business/team"]'),null);
   assert.equal(d.querySelector('#purchase'),null);
@@ -98,8 +100,9 @@ test('Romanian demo: license, five calendars, invites, reports and staff without
   assert.match(d.querySelector('.toast').textContent,/salvat/);
   await w.testApi.store.set({demoAccess:{source:'demo',calendarLimit:1,expiresAt:new Date(Date.now()+86400000).toISOString()}});
   submit('#notification-form'); await until(() => d.querySelector('[data-plan-gate]'));
-  await w.testApi.store.set({business:{...w.testApi.store.get().business,is_owner:true},demoAccess:{source:'developer',calendarLimit:5,expiresAt:new Date(Date.now()-1000).toISOString()}});
-  w.testApi.navigate('/business/reports'); await until(() => d.querySelector('[data-plan-gate]') && d.querySelector('[data-route="/business/plans"]'));
+  await w.testApi.store.set({business:{...w.testApi.store.get().business,is_owner:true},demoAccess:null});
+  w.testApi.navigate('/business/reports'); await until(() => d.querySelector('[data-plan="small"]') && text().includes('Alege planul'));
+  assert.equal(d.querySelector('[data-period]'),null);
   // Only customer mode exposes the reservation QR, and demo never invents a live QR.
   await w.testApi.store.set({role:'customer'});
   w.testApi.navigate('/customer/bookings'); await until(() => d.querySelector('[aria-label="Arată QR-ul programării"]'));

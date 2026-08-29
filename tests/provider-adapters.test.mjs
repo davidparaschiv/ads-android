@@ -43,7 +43,10 @@ test('Provider adapters: invitation authorization, correct recipient and Resend 
   });
   await t.test('recipient/token come from DB; delivery marked only after acceptance',async()=>{
     assert.equal((await handler(post({email:'attacker@example.invalid'}))).status,200);
-    assert.deepEqual(JSON.parse(calls[0].options.body).to,['controlled@example.invalid']);
+    const message=JSON.parse(calls[0].options.body);
+    assert.deepEqual(message.to,['controlled@example.invalid']);
+    assert.match(message.text,/Cod invitație: RZI-/);
+    assert.doesNotMatch(message.text,/https?:\/\/|ro\.rezerva\.app:\/\/|Cod alternativ/);
     assert.equal(calls[0].options.headers['Idempotency-Key'],'calendar-invite/invite-id');
     assert.equal(marks.at(-1).args.p_sent,true);
   });

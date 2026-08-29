@@ -57,6 +57,8 @@ test('Enrollment edge adapter: authentication, SMS provider proof, and fixed rec
     const mail=calls.find(c=>c.kind==='fetch' && c.url.includes('resend'));
     const message=JSON.parse(mail.options.body);
     assert.deepEqual(message.to,['davidnicolaparaschiv@gmail.com']);
-    for(const detail of ['Nume afacere: Salon Aurora','Categorie: Salon','CUI: 12345678','Adresă: Strada Florilor 10, București','E-mail: contact@example.com','Telefon: +40712345678']) assert.match(message.text,new RegExp(detail.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+    for(const detail of ['Denumire: Salon Aurora','Categorie: Salon','CUI: 12345678','Adresă: Strada Florilor 10, București','E-mail business: contact@example.com','Telefon: +40712345678','Cod aprobare: contact@example.com/RZA-','Valabil 30 de zile.']) assert.match(message.text,new RegExp(detail.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+    assert.doesNotMatch(message.text,/https?:\/\/|ro\.rezerva\.app:\/\//);
+    assert.doesNotMatch(message.text,/Cod alternativ/);
   });
 });

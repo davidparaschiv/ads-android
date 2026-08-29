@@ -20,10 +20,10 @@ import {
 } from './screens/customer.js';
 import { configurationScreen, loginScreen, roleScreen } from './screens/entry.js';
 import { profileScreen } from './screens/profile.js';
-import { businessDetailsScreen, verificationScreen, enrollmentLinkScreen } from './screens/enrollment.js';
+import { businessDetailsScreen, verificationScreen, enrollmentLinkScreen, approvalCodeScreen } from './screens/enrollment.js';
 import { businessHomeScreen, businessCalendarScreen, reportsScreen } from './screens/dashboard.js';
-import { invitationScreen, licenseScreen, teamScreen, workspaceScreen } from './screens/team.js';
-import { workspaces } from './services/access.js';
+import { licenseScreen, teamScreen, workspaceScreen } from './screens/team.js';
+import { workspaces, getAccess } from './services/access.js';
 import { page, bindBack } from './ui/layout.js';
 import { escapeHtml } from './ui/dom.js';
 import { navigate, currentRoute } from './router.js';
@@ -53,7 +53,9 @@ export async function startApp() {
       '/business/login': () => loginScreen(root, 'business'),
       '/business/workspaces': () => workspaceScreen(root),
       '/business/license': () => licenseScreen(root),
-      '/business/invite': () => invitationScreen(root),
+      '/business/code': () => enrollmentLinkScreen(root),
+      '/business/approve': () => approvalCodeScreen(root),
+      '/business/invite': () => enrollmentLinkScreen(root),
       '/business/team': () => teamScreen(root),
       '/business/plans': () => plansScreen(root),
       '/business/payment': () => paymentScreen(root),
@@ -85,6 +87,8 @@ export async function startApp() {
         const business = list.find(b => b.id === store.get().business?.id);
         if (!business) { await store.set({ business: null }); navigate('/business/workspaces'); return; }
         await store.set({ business });
+        const access = await getAccess(business.id);
+        if (!access.active) { navigate(business.is_owner ? '/business/plans' : '/business/workspaces'); return; }
       }
       if (store.get().business?.is_owner === false && ['/business/plans','/business/payment','/business/details','/business/setup','/business/license','/business/team'].includes(path)) {
         navigate('/business/workspaces'); return;

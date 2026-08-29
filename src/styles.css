@@ -264,6 +264,10 @@ p { color: var(--muted); line-height: 1.6; }
 .calendar-checks label { display: flex; align-items: center; gap: 12px; }
 .calendar-checks input { width: 22px; height: 22px; accent-color: #ed2648; }
 .form-card textarea { width: 100%; box-sizing: border-box; padding: 14px; border: 1px solid #dedbe4; border-radius: 12px; font: inherit; resize: vertical; }
+.verification-form { margin-top: 16px; padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: #fff; }
+.form-card .verification-code { min-height: 64px; border-width: 2px; border-color: #f1c8ce; background: linear-gradient(180deg, #fff, #fff8f9); color: var(--ink); font-size: 1.55rem; font-weight: 800; letter-spacing: .32em; text-align: center; caret-color: var(--red); }
+.form-card .verification-code::placeholder { color: #d8a9b0; letter-spacing: .2em; }
+.form-card .verification-code:focus { border-color: var(--red); box-shadow: 0 0 0 5px var(--red-soft), 0 12px 28px rgb(237 28 47 / 9%); }
 .booking-actions { display: flex; flex-wrap: wrap; gap: 12px; padding: 0 0 16px 60px; }
 .button:disabled, .text-button:disabled { opacity: .5; cursor: not-allowed; }
 .timeline-item small { overflow-wrap: anywhere; }

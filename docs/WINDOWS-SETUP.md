@@ -123,6 +123,8 @@ For a new database, the pending files must be these four, in this order:
 | `005_reservation_qr.sql` | Signed reservation QR payloads and scoped check-in |
 | `006_universal_developer_license.sql` | Universal developer key and neutral invalid-license responses |
 | `007_approval_email_details.sql` | Complete business details in administrator approval emails |
+| `008_owner_approval_codes.sql` | Code-only business confirmation/owner approval and 30-day superseding codes |
+| `009_access_expiry_and_permanent_dev.sql` | Full business lock after expiry and permanent universal `dev112233` grants |
 
 If that matches the intended empty project:
 

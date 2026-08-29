@@ -56,6 +56,7 @@ test('Small/Complete feature entitlements: migration, report RPC and reminder de
   assert.equal((await db.query("select status from public.notification_jobs where booking_id=$1 and user_id=$2",[smallBooking,small])).rows[0].status,'pending');
   await migrate('004_team_features.sql');
   await migrate('006_universal_developer_license.sql');
+  await migrate('009_access_expiry_and_permanent_dev.sql');
   const allowed=(booking,user) => scalar(customer,'select public.notification_recipient_allowed($1,$2) result',[booking,user],'service_role');
   const report=(user,business,calendar=null,from=day,until=day,offset=0) => as(user,'select * from public.get_business_report($1,$2,$3,$4,$5)',[business,from,until,calendar,offset]);
 
@@ -101,6 +102,8 @@ test('Small/Complete feature entitlements: migration, report RPC and reminder de
     assert.equal((await access(complete,largeBusiness)).features.reports,false);
     await assert.rejects(report(complete,largeBusiness),/Complete/);
     assert.equal(await allowed(largeBooking,complete),false);
+    assert.equal(await scalar(complete,'select public.can_read_calendar($1) result',[calendars[1]]),false);
+    assert.equal((await as(complete,'select * from public.bookings')).length,0);
   });
   await t.test('active licenses and universal developer grants retain Complete features', async () => {
     const license=generateLicense({email:'complete@example.com',start:new Date(Date.now()-3600000).toISOString().replace(/\.\d{3}Z$/,'Z'),months:1});

@@ -6,14 +6,12 @@ async function sendLink(id, ownerId, kind) {
   const from = env('INVITE_FROM_EMAIL'), apiKey = env('RESEND_API_KEY');
   const { data, error } = await serviceClient().rpc('issue_enrollment_link', { p_request_id: id, p_owner: ownerId, p_kind: kind });
   if (error || !data?.ok) throw new Error(data?.message || 'Linkul nu poate fi trimis acum.');
-  const page = Deno.env.get('ENROLLMENT_WEB_URL');
-  const link = page ? `${page}#token=${encodeURIComponent(data.token)}` : `ro.rezerva.app://enrollment?token=${encodeURIComponent(data.token)}`;
   const text = kind === 'approval'
-    ? `Cerere nouă Rezervari.ai\n\nNume afacere: ${data.name}\nCategorie: ${data.category}\nCUI: ${data.cui}\nAdresă: ${data.address}\nE-mail: ${data.email}\nTelefon: ${data.phone}\n\nE-mailul și telefonul au fost verificate. Verifică toate datele și aprobă sau respinge în aplicație, conectat cu contul proprietarului platformei.\n${link}\n\nCod alternativ: ${data.token}`
-    : `Confirmă adresa de contact pentru ${data.name}, CUI ${data.cui}.\n\n${link}\n\nDeschide aplicația cu același cont Google cu care ai început cererea, apoi confirmă.\nCod alternativ: ${data.token}\n\nDacă nu ai făcut această cerere, ignoră mesajul.`;
+    ? `Rezervari.ai · Aprobare afacere\n\nDenumire: ${data.name}\nCategorie: ${data.category}\nCUI: ${data.cui}\nAdresă: ${data.address}\nE-mail business: ${data.email}\nTelefon: ${data.phone}\n\nCod aprobare: ${data.email}/${data.token}\nValabil 30 de zile.`
+    : `Rezervari.ai · Confirmare cont business\n\nDenumire: ${data.name}\nCategorie: ${data.category}\nCUI: ${data.cui}\nAdresă: ${data.address}\nE-mail business: ${data.email}\nTelefon: ${data.phone}\n\nCod confirmare: ${data.token}\nValabil 30 de zile.`;
   const sent = await fetch('https://api.resend.com/emails', {
     method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from, to: [data.recipient], subject: kind === 'approval' ? 'Rezervari.ai · Cerere de aprobare afacere' : 'Rezervari.ai · Confirmă adresa de e-mail', text: text + '\n\nLinkul expiră în 24 de ore.' }),
+    body: JSON.stringify({ from, to: [data.recipient], subject: kind === 'approval' ? 'Rezervari.ai · Cod pentru aprobarea afacerii' : 'Rezervari.ai · Confirmă contul de business', text }),
   });
   if (!sent.ok) throw new Error('E-mailul nu a putut fi trimis. Poți retrimite din ecranul de verificare.');
 }

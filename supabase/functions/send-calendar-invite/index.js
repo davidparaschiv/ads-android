@@ -17,13 +17,11 @@ Deno.serve(async (request) => {
     if (error) return json(request, { error: 'Nu poți trimite această invitație.' }, 403);
     if (!data?.ok) return json(request, { error: 'Prea multe încercări. Reîncearcă în 15 minute.' }, 429);
     invitationId = data.id;
-    const webUrl = Deno.env.get('INVITE_WEB_URL');
-    const link = webUrl ? `${webUrl}#token=${encodeURIComponent(data.token)}` : `ro.rezerva.app://invite?token=${encodeURIComponent(data.token)}`;
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': `calendar-invite/${data.id}` },
-      body: JSON.stringify({ from, to: [data.email], subject: 'Invitație în echipa Rezerva',
-        text: `Ai fost invitat(ă) să accesezi calendare în Rezerva.\n\nDeschide aplicația: ${link}\n\nSau copiază acest cod în ecranul Invitații: ${data.token}\n\nConectează-te cu Google folosind ${data.email}. Invitația expiră în 48 de ore. Membrii invitați nu plătesc abonament. Dacă nu recunoști invitația, o poți ignora.`,
+      body: JSON.stringify({ from, to: [data.email], subject: 'Rezervari.ai · Invitație în echipă',
+        text: `Rezervari.ai · Invitație în echipă\n\nE-mail invitat: ${data.email}\nCod invitație: ${data.token}\nValabil 48 de ore.`,
       }),
     });
     if (!response.ok) throw new Error('Email delivery failed');

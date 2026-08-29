@@ -15,7 +15,7 @@ export async function getAccess(businessId = null) {
   if (config.mode !== 'demo') return rpc('get_access', { p_business_id: businessId });
   const state = store.get();
   const grant = state.demoAccess;
-  const active = Boolean(grant && (grant.source === 'developer' || (state.business?.is_owner === false && grant.source === 'demo')) && Date.parse(grant.expiresAt) > Date.now());
+  const active = Boolean(grant && (grant.source === 'developer' && grant.expiresAt === null || (state.business?.is_owner === false && grant.source === 'demo') && Date.parse(grant.expiresAt) > Date.now()));
   const calendarLimit = active ? grant.calendarLimit : 0;
   return { active, calendarLimit, source: active ? grant.source : 'none', expiresAt: grant?.expiresAt,
     features: { reports: active && calendarLimit === 5, businessNotifications: active && calendarLimit === 5 },
@@ -32,7 +32,7 @@ export function hasBusinessFeature(access, feature) {
 export async function demoGrant(planId, source = 'demo') {
   if (config.mode !== 'demo') throw new Error('Simularea este disponibilă doar în demo.');
   await store.set({ demoAccess: { source, calendarLimit: planId === 'large' ? 5 : 1,
-    expiresAt: new Date(Date.now() + 30 * 86400000).toISOString() } });
+    expiresAt: source === 'developer' ? null : new Date(Date.now() + 30 * 86400000).toISOString() } });
   return getAccess();
 }
 

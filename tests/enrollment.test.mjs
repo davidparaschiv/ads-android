@@ -20,7 +20,7 @@ test('Verified enrollment and universal developer access', async t => {
     grant usage on schema public,auth to anon,authenticated,service_role;
     grant execute on all functions in schema auth to anon,authenticated,service_role;
     alter default privileges in schema public grant all on tables to anon,authenticated,service_role;`);
-  for (const file of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql','006_universal_developer_license.sql','007_approval_email_details.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+  for (const file of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql','006_universal_developer_license.sql','007_approval_email_details.sql','008_owner_approval_codes.sql','009_access_expiry_and_permanent_dev.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
   const admin=randomUUID(), owner=randomUUID(), attacker=randomUUID();
   for (const [id,email] of [[admin,'davidnicolaparaschiv@gmail.com'],[owner,'business@example.com'],[attacker,'other@example.com']]) {
     await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[id,email]);
@@ -36,10 +36,13 @@ test('Verified enrollment and universal developer access', async t => {
   const sid = 'VE'+'a'.repeat(32);
 
   await t.test('protected settings remain private and the developer key works for every verified Google account', async () => {
+    assert.equal(await call(admin,'is_platform_owner_account'),true);
+    assert.equal(await call(owner,'is_platform_owner_account'),false);
     await assert.rejects(as(attacker,"update private.platform_settings set owner_email='other@example.com'"),/permission denied/);
     await assert.rejects(db.query("update private.platform_settings set owner_email='other@example.com'"),/check constraint/);
     assert.equal((await call(attacker,'redeem_license',['dev112233'])).access.calendarLimit,5);
     assert.equal((await call(attacker,'get_access',[])).source,'developer');
+    assert.equal((await call(attacker,'get_access',[])).expiresAt,'infinity');
     assert.equal((await call(admin,'redeem_license',['dev112233'])).access.calendarLimit,5);
     assert.equal((await call(admin,'get_access',[])).source,'developer');
     assert.equal((await call(owner,'get_access',[])).active,false);
@@ -64,6 +67,11 @@ test('Verified enrollment and universal developer access', async t => {
   });
   await t.test('email link is account-bound, single-use, and not an approval', async () => {
     emailLink = await issue(request.id,'email');
+    const firstToken = emailLink.token;
+    emailLink = await issue(request.id,'email');
+    await assert.rejects(call(owner,'enrollment_link_details',[firstToken]),/indisponibil|expirat/);
+    const lifetime = (await db.query("select expires_at>now()+interval '29 days' valid from private.enrollment_links where token_hash=encode(sha256(convert_to($1,'UTF8')),'hex')",[emailLink.token])).rows[0].valid;
+    assert.equal(lifetime,true);
     assert.equal(emailLink.recipient,'contact@example.com');
     assert.equal(emailLink.category,'Salon');
     assert.equal(emailLink.address,'București');

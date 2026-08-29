@@ -81,8 +81,7 @@ Pentru alt e-mail/alt proprietar, revocă și generează o cheie nouă. Nu reset
 Serverul compară timpul bazei de date, nu ceasul telefonului. Nu este necesar un cron ca să expire licența.
 
 - Un abonament Google Play valid poate menține accesul după expirarea cheii.
-- Fără alt drept activ, programările noi și crearea/reactivarea calendarelor sunt refuzate.
-- Istoricul rămâne vizibil utilizatorilor care au încă permisiune. Anularea programărilor și eliminarea accesului rămân posibile.
+- Fără alt drept activ, accesul operațional al proprietarului și membrilor este blocat până la activarea unui abonament sau a unei licențe valide. Datele nu sunt șterse.
 - Proprietarul alege explicit un abonament Google Play. Cheia nu configurează o plată și nu produce debitare automată.
 - Dacă are deja un abonament Play, cheia nu îl anulează și nu suspendă facturarea acestuia. Abonamentul se gestionează din Google Play.
 - Dacă scade de la 5 la 1 calendar, proprietarul arhivează calendarele în plus. Datele și programările existente nu sunt șterse; programările noi se reiau când numărul de calendare active respectă planul.
@@ -97,7 +96,7 @@ RESEND_API_KEY=...
 INVITE_FROM_EMAIL=Rezerva <invitatii@domeniul-tau.ro>
 ```
 
-Verifică domeniul expeditorului în Resend. Publică `send-calendar-invite`. Configurația completă este în `supabase/.env.example`. Pentru o pagină HTTPS intermediară opțională, găzduiește `public/invite.html`, `invite.js`, `invite.css` împreună și setează `INVITE_WEB_URL=https://domeniul-tau.ro/invite.html`. Altfel, e-mailul conține direct linkul Android și un cod de copiat.
+Verifică domeniul expeditorului în Resend și publică `send-calendar-invite`. Emailul conține numai adresa invitată, codul și valabilitatea, fără link.
 
 Proprietarul deschide Acasă → Calendare și echipă, introduce adresa Google, selectează calendarele și permisiunea:
 
@@ -106,7 +105,7 @@ Proprietarul deschide Acasă → Calendare și echipă, introduce adresa Google,
 
 Invitația expiră în 48 de ore și este de unică folosință. Retrimiterea creează un cod nou și invalidează linkul anterior. Revocarea unei invitații neacceptate blochează acceptarea; pentru un membru deja acceptat folosește „Elimină accesul”. Modificarea permisiunilor și eliminarea membrilor sunt verificate pe server. Eliminarea blochează citirile viitoare, nu poate retrage date deja văzute/copiate.
 
-Destinatarul deschide aplicația → Reprezint o afacere → Google → Am o invitație. Folosește exact adresa destinatară, apoi vede numai calendarele alocate. Nu trece prin plata abonamentului. Linkul poate deschide aplicația instalată; codul manual rămâne disponibil dacă aplicația de e-mail blochează linkuri personalizate. Linkurile HTTPS Android verificate necesită domeniul și semnătura aplicației reale înainte de publicare.
+Destinatarul deschide aplicația → Reprezint o afacere → Google → Am primit un cod. Folosește exact adresa destinatară, apoi vede numai calendarele alocate. Nu plătește separat, dar accesul depinde de planul activ al proprietarului.
 
 E-mailurile sunt folosite pentru invitații și, în v0.3, pentru verificarea înscrierii/aprobare. Reminderele pentru programări sunt push. La livrare se verifică din nou apartenența și preferința destinatarului; retragerea accesului anulează reminderele încă în așteptare. Un push deja trimis nu poate fi retras.
 

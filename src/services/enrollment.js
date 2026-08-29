@@ -5,6 +5,7 @@ import { rpc } from './access.js';
 import { store } from '../state/store.js';
 
 export const enrollmentStatus = async () => config.mode === 'demo' ? store.get().demoEnrollment : rpc('get_enrollment_status');
+export const isPlatformOwnerAccount = async () => config.mode === 'demo' ? true : rpc('is_platform_owner_account');
 
 export async function enrollmentAction(action, values = {}) {
   if (config.mode === 'demo') return demoAction(action, values);

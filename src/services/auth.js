@@ -16,7 +16,7 @@ let pendingEnrollment = '';
 export const takePendingEnrollment = () => pendingEnrollment;
 export const clearPendingEnrollment = () => { pendingEnrollment = ''; };
 export const setDemoEnrollmentToken = token => { if (config.mode === 'demo') pendingEnrollment = token; };
-export const businessEntryRoute = () => pendingEnrollment ? '/business/enrollment-link' : pendingInvitation ? '/business/invite' : hasPendingReservationQr() ? '/business/scan' : '/business/workspaces';
+export const businessEntryRoute = () => pendingEnrollment || pendingInvitation ? '/business/code' : hasPendingReservationQr() ? '/business/scan' : '/business/workspaces';
 export const homeRoute = () => {
   const state = store.get();
   if (state.user) return state.role === 'customer' ? '/customer/search' : '/business/workspaces';
@@ -42,7 +42,7 @@ async function handleUrl(url) {
     if (/^RZ[EA]-[A-F0-9]{64}$/.test(token)) {
       pendingEnrollment = token;
       await store.set({ role: 'business' });
-      window.location.hash = store.get().user ? '/business/enrollment-link' : '/business/login';
+      window.location.hash = store.get().user ? '/business/code' : '/business/login';
     }
     return;
   }
@@ -51,7 +51,7 @@ async function handleUrl(url) {
     if (/^RZI-[A-F0-9]{64}$/i.test(token)) {
       pendingInvitation = token;
       await store.set({ role: 'business' });
-      window.location.hash = store.get().user ? '/business/invite' : '/business/login';
+      window.location.hash = store.get().user ? '/business/code' : '/business/login';
     }
     return;
   }
