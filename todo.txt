@@ -17,30 +17,6 @@ LEGAL / GDPR
 [ ] Stabilește procedura de incidente de securitate și notificare a încălcărilor de date.
 [ ] Cere revizuirea finală a Termenilor și Politicii de confidențialitate de către un avocat/jurist familiarizat cu dreptul român, GDPR, servicii online și protecția consumatorului.
 
-CONTRACTE / COMERCIAL
-
-[ ] Completează planurile, prețurile, moneda, perioada abonamentului, reînnoirea, facturarea, anularea, rambursarea și efectele expirării în Termeni.
-[ ] Precizează responsabilitatea afacerii pentru program, servicii, anulări, refuzuri și relația directă cu clientul.
-[ ] Verifică obligațiile pentru contracte la distanță și consumatori, inclusiv informațiile precontractuale și dreptul de retragere unde se aplică.
-[ ] Publică politica de anulare / neprezentare a programărilor și modul de soluționare a reclamațiilor.
-[ ] Completează datele și linkul către mecanismul aplicabil de soluționare a litigiilor, dacă este necesar legal la data lansării.
-
-GOOGLE PLAY / ANDROID
-
-[ ] Verifică numele aplicației „Rezervari.ai”, package id-ul și iconița în build-ul release semnat.
-[ ] Completează Privacy Policy URL și Account deletion URL în Google Play Console.
-[ ] Verifică declarațiile pentru permisiuni, notificări push, cameră/QR și orice identificatori utilizați.
-[ ] Rulează un test de instalare curată și un test de upgrade pe un telefon real înainte de release.
-
-SECURITATE / OPERAȚIUNI
-
-[ ] Confirmă că secretele Supabase, Twilio, push și plăți există numai în secret storage/server; nu le include în bundle-ul Android sau în logurile publice.
-[ ] Configurează rotația secretelor, accesul minim necesar și alerte pentru erori ale serviciilor externe.
-[ ] Decide perioada de păstrare și mascarea logurilor. Nu loga tokenuri, coduri OTP, chei de licență ori date personale complete.
-[ ] Configurează backup, restaurare testată și monitorizare pentru baza de date.
-[ ] Rulează migrarea 014 și verifică în staging unicitatea CUI și blocarea suprapunerilor pending/confirmed pe același calendar.
-[ ] Testează concurența cu două telefoane care solicită simultan același interval; exact o cerere trebuie acceptată.
-
 DOCUMENTE DE ACTUALIZAT
 
 - public/terms.html
