@@ -17,7 +17,7 @@ async function sendLink(id, ownerId, kind) {
 }
 
 async function twilio(path, values) {
-  const service = env('TWILIO_VERIFY_SERVICE_SID');
+  const service = env('TWILLIO_VERIFY_SERVICE_SID');
   if (!/^VA[0-9a-fA-F]{32}$/.test(service)) throw new Error('Serviciul SMS nu este configurat.');
   const result = await fetch(`https://verify.twilio.com/v2/Services/${service}/${path}`, {
     method: 'POST', headers: { Authorization: 'Basic ' + btoa(env('TWILLIO_ACCOUNT_SID') + ':' + env('TWILLIO_AUTH_TOKEN')), 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -53,7 +53,7 @@ export async function handleEnrollment(request) {
       return json(request, { ok: true });
     }
     if (body.action === 'sendSms' || body.action === 'checkSms') {
-      env('TWILLIO_ACCOUNT_SID'); env('TWILLIO_AUTH_TOKEN'); env('TWILIO_VERIFY_SERVICE_SID');
+      env('TWILLIO_ACCOUNT_SID'); env('TWILLIO_AUTH_TOKEN'); env('TWILLIO_VERIFY_SERVICE_SID');
       const checking = body.action === 'checkSms';
       const context = await call('enrollment_sms_context', { p_request_id: body.id, p_check: checking });
       if (context.verified) return json(request, { ok: true, verified: true });

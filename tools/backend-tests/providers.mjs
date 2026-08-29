@@ -5,12 +5,12 @@ import { createSign, randomUUID } from 'node:crypto';
 import { root, need, ensure, request, ok, consent, recipient, saveState, CheckError } from './core.mjs';
 
 export function twilioHeaders(config) {
-  need(config, 'TWILLIO_ACCOUNT_SID', 'TWILLIO_AUTH_TOKEN', 'TWILIO_VERIFY_SERVICE_SID');
-  ensure(/^AC[0-9a-f]{32}$/i.test(config.TWILLIO_ACCOUNT_SID) && /^VA[0-9a-f]{32}$/i.test(config.TWILIO_VERIFY_SERVICE_SID), 'Invalid Twilio Account/Verify Service SID.');
+  need(config, 'TWILLIO_ACCOUNT_SID', 'TWILLIO_AUTH_TOKEN', 'TWILLIO_VERIFY_SERVICE_SID');
+  ensure(/^AC[0-9a-f]{32}$/i.test(config.TWILLIO_ACCOUNT_SID) && /^VA[0-9a-f]{32}$/i.test(config.TWILLIO_VERIFY_SERVICE_SID), 'Invalid Twilio Account/Verify Service SID.');
   return { Authorization: 'Basic ' + Buffer.from(`${config.TWILLIO_ACCOUNT_SID}:${config.TWILLIO_AUTH_TOKEN}`).toString('base64'), 'Content-Type': 'application/x-www-form-urlencoded' };
 }
 export async function twilio(config, path = '', values) {
-  return request(config, `https://verify.twilio.com/v2/Services/${config.TWILIO_VERIFY_SERVICE_SID}${path}`, {
+  return request(config, `https://verify.twilio.com/v2/Services/${config.TWILLIO_VERIFY_SERVICE_SID}${path}`, {
     method: values ? 'POST' : 'GET', headers: twilioHeaders(config), ...(values ? { body: new URLSearchParams(values) } : {}),
   });
 }

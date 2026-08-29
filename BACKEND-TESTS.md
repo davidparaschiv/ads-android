@@ -138,8 +138,8 @@ Fill only the relevant fields in `.env.backend.local`:
 | `RESEND_API_KEY` | Resend sending key; same sending configuration as the development backend |
 | `INVITE_FROM_EMAIL` | `"Rezervari.ai <support@rezervari-ai.com>"`; domain must be verified in Resend |
 | `RESEND_READ_API_KEY`, `RESEND_DOMAIN_ID` | Optional local inspection key with read access, and domain ID; a sending-only key cannot inspect domains/emails |
-| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` | Your Twilio development account credentials |
-| `TWILIO_VERIFY_SERVICE_SID` | Twilio Verify service SID beginning `VA`; not a phone-number SID |
+| `TWILLIO_ACCOUNT_SID`, `TWILLIO_AUTH_TOKEN` | Your Twilio development account credentials; names match Supabase exactly |
+| `TWILLIO_VERIFY_SERVICE_SID` | Twilio Verify service SID beginning `VA`; name matches Supabase exactly |
 | `FIREBASE_PROJECT_ID` | Firebase project ID, matching your backend and Android app |
 | `FIREBASE_SERVICE_ACCOUNT_FILE` | Path to the private service-account JSON, e.g. `"C:/Users/YOUR_NAME/private/firebase.json"` |
 | `TEST_FCM_TOKEN` | Actual registration token from your installed Android app; see below |

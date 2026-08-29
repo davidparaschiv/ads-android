@@ -109,9 +109,9 @@ Open **Supabase → Edge Functions → Secrets**. Add:
 | --- | --- |
 | `RESEND_API_KEY` | Your Resend sending key |
 | `INVITE_FROM_EMAIL` | `Rezerva <onboarding@resend.dev>` |
-| `TWILIO_ACCOUNT_SID` | Your `AC...` SID |
-| `TWILIO_AUTH_TOKEN` | Your Twilio Auth Token |
-| `TWILIO_VERIFY_SERVICE_SID` | Your `VA...` SID |
+| `TWILLIO_ACCOUNT_SID` | Your `AC...` SID |
+| `TWILLIO_AUTH_TOKEN` | Your Twilio Auth Token |
+| `TWILLIO_VERIFY_SERVICE_SID` | Your `VA...` SID |
 | `FIREBASE_PROJECT_ID` | The Firebase project ID |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | Entire valid private service-account JSON, not a filename |
 | `CRON_SECRET` | A new long random value generated below |
