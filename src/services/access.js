@@ -15,7 +15,7 @@ export async function getAccess(businessId = null) {
   if (config.mode !== 'demo') return rpc('get_access', { p_business_id: businessId });
   const state = store.get();
   const grant = state.demoAccess;
-  const active = Boolean(grant && (grant.source === 'developer' && grant.expiresAt === null || (state.business?.is_owner === false && grant.source === 'demo') && Date.parse(grant.expiresAt) > Date.now()));
+  const active = Boolean(grant && ((grant.source === 'developer' && (grant.expiresAt === null || grant.expiresAt === 'infinity')) || ((state.business?.is_owner === false && grant.source === 'demo') && Date.parse(grant.expiresAt) > Date.now())));
   const calendarLimit = active ? grant.calendarLimit : 0;
   return { active, calendarLimit, source: active ? grant.source : 'none', expiresAt: grant?.expiresAt,
     features: { reports: active && calendarLimit === 5, businessNotifications: active && calendarLimit === 5 },
