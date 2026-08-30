@@ -1,4 +1,34 @@
+Delete user data final 30.8.2026
 
+
+begin;
+
+-- Enrollment and invitation data
+delete from private.enrollment_requests;
+delete from private.calendar_invitations;
+
+-- User-specific security/rate-limit data
+delete from private.developer_grants;
+delete from private.request_limits;
+delete from private.sms_budgets;
+
+-- Preserve license keys, but remove their user assignment
+update private.license_keys
+set redeemed_by = null,
+    redeemed_at = null
+where redeemed_by is not null;
+
+-- Preserve platform configuration, but clear the linked owner account
+update private.platform_settings
+set owner_user_id = null;
+
+-- Cascades to calendars, services, bookings, subscriptions and notifications
+delete from public.businesses;
+
+-- Cascades to profiles and authentication identities
+delete from auth.users;
+
+commit;
 =====================================
 ***search logs->android logcat:
 search for RezervariExternalAPI
