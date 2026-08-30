@@ -40,6 +40,20 @@ export async function resolveBusinessEntryRoute() {
   await store.set({ business: selected });
   return (await getAccess(selected.id)).active ? '/business/home' : '/business/plans';
 }
+export async function resolveCustomerEntryRoute() {
+  if (!store.get().user) return '/customer/login';
+  const { getCustomerProfile } = await import('./customer-profile.js');
+  const profile = await getCustomerProfile();
+  if (!profile?.completed) {
+    await store.set({ customerProfileComplete: false });
+    return '/customer/profile-setup';
+  }
+  await store.set({
+    customerProfileComplete: true,
+    user: { ...store.get().user, name: `${profile.firstName} ${profile.lastName}`.trim() },
+  });
+  return '/customer/search';
+}
 export const homeRoute = () => {
   const state = store.get();
   if (state.user) {
@@ -88,7 +102,7 @@ async function handleUrl(url) {
   await Browser.close().catch(() => undefined);
   if (error) { window.location.hash = '/business/login'; return; }
   if (data.user) await saveUser(data.user);
-  window.location.hash = store.get().role === 'business' ? await resolveBusinessEntryRoute() : homeRoute();
+  window.location.hash = store.get().role === 'business' ? await resolveBusinessEntryRoute() : await resolveCustomerEntryRoute();
 }
 
 export async function initializeAuth() {
@@ -110,7 +124,7 @@ export async function initializeAuth() {
       });
       if (!Capacitor.isNativePlatform() && new URL(window.location.href).searchParams.has('code')) {
         window.history.replaceState(null, '', window.location.pathname);
-        window.location.hash = store.get().role === 'business' ? await resolveBusinessEntryRoute() : homeRoute();
+        window.location.hash = store.get().role === 'business' ? await resolveBusinessEntryRoute() : await resolveCustomerEntryRoute();
       }
     }
   }

@@ -2,7 +2,7 @@
 
 import { assertLiveConfiguration } from './config.js';
 import { startRouter } from './router.js';
-import { homeRoute, initializeAuth, resolveBusinessEntryRoute } from './services/auth.js';
+import { homeRoute, initializeAuth, resolveBusinessEntryRoute, resolveCustomerEntryRoute } from './services/auth.js';
 import { store } from './state/store.js';
 import {
   paymentScreen,
@@ -53,7 +53,7 @@ export async function startApp() {
   startRouter(async ({ path }) => {
     const publicPaths = ['/', '/configuration', '/business/login', '/business/invite-login', '/customer/login'];
     if (store.get().user && publicPaths.includes(path) && path !== '/configuration') {
-      navigate(homeRoute());
+      navigate(store.get().role === 'customer' ? await resolveCustomerEntryRoute() : homeRoute());
       return;
     }
     if (!publicPaths.includes(path) && !store.get().user) {

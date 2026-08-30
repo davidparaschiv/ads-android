@@ -71,6 +71,8 @@ test('QR screens: customers only show QR; business staff see current reservation
   await assert.rejects(w.qrApi.customerQrScreen(root),/numai în contul de client/);
   await w.qrApi.businessQrScreen(root);
   assert.equal(d.querySelector('.reservation-qr-image'),null);
+  assert.equal(d.querySelector('#qr-workspace'),null,'BV does not choose between businesses');
+  assert.equal(d.querySelector('#manual-qr-form'),null,'BV accepts QR scans only');
   async function until(check){for(let i=0;i<100;i++){if(check())return;await new Promise(r=>setTimeout(r,5));}throw new Error('QR screen did not settle');}
   d.querySelector('#scan-reservation').click();
   await until(()=>d.querySelector('.qr-result-card'));

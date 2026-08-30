@@ -138,6 +138,8 @@ test('Verified enrollment and universal developer access', async t => {
     const unchanged=await call(attacker,'complete_customer_profile',['Alt','Nume']);
     assert.equal(unchanged.firstName,'Ana');
     assert.equal(unchanged.lastName,'Client');
+    const persisted=await call(attacker,'get_customer_profile',[]);
+    assert.deepEqual(persisted,{firstName:'Ana',lastName:'Client',completed:true});
     const setup=await call(owner,'setup_business',[businessId,'Tuns',30,10000,'Calendar principal','00:00','23:59',[1,2,3,4,5,6,7]]);
     const settings=await call(owner,'save_calendar_service_settings',[businessId,setup.resource_id,[1,2,3,4,5,6,7],'09:00','17:00',40]);
     assert.equal(settings.durationMinutes,40);

@@ -231,7 +231,7 @@ p { color: var(--muted); line-height: 1.6; }
 .appointment-card > div:nth-child(2) small, .appointment-card > div:nth-child(2) span { color: var(--muted); font-size: .68rem; }
 .appointment-card > div:nth-child(2) strong { font-size: .86rem; }
 .booking-status { display: inline-flex; align-items: center; gap: 6px; width: fit-content; font-weight: 700; }
-.booking-status i { width: 9px; height: 9px; border-radius: 50%; background: currentcolor; box-shadow: 0 0 0 3px color-mix(in srgb, currentcolor 16%, transparent); }
+.booking-status i { display: inline-block; flex: 0 0 9px; width: 9px; height: 9px; border-radius: 50%; background: currentcolor; }
 .booking-status--pending { color: #b77900 !important; }
 .booking-status--confirmed { color: var(--success) !important; }
 .booking-status--rejected { color: var(--red-dark) !important; }
