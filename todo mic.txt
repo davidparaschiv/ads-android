@@ -1,0 +1,13 @@
+- in momentul de fata sunt niste pagini stilizate centrate/aliniate frumos cu style si cateva empty cu text negru (cele noi generate dupa imagini par sa fie stilul asta vanilla), vreau ca toate sa fie stilizate dupa modelul celor stilizate deja / aranjate in pagina
+- apoi, pe BV bara de navigarea apare dupa ce business e aprobat
+- pe CV bara de navigare apare dupa ce user a introdus nume si prenume
+- pe BV dupa ce faci login cu google apare o pagina cu "starea afacerii" "inregistreaza propria afacere" "cont si deconectare". asta trebuie scoasa din flow si sa mearga direct la pagina inregistreaza propria afacere.
+- apoi in ecranul numit Verificarea afacerii ca titlu. Aprobarea administratorului trebuie trimisa automat dupa verificarea telefonului. Si nu poate fi retrimisa. "Actualizeaza starea" si "corecteaza datele/reia verificarile" nu ar trebui sa apara deloc ca pagini sau butoane.
+- pe BV dupa ce este verificata afacerea (ecranul numit Afaceri si invitatii) ecranul asta trebuie scos complet nu e folosit nicaieri. trebuie sa duca direct la BV home.
+- vreau sa exista chenar jos rosu pe navigation item selectat atat la BV cat si CV, home e default pentru ambeles
+- plusul din BV calendar trebuie inlocuit cu o iconita de Setari si titltul va fi Setari Calendar/Serviciu in loc de "Adauga tip eveniment". Fieldul tip eveniment text trebuie scos. ramane doar selectorul de zile. interval orar trebuie actualizat sa aiba start time si end time. durata ramane asa. butonul adauga se va numi salveaza si va edita setarile serviciului si salva in baza de date (durata, ore disponibile, zile disponibile). adica de aici se vor prelua in client view cand incearca sa faca rezervari. vezi ca butonul adauga/salveaza nu merge acum.
+- butonul gata din pagina de notificari ar trebui sa fie dropdown selector si acum nu afiseaza nimic in caz de succes ar trebui sa actualizeze db
+- pasul 4 din 4 cu Prima configuratie trebuie sters complet ca ecran
+- vreau sa verifici ca toate butoanele din aplicatie au actiune nu doar UI action. adica fac ce trebuie. imi scrii daca ai dubii ce ar trebui sa faca un buton din Android
+- pagina cu Contul meu din BV ar trebui sa inlocuiasca chenarele Small si Complete cu aceleasi planuri de la inceput din aplicatie si sa ma lase sa schimb sa anulez sau sa cumpar cu Revenue Cat, trebuie integrat
+cam atat
