@@ -2,12 +2,11 @@
 
 import { assertLiveConfiguration } from './config.js';
 import { startRouter } from './router.js';
-import { homeRoute, initializeAuth } from './services/auth.js';
+import { homeRoute, initializeAuth, resolveBusinessEntryRoute } from './services/auth.js';
 import { store } from './state/store.js';
 import {
   paymentScreen,
   plansScreen,
-  scheduleSetupScreen,
 } from './screens/business.js';
 import {
   bookingScreen,
@@ -20,7 +19,7 @@ import { configurationScreen, invitationLoginScreen, loginScreen, roleScreen } f
 import { profileScreen } from './screens/profile.js';
 import { businessDetailsScreen, verificationScreen, approvalCodeScreen } from './screens/enrollment.js';
 import { businessHomeScreen, businessCalendarScreen, businessCalendarViewScreen, businessAddEventScreen, reportsScreen } from './screens/dashboard.js';
-import { invitationScreen, licenseScreen, teamScreen, workspaceScreen } from './screens/team.js';
+import { invitationScreen, licenseScreen, teamScreen } from './screens/team.js';
 import { workspaces, getAccess } from './services/access.js';
 import { page, bindBack } from './ui/layout.js';
 import { escapeHtml } from './ui/dom.js';
@@ -67,7 +66,9 @@ export async function startApp() {
       '/configuration': () => configurationScreen(root),
       '/business/login': () => loginScreen(root, 'business'),
       '/business/invite-login': () => invitationLoginScreen(root),
-      '/business/workspaces': () => workspaceScreen(root),
+      '/business/start': async () => navigate(await resolveBusinessEntryRoute()),
+      // Compatibility redirects for old hashes; neither obsolete screen is rendered.
+      '/business/workspaces': () => navigate('/business/start'),
       '/business/license': () => licenseScreen(root),
       '/business/approve': () => approvalCodeScreen(root),
       '/business/invite': () => invitationScreen(root),
@@ -76,7 +77,7 @@ export async function startApp() {
       '/business/payment': () => paymentScreen(root),
       '/business/details': () => businessDetailsScreen(root),
       '/business/verification': () => verificationScreen(root),
-      '/business/setup': () => scheduleSetupScreen(root),
+      '/business/setup': () => navigate('/business/home'),
       '/business/home': () => businessHomeScreen(root),
       '/business/calendar': () => businessCalendarScreen(root),
       '/business/calendar-view': () => businessCalendarViewScreen(root),
@@ -97,29 +98,35 @@ export async function startApp() {
     };
     const render = screens[path] || screens['/'];
     try {
-      if (store.get().role === 'customer' && path.startsWith('/customer/') && path !== '/customer/profile-setup'
+      if (store.get().role === 'customer' && (path.startsWith('/customer/') || path === '/profile') && path !== '/customer/profile-setup'
         && !store.get().customerProfileComplete) {
         const profile = await getCustomerProfile();
         if (!profile?.completed) { navigate('/customer/profile-setup'); return; }
         await store.set({ customerProfileComplete: true,
           user: { ...store.get().user, name: `${profile.firstName} ${profile.lastName}`.trim() } });
       }
-      const requiresBusiness = ['/business/home','/business/calendar','/business/calendar-view','/business/add-event','/business/reports','/business/team','/business/setup','/business/notifications'];
+      if (store.get().role === 'business' && store.get().business
+        && !['/business/start','/business/plans','/business/payment','/business/license'].includes(path)) {
+        const access = await getAccess(store.get().business.id);
+        if (!access.active) { navigate('/business/plans'); return; }
+      }
+      const requiresBusiness = ['/business/home','/business/calendar','/business/calendar-view','/business/add-event','/business/reports','/business/team','/business/notifications',
+        ...(store.get().role === 'business' ? ['/profile'] : [])];
       if (requiresBusiness.includes(path)) {
         const list = await workspaces();
         if (currentRoute().path !== path) return;
         const business = list.find(b => b.id === store.get().business?.id);
-        if (!business) { await store.set({ business: null }); navigate('/business/workspaces'); return; }
+        if (!business) { await store.set({ business: null }); navigate('/business/start'); return; }
         await store.set({ business });
         const access = await getAccess(business.id);
-        if (!access.active) { navigate(business.is_owner ? '/business/plans' : '/business/workspaces'); return; }
+        if (!access.active) { navigate('/business/plans'); return; }
       }
-      if (store.get().business?.is_owner === false && ['/business/plans','/business/payment','/business/details','/business/setup','/business/license','/business/team'].includes(path)) {
-        navigate('/business/workspaces'); return;
+      if (store.get().business?.is_owner === false && ['/business/payment','/business/details','/business/license','/business/team'].includes(path)) {
+        navigate('/business/home'); return;
       }
       await render();
     } catch (error) {
-      root.innerHTML = page({ title: 'Nu putem încărca acest ecran', content: `<div class="empty-state"><p>${escapeHtml(error.message || 'Verifică conexiunea și reîncearcă.')}</p><button class="button" data-route="${escapeHtml(path)}">Reîncearcă</button><button class="text-button" data-route="/business/workspaces">Afaceri și invitații</button></div>` });
+      root.innerHTML = page({ title: 'Nu putem încărca acest ecran', content: `<div class="empty-state"><p>${escapeHtml(error.message || 'Verifică conexiunea și reîncearcă.')}</p><button class="button" data-route="${escapeHtml(path)}">Reîncearcă</button><button class="text-button" data-route="/business/start">Înapoi la pagina principală</button></div>` });
       bindBack(root);
     }
   });

@@ -4,13 +4,14 @@ import { config } from '../config.js';
 import { navigate, back } from '../router.js';
 import { icon } from './icons.js';
 import { logo } from './logo.js';
-import { store } from '../state/store.js';
 
 /**
  * @param {{title?:string, eyebrow?:string, content:string, backTo?:string, nav?:'business'|'customer', active?:string, wide?:boolean}} options
  */
 export function page(options) {
-  const persistentNav = options.nav || (store.get().user && ['business','customer'].includes(store.get().role) ? store.get().role : null);
+  // Navigation is opt-in: pre-enrolment BV and incomplete-profile CV screens
+  // must never expose destinations the account cannot use yet.
+  const persistentNav = options.nav || null;
   return `<div class="app-shell ${options.wide ? 'app-shell--wide' : ''}">
     <header class="topbar">
       ${options.backTo ? `<button class="icon-button" data-back aria-label="Înapoi">${icon('arrow', 'icon--back')}</button>` : logo('compact')}

@@ -51,7 +51,7 @@ export async function workspaces() {
 export async function afterAccessRoute() {
   const business = store.get().business;
   if (!business) return '/business/details';
-  return (await calendars(business.id)).length ? '/business/home' : '/business/setup';
+  return '/business/home';
 }
 
 export async function calendars(businessId) {
@@ -63,7 +63,9 @@ export async function addCalendar(businessId, name) {
   if (config.mode !== 'demo') return rpc('add_calendar', { p_business_id: businessId, p_name: name });
   const access = await getAccess();
   if (!access.active || access.activeCalendars >= access.calendarLimit) throw new Error('Ai atins limita de calendare a planului.');
-  await store.set({ demoCalendars: [...store.get().demoCalendars, { id: crypto.randomUUID(), name, is_active: true }] });
+  const calendar={ id: crypto.randomUUID(), name, is_active: true };
+  await store.set({ demoCalendars: [...store.get().demoCalendars, calendar] });
+  return calendar;
 }
 
 export async function team(businessId) {

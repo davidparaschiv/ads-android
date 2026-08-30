@@ -20,7 +20,7 @@ test('Verified enrollment and universal developer access', async t => {
     grant usage on schema public,auth to anon,authenticated,service_role;
     grant execute on all functions in schema auth to anon,authenticated,service_role;
     alter default privileges in schema public grant all on tables to anon,authenticated,service_role;`);
-  for (const file of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql','006_universal_developer_license.sql','007_approval_email_details.sql','008_owner_approval_codes.sql','009_access_expiry_and_permanent_dev.sql','010_team_plan_and_member_limit.sql','011_all_team_calendars_shared.sql','012_booking_rejected_status.sql','013_customer_profiles_booking_approval.sql','014_drawn_screens_service_calendar.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+  for (const file of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql','006_universal_developer_license.sql','007_approval_email_details.sql','008_owner_approval_codes.sql','009_access_expiry_and_permanent_dev.sql','010_team_plan_and_member_limit.sql','011_all_team_calendars_shared.sql','012_booking_rejected_status.sql','013_customer_profiles_booking_approval.sql','014_drawn_screens_service_calendar.sql','015_calendar_service_settings.sql','016_strict_entitlement_lock.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
   const admin=randomUUID(), owner=randomUUID(), attacker=randomUUID();
   for (const [id,email] of [[admin,'davidnicolaparaschiv@gmail.com'],[owner,'business@example.com'],[attacker,'other@example.com']]) {
     await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[id,email]);
@@ -139,9 +139,9 @@ test('Verified enrollment and universal developer access', async t => {
     assert.equal(unchanged.firstName,'Ana');
     assert.equal(unchanged.lastName,'Client');
     const setup=await call(owner,'setup_business',[businessId,'Tuns',30,10000,'Calendar principal','00:00','23:59',[1,2,3,4,5,6,7]]);
-    const added=await call(owner,'add_business_event',[businessId,setup.resource_id,'Tuns premium',[1,3,5],'09:00',40]);
-    assert.equal(added.durationMinutes,40);
-    await assert.rejects(call(owner,'add_business_event',[businessId,setup.resource_id,'tuns PREMIUM',[2],'10:00',40]),/există deja/);
+    const settings=await call(owner,'save_calendar_service_settings',[businessId,setup.resource_id,[1,2,3,4,5,6,7],'09:00','17:00',40]);
+    assert.equal(settings.durationMinutes,40);
+    assert.deepEqual(settings.weekdays,[1,2,3,4,5,6,7]);
     const start=new Date(Date.now()+2*86400000); start.setUTCHours(10,0,0,0);
     const bookingId=await call(attacker,'create_booking',[businessId,setup.event_type_id,setup.resource_id,start.toISOString(),'Nume ignorat',60]);
     await assert.rejects(call(attacker,'create_booking',[businessId,setup.event_type_id,setup.resource_id,start.toISOString(),'Nume ignorat',60]),/nu mai este disponibil/);
@@ -157,5 +157,21 @@ test('Verified enrollment and universal developer access', async t => {
     assert.equal(statusJobs[0].title,'Programare confirmată');
     assert.equal(statusJobs[0].target_route,'/customer/notifications');
     await assert.rejects(as(owner,'select public.set_calendar_active($1,false)',[setup.resource_id]),/does not exist/);
+  });
+  await t.test('cancelled payment immediately locks UI-facing data and every business operation',async()=>{
+    await db.query("update private.license_keys set revoked_at=now() where redeemed_by=$1",[owner]);
+    await db.query("insert into public.subscriptions(owner_id,business_id,plan_id,product_id,status,store,environment,expires_at) values($1,$2,'large','rezerva_large_monthly','active','google_play','production',now()+interval '1 month') on conflict(owner_id) do update set status='active',expires_at=excluded.expires_at",[owner,businessId]);
+    assert.equal((await call(owner,'get_access',[businessId])).active,true);
+    assert.equal((await as(attacker,'select count(*)::int count from public.businesses where id=$1',[businessId]))[0].count,1);
+    await db.query("update public.subscriptions set status='cancelled' where owner_id=$1",[owner]);
+    assert.equal((await call(owner,'get_access',[businessId])).active,false);
+    assert.equal((await as(attacker,'select count(*)::int count from public.businesses where id=$1',[businessId]))[0].count,0);
+    assert.equal((await as(owner,'select * from public.list_my_calendars($1)',[businessId])).length,0);
+    await assert.rejects(call(owner,'save_calendar_service_settings',[businessId,(await db.query('select id from public.resources where business_id=$1 limit 1',[businessId])).rows[0].id,[1],'09:00','17:00',30]),/Acces interzis|expirat/);
+    await db.query("update public.subscriptions set status='active',plan_id='large',expires_at=now()+interval '1 month' where owner_id=$1",[owner]);
+    await db.query("update public.subscriptions set status='active',plan_id='small',expires_at=now()+interval '1 month' where owner_id=$1",[owner]);
+    const blockedDowngrade=(await db.query('select plan_id,status,expires_at<=now() expired from public.subscriptions where owner_id=$1',[owner])).rows[0];
+    assert.equal(blockedDowngrade.plan_id,'large');assert.equal(blockedDowngrade.status,'cancelled');assert.equal(blockedDowngrade.expired,true);
+    assert.equal((await call(owner,'get_access',[businessId])).active,false);
   });
 });

@@ -36,7 +36,7 @@ export async function synchronizeSubscription(ownerId) {
   if (lookupError) throw lookupError;
   const { error } = await service.from('subscriptions').upsert({
     owner_id: ownerId, business_id: business?.id || null, plan_id: planId, product_id: productId,
-    status: Date.parse(expiresAt) > Date.now() ? 'active' : 'expired', store: 'google_play',
+    status: Date.parse(expiresAt) <= Date.now() ? 'expired' : purchase.unsubscribe_detected_at ? 'cancelled' : 'active', store: 'google_play',
     environment: purchase.is_sandbox ? 'sandbox' : 'production', expires_at: expiresAt,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'owner_id' });

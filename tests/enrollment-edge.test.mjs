@@ -51,8 +51,7 @@ test('Enrollment edge adapter: authentication, SMS provider proof, and fixed rec
     const mark=calls.find(c=>c.name==='enrollment_record_sms');
     assert.equal(mark.args.p_owner,'actual-owner'); assert.equal(mark.args.p_verified,true); assert.equal(mark.args.p_sid,sid);
   });
-  await t.test('approval email uses DB recipient, ignoring client-supplied recipient and owner',async()=>{
-    assert.equal((await handleEnrollment(request({action:'approval',id:'request-id',owner:'attacker',recipient:'attacker@example.com'}))).status,200);
+  await t.test('successful SMS automatically sends one approval email to the DB recipient',async()=>{
     const issue=calls.find(c=>c.name==='issue_enrollment_link'); assert.equal(issue.args.p_owner,'actual-owner');
     const mail=calls.find(c=>c.kind==='fetch' && c.url.includes('resend'));
     const message=JSON.parse(mail.options.body);
@@ -60,5 +59,6 @@ test('Enrollment edge adapter: authentication, SMS provider proof, and fixed rec
     for(const detail of ['Denumire: Salon Aurora','Categorie: Salon','CUI: 12345678','Adresă: Strada Florilor 10, București','E-mail business: contact@example.com','Telefon: +40712345678','Cod aprobare:\ncontact@example.com/RZA-','Valabil 30 de zile.']) assert.match(message.text,new RegExp(detail.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
     assert.doesNotMatch(message.text,/https?:\/\/|ro\.rezerva\.app:\/\//);
     assert.doesNotMatch(message.text,/Cod alternativ/);
+    assert.equal((await handleEnrollment(request({action:'approval',id:'request-id'}))).status,400);
   });
 });

@@ -6,35 +6,12 @@ import { escapeHtml } from '../ui/dom.js';
 import { bindBack, page, toast, loadingButton } from '../ui/layout.js';
 import { getAccess, redeemLicense, workspaces, calendars, team, addCalendar, inviteMember, acceptInvitation, revokeInvitation, setMemberAccess, afterAccessRoute } from '../services/access.js';
 import { takePendingInvitation } from '../services/auth.js';
-import { isPlatformOwnerAccount } from '../services/enrollment.js';
 
 const dateLabel = value => value === 'infinity' || value === null ? 'Fără expirare' : value ? new Intl.DateTimeFormat('ro-RO', { dateStyle: 'medium', timeStyle: 'short', timeZone: config.timezone }).format(new Date(value)) : '—';
 
 export function accessNotice(access) {
   if (!access.active) return `<div class="demo-callout">Abonament sau licență inactivă. Accesul afacerii este blocat până la activarea unui plan. ${access.isOwner ? '<button class="text-button" data-route="/business/plans">Activează un plan</button>' : 'Contactează proprietarul.'}</div>`;
   return `<div class="access-banner"><strong>${access.calendarLimit} ${access.calendarLimit === 1 ? 'calendar' : 'calendare'} · ${access.source === 'license' ? 'Licență' : 'Abonament'}</strong><span>Valabil până la ${dateLabel(access.expiresAt)}</span>${access.overLimit ? '<p>Planul curent nu acoperă toate calendarele. Activează planul Complete pentru a relua programările noi.</p>' : ''}</div>`;
-}
-
-export async function workspaceScreen(root) {
-  const [list, platformOwner] = await Promise.all([workspaces(), isPlatformOwnerAccount()]);
-  root.innerHTML = page({ title: 'Afaceri și invitații', backTo: '/', content: `<section class="section-heading"><h1>Bine ai venit</h1><p>${escapeHtml(store.get().user?.email || '')}</p><p>Membrii invitați intră direct în toate calendarele afacerii, fără plată.</p></section>
-    <div class="stack">${list.map(b => `<button class="button button--secondary" data-workspace="${escapeHtml(b.id)}">${escapeHtml(b.name)} · ${b.is_owner ? 'Proprietar' : 'Membru'}</button>`).join('') || '<p>Nu ai încă o afacere asociată.</p>'}
-    ${platformOwner ? '<button class="button button--secondary" data-route="/business/approve">Verificări</button>' : ''}
-    <button class="text-button" data-route="/business/verification">Starea înscrierii afacerii</button>
-    ${!list.some(b => b.is_owner) ? '<button class="button button--primary" id="new-business">Înregistrează propria afacere</button>' : ''}
-    <button class="text-button" data-route="/profile">Cont și deconectare</button></div>` });
-  bindBack(root);
-  root.querySelector('#new-business')?.addEventListener('click', async () => { await store.set({ business: null }); navigate('/business/plans'); });
-  root.querySelectorAll('[data-workspace]').forEach(button => button.addEventListener('click', async () => {
-    try {
-      const business = list.find(b => b.id === button.getAttribute('data-workspace'));
-      await store.set({ business });
-      const access = await getAccess(business.id);
-      if (!access.active) { navigate(business.is_owner ? '/business/plans' : '/business/workspaces'); return; }
-      const available = await calendars(business.id);
-      navigate(business.is_owner && !available.length ? '/business/setup' : '/business/home');
-    } catch (error) { toast(root, error.message || 'Acces indisponibil.', 'error'); }
-  }));
 }
 
 export async function licenseScreen(root) {
@@ -62,7 +39,7 @@ export async function licenseScreen(root) {
       const result = await redeemLicense(key);
       if (!result.ok) throw new Error(result.message || 'Licență invalidă.');
       const panel = root.querySelector('#license-result');
-      panel.innerHTML = `<div class="access-banner"><strong>${result.scheduled ? 'Licență înregistrată. Începe la ' + dateLabel(result.startsAt) : 'Licență activată: 5 calendare'}</strong><span>Expiră la ${dateLabel(result.expiresAt)}</span><button class="button button--secondary" data-route="${result.scheduled ? '/business/workspaces' : await afterAccessRoute()}">Continuă</button></div>`;
+      panel.innerHTML = `<div class="access-banner"><strong>${result.scheduled ? 'Licență înregistrată. Începe la ' + dateLabel(result.startsAt) : 'Licență activată: 5 calendare'}</strong><span>Expiră la ${dateLabel(result.expiresAt)}</span><button class="button button--secondary" data-route="${result.scheduled ? '/business/plans' : await afterAccessRoute()}">Continuă</button></div>`;
       bindBack(panel);
     } catch (error) { toast(root, error.message || 'Licență invalidă.', 'error'); }
     finally { key = ''; loadingButton(button, false); }
@@ -71,10 +48,10 @@ export async function licenseScreen(root) {
 
 export function invitationScreen(root) {
   const token = takePendingInvitation();
-  root.innerHTML = page({ title: 'Team flow', backTo: '/business/workspaces', content: `<section class="section-heading"><h1>Am cod de invitație</h1><p>Conectat ca ${escapeHtml(store.get().user?.email || '')}. Aceasta trebuie să fie adresa invitată. Nu ai nevoie de abonament personal.</p></section>
+  root.innerHTML = page({ title: 'Team flow', backTo: '/business/start', content: `<section class="section-heading"><h1>Am cod de invitație</h1><p>Conectat ca ${escapeHtml(store.get().user?.email || '')}. Aceasta trebuie să fie adresa invitată. Nu ai nevoie de abonament personal.</p></section>
     <form class="form-card" id="accept-invite"><label>Cod din e-mail<textarea name="token" rows="3" required maxlength="100" autocomplete="off" spellcheck="false">${escapeHtml(token || '')}</textarea></label><button class="button button--primary" type="submit">Acceptă invitația</button></form>
     ${config.mode === 'demo' ? '<p class="demo-callout">Simulare: DEMO-INVITATIE. În demo nu se trimit e-mailuri.</p>' : ''}<button class="text-button" data-route="/profile">Schimbă contul Google</button>` });
-  bindBack(root, '/business/workspaces');
+  bindBack(root, '/business/start');
   root.querySelector('#accept-invite')?.addEventListener('submit', async event => {
     event.preventDefault();
     const form = event.currentTarget;

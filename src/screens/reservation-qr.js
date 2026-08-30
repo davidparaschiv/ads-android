@@ -56,14 +56,14 @@ export async function businessQrScreen(root) {
   const list = await workspaces();
   if (!list.length) throw new Error('Nu ai acces la calendarele unei afaceri. Acceptă mai întâi invitația sau finalizează înscrierea.');
   const current = list.find(b => b.id === store.get().business?.id);
-  root.innerHTML = page({ title: 'Scanează programarea', eyebrow: 'PENTRU AFACERI', backTo: current ? '/business/home' : '/business/workspaces',
+  root.innerHTML = page({ title: 'Scanează programarea', eyebrow: 'PENTRU AFACERI', backTo: current ? '/business/home' : '/business/start',
     content: `<section class="form-card"><p>Scanează QR-ul afișat de client. Detaliile sunt verificate pe server; programarea nu este modificată.</p>
       <label>Afacere<select id="qr-workspace">${list.map(b => `<option value="${escapeHtml(b.id)}" ${current?.id === b.id ? 'selected' : ''}>${escapeHtml(b.name)}</option>`).join('')}</select></label>
       <button class="button button--primary" id="scan-reservation">${icon('qr')} Scanează QR-ul clientului</button>
       <p class="info-note">La prima scanare poate fi necesară descărcarea modulului Google. Ai nevoie de internet pentru verificarea programării.</p>
       <details><summary>Nu poți scana?</summary><form id="manual-qr-form"><label>Cod sau link din QR<textarea id="manual-qr-value" maxlength="200" rows="3" required autocomplete="off" autocapitalize="off" spellcheck="false"></textarea></label><button class="button button--secondary" type="submit">Deschide programarea</button></form></details>
       <div id="qr-scan-result" aria-live="polite"></div></section>` });
-  bindBack(root, current ? '/business/home' : '/business/workspaces');
+  bindBack(root, current ? '/business/home' : '/business/start');
   const result = root.querySelector('#qr-scan-result');
   const scan = root.querySelector('#scan-reservation');
   const select = /** @type {HTMLSelectElement} */ (root.querySelector('#qr-workspace'));

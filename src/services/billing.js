@@ -1,5 +1,6 @@
 // @ts-check
 import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 import { Purchases } from '@revenuecat/purchases-capacitor';
 import { config } from '../config.js';
 import { getSupabase } from '../api/supabase.js';
@@ -33,11 +34,14 @@ export async function purchasePlan(planId, userId) {
   const { customerInfo } = await loggedExternalCall('revenuecat', 'get-customer-info', () => Purchases.getCustomerInfo());
   const current = customerInfo.entitlements.active[config.revenueCat.entitlementId];
   const oldProductIdentifier = current ? current.productIdentifier + (current.productPlanIdentifier && !current.productIdentifier.includes(':') ? ':' + current.productPlanIdentifier : '') : null;
+  if (oldProductIdentifier?.split(':')[0] === config.plans.large.productId && planId === 'small') {
+    throw new Error('Trecerea de la Complete la Small nu este disponibilă. Poți păstra Complete sau anula abonamentul din Google Play.');
+  }
   if (oldProductIdentifier?.split(':')[0] === config.plans[planId].productId) return syncEntitlement();
-  // RevenueCat enum values: 1 = immediate time proration, 6 = deferred until renewal.
+  // RevenueCat enum value 1 = immediate time proration for Small -> Complete.
   // Pass the previous Play product to REPLACE it, never create a second subscription.
   await loggedExternalCall('revenuecat', 'purchase-package', () => Purchases.purchasePackage({ aPackage: selected, ...(oldProductIdentifier ? {
-    googleProductChangeInfo: { oldProductIdentifier, prorationMode: planId === 'small' ? 6 : 1 },
+    googleProductChangeInfo: { oldProductIdentifier, prorationMode: 1 },
   } : {}) }));
   return syncEntitlement();
 }
@@ -47,6 +51,31 @@ export async function restorePurchases() {
   await configureBilling(store.get().user?.id || '');
   await loggedExternalCall('revenuecat', 'restore-purchases', () => Purchases.restorePurchases());
   return syncEntitlement();
+}
+
+export async function getBillingStatus(userId) {
+  if (config.mode === 'demo') {
+    const access = await import('./access.js').then(module => module.getAccess(store.get().business?.id));
+    return { active: access.active, planId: access.planId, willRenew: false, expirationDate: access.expiresAt || null, managementURL: null };
+  }
+  await configureBilling(userId);
+  const { customerInfo } = await loggedExternalCall('revenuecat', 'get-customer-info', () => Purchases.getCustomerInfo());
+  const entitlement = customerInfo.entitlements.active[config.revenueCat.entitlementId];
+  const product = entitlement?.productIdentifier?.split(':')[0] || '';
+  const planId = Object.keys(config.plans).find(id => config.plans[id].productId === product) || null;
+  return {
+    active: Boolean(entitlement?.isActive),
+    planId,
+    willRenew: Boolean(entitlement?.willRenew),
+    expirationDate: entitlement?.expirationDate || null,
+    managementURL: customerInfo.managementURL || null,
+  };
+}
+
+export async function openSubscriptionManagement(userId) {
+  const status = await getBillingStatus(userId);
+  const url = status.managementURL || 'https://play.google.com/store/account/subscriptions';
+  await loggedExternalCall('google-play', 'open-subscription-management', () => Browser.open({ url }));
 }
 
 async function syncEntitlement() {

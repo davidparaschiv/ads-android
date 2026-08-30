@@ -133,5 +133,5 @@ test('Reservation app link survives Google login in memory and clears on sign-ou
   listeners.appUrlOpen({url:link}); await new Promise(r=>setTimeout(r,5));
   assert.equal(navigation.at(-1),'/business/scan');
   assert.equal(typeof listeners.backButton,'function');
-  await auth.signOut(); assert.equal(auth.businessEntryRoute(),'/business/workspaces');
+  await auth.signOut(); assert.equal(auth.businessEntryRoute(),'/business/start');
 });

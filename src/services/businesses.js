@@ -105,6 +105,25 @@ export async function addBusinessEvent(businessId,resourceId,input) {
     p_weekdays:input.weekdays,p_start_time:input.startTime,p_duration_minutes:input.duration});
 }
 
+export async function getCalendarServiceSettings(calendarId) {
+  if (config.mode === 'demo') return store.get().demoCalendarSettings?.[calendarId] || {
+    calendarId,name:store.get().demoCalendars.find(item=>item.id===calendarId)?.name || 'Serviciu',
+    serviceId:null,durationMinutes:30,weekdays:[1,2,3,4,5],startTime:'09:00:00',endTime:'18:00:00',
+  };
+  return rpc('get_calendar_service_settings',{p_calendar_id:calendarId});
+}
+
+export async function saveCalendarServiceSettings(businessId,calendarId,input) {
+  if (config.mode === 'demo') {
+    const settings={calendarId,name:store.get().demoCalendars.find(item=>item.id===calendarId)?.name || 'Serviciu',
+      durationMinutes:input.duration,weekdays:input.weekdays,startTime:input.startTime,endTime:input.endTime};
+    await store.set({demoCalendarSettings:{...(store.get().demoCalendarSettings||{}),[calendarId]:settings}});
+    return settings;
+  }
+  return rpc('save_calendar_service_settings',{p_business_id:businessId,p_calendar_id:calendarId,
+    p_weekdays:input.weekdays,p_start_time:input.startTime,p_end_time:input.endTime,p_duration_minutes:input.duration});
+}
+
 export async function getCalendarNotificationMinutes(calendarId) {
   if (config.mode === 'demo') return store.get().notificationPreference >= 2 && store.get().notificationPreference <= 30 ? store.get().notificationPreference : 15;
   const supabase=requireSupabase();

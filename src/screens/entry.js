@@ -2,7 +2,7 @@
 
 import { config } from '../config.js';
 import { navigate } from '../router.js';
-import { signInWithGoogle, businessEntryRoute } from '../services/auth.js';
+import { signInWithGoogle, resolveBusinessEntryRoute } from '../services/auth.js';
 import { icon } from '../ui/icons.js';
 import { logo } from '../ui/logo.js';
 import { bindBack, loadingButton, page, toast } from '../ui/layout.js';
@@ -68,7 +68,7 @@ export function loginScreen(root, role) {
     try {
       loadingButton(button, true, 'Se conectează…');
       const result = await signInWithGoogle(role);
-      if (result.demo) navigate(isBusiness ? businessEntryRoute() : '/customer/search');
+      if (result.demo) navigate(isBusiness ? await resolveBusinessEntryRoute() : '/customer/profile-setup');
     } catch (error) {
       loadingButton(button, false);
       toast(root, error instanceof Error ? error.message : 'Autentificarea a eșuat.', 'error');

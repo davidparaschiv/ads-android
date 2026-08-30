@@ -6,7 +6,9 @@ import { store } from '../state/store.js';
 import { externalApiLog } from '../observability/external-api-log.js';
 
 export const enrollmentStatus = async () => config.mode === 'demo' ? store.get().demoEnrollment : rpc('get_enrollment_status');
-export const isPlatformOwnerAccount = async () => config.mode === 'demo' ? true : rpc('is_platform_owner_account');
+export const isPlatformOwnerAccount = async () => config.mode === 'demo'
+  ? store.get().user?.email === 'davidnicolaparaschiv@gmail.com'
+  : rpc('is_platform_owner_account');
 
 export async function enrollmentAction(action, values = {}) {
   if (config.mode === 'demo') return demoAction(action, values);
@@ -46,6 +48,7 @@ async function demoAction(action, values) {
     if (action === 'checkSms') {
       if (!value.emailVerified || values.code !== '123456') throw new Error('Cod demo incorect.');
       value.phoneVerified = true;
+      value.approvalSentAt = new Date().toISOString();
     }
     if (action === 'confirm') {
       if (values.token === 'RZE-DEMO') value.emailVerified = true;

@@ -113,9 +113,9 @@ test('Provider adapters: actual RevenueCat synchronization and webhook trust bou
   globalThis.fetch=async(url,options)=>{calls.push({url:String(url),options});return Response.json({subscriber},{status});};
   const sync=await adapter('supabase/functions/sync-subscription/index.js',fixture);
   const webhook=await adapter('supabase/functions/revenuecat-webhook/index.js',fixture);
-  function purchase(plan='large',store='play_store',expired=false) {
+  function purchase(plan='large',store='play_store',expired=false,cancelled=false) {
     const product=`rezerva_${plan}_monthly:monthly`;
-    subscriber={entitlements:{business_pro:{product_identifier:product,expires_date:new Date(Date.now()+(expired?-1:1)*86400000).toISOString()}},subscriptions:{[product]:{store,is_sandbox:true}}};
+    subscriber={entitlements:{business_pro:{product_identifier:product,expires_date:new Date(Date.now()+(expired?-1:1)*86400000).toISOString()}},subscriptions:{[product]:{store,is_sandbox:true,unsubscribe_detected_at:cancelled?new Date().toISOString():null}}};
   }
   await t.test('unauthenticated sync/webhook do not call RevenueCat',async()=>{
     authorized=false;assert.equal((await sync(post())).status,401);authorized=true;
@@ -135,6 +135,10 @@ test('Provider adapters: actual RevenueCat synchronization and webhook trust bou
     const count=writes.length;purchase('large','app_store');assert.equal((await sync(post())).status,502);assert.equal(writes.length,count);
     purchase('large','play_store',true);assert.equal((await sync(post())).status,200);assert.equal(writes.at(-1).row.status,'expired');
     subscriber={};await sync(post());assert.equal(writes.at(-1).row.status,'expired');
+  });
+  await t.test('provider cancellation blocks access immediately even before the paid-until date',async()=>{
+    purchase('large','play_store',false,true);assert.equal((await sync(post())).status,200);
+    assert.equal(writes.at(-1).row.status,'cancelled');
   });
   await t.test('delayed/replayed webhook fetches current entitlement and ignores forged payload',async()=>{
     purchase('small');const request=()=>post({event:{id:'same-event',type:'CANCELLATION',app_user_id:owner,product_id:'rezerva_large_monthly'}},{Authorization:'offline-secret'});

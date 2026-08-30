@@ -18,17 +18,40 @@ let pendingEnrollment = '';
 export const takePendingEnrollment = () => pendingEnrollment;
 export const clearPendingEnrollment = () => { pendingEnrollment = ''; };
 export const setDemoEnrollmentToken = token => { if (config.mode === 'demo') pendingEnrollment = token; };
-export const businessEntryRoute = () => pendingEnrollment ? '/business/verification' : (pendingInvitation || store.get().inviteFlow) ? '/business/invite' : hasPendingReservationQr() ? '/business/scan' : '/business/workspaces';
+export const businessEntryRoute = () => pendingEnrollment ? '/business/verification' : (pendingInvitation || store.get().inviteFlow) ? '/business/invite' : hasPendingReservationQr() ? '/business/scan' : '/business/start';
+export async function resolveBusinessEntryRoute() {
+  const immediate = businessEntryRoute();
+  if (immediate !== '/business/start') return immediate;
+  const [enrollmentService, { workspaces, getAccess }] = await Promise.all([
+    import('./enrollment.js'),
+    import('./access.js'),
+  ]);
+  const enrollment = await enrollmentService.enrollmentStatus();
+  if (enrollment?.status === 'pending') return '/business/verification';
+  const list = await workspaces();
+  if (!list.length) {
+    await store.set({ business: null });
+    if (await enrollmentService.isPlatformOwnerAccount()) return '/business/approve';
+    return '/business/details';
+  }
+  const selected = list.find(item => item.id === store.get().business?.id)
+    || list.find(item => item.is_owner)
+    || list[0];
+  await store.set({ business: selected });
+  return (await getAccess(selected.id)).active ? '/business/home' : '/business/plans';
+}
 export const homeRoute = () => {
   const state = store.get();
-  if (state.user) return state.role === 'customer' ? '/customer/search' : '/business/workspaces';
+  if (state.user) {
+    if (state.role === 'customer') return state.customerProfileComplete ? '/customer/search' : '/customer/profile-setup';
+    return '/business/start';
+  }
   if (state.role === 'customer') return '/customer/login';
   if (state.role === 'business') return '/business/login';
   return '/';
 };
 export const takePendingInvitation = () => { const token = pendingInvitation; pendingInvitation = ''; return token; };
 export const hasPendingInvitation = () => Boolean(pendingInvitation);
-const businessRoute = businessEntryRoute;
 
 async function handleUrl(url) {
   const parsed = new URL(url);
@@ -65,7 +88,7 @@ async function handleUrl(url) {
   await Browser.close().catch(() => undefined);
   if (error) { window.location.hash = '/business/login'; return; }
   if (data.user) await saveUser(data.user);
-  window.location.hash = store.get().role === 'business' ? businessRoute() : '/customer/search';
+  window.location.hash = store.get().role === 'business' ? await resolveBusinessEntryRoute() : homeRoute();
 }
 
 export async function initializeAuth() {
@@ -87,7 +110,7 @@ export async function initializeAuth() {
       });
       if (!Capacitor.isNativePlatform() && new URL(window.location.href).searchParams.has('code')) {
         window.history.replaceState(null, '', window.location.pathname);
-        window.location.hash = store.get().role === 'business' ? businessRoute() : '/customer/search';
+        window.location.hash = store.get().role === 'business' ? await resolveBusinessEntryRoute() : homeRoute();
       }
     }
   }

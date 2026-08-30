@@ -73,6 +73,7 @@ p { color: var(--muted); line-height: 1.6; }
 .button--google { min-height: 56px; box-shadow: 0 10px 30px rgb(25 20 22 / 6%); }
 .button--play { margin-top: 22px; border-color: #17171b; background: #17171b; color: #fff; }
 .button--sticky { position: sticky; bottom: 16px; margin-top: 24px; }
+.button--compact { width: auto; min-height: 40px; margin-top: 0; padding: 0 13px; border-radius: 12px; font-size: .72rem; }
 .google-g { color: #4285f4; font-size: 1.2rem; font-weight: 800; }
 .text-button { padding: 6px; border: 0; background: transparent; color: var(--red); font-size: .8rem; font-weight: 700; cursor: pointer; }
 
@@ -146,9 +147,10 @@ p { color: var(--muted); line-height: 1.6; }
 .fab { position: fixed; z-index: 9; right: max(22px, calc((100vw - 520px) / 2)); bottom: calc(88px + env(safe-area-inset-bottom)); display: grid; place-items: center; width: 54px; height: 54px; border: 0; border-radius: 18px; background: var(--red); color: #fff; box-shadow: 0 15px 30px rgb(237 28 47 / 30%); }
 
 .bottom-nav { position: fixed !important; z-index: 20; right: 0; bottom: 0; left: 0; display: grid; grid-template-columns: repeat(4, 1fr); width: min(100%, 560px); min-height: calc(74px + env(safe-area-inset-bottom)); margin: auto; padding: 8px 8px env(safe-area-inset-bottom); border-top: 1px solid var(--line); background: rgb(255 255 255 / 96%); box-shadow: 0 -8px 24px rgb(20 20 25 / 7%); backdrop-filter: blur(18px); transform: translateZ(0); }
-.bottom-nav__item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 0; background: transparent; color: #a3a3aa; font-size: .6rem; cursor: pointer; }
+.bottom-nav__item { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 0; background: transparent; color: #a3a3aa; font-size: .6rem; cursor: pointer; }
 .bottom-nav__item .icon { width: 20px; height: 20px; }
 .bottom-nav__item.is-active { color: var(--red); font-weight: 700; }
+.bottom-nav__item.is-active::after { position: absolute; right: 18%; bottom: 0; left: 18%; height: 3px; border-radius: 3px 3px 0 0; background: var(--red); content: ''; }
 
 .date-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; }
 .date-chip { display: flex; min-height: 66px; flex-direction: column; justify-content: center; gap: 4px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
@@ -238,52 +240,53 @@ p { color: var(--muted); line-height: 1.6; }
 .notification-empty { min-height: calc(100vh - 190px); }
 .booking-actions .booking-action { width: auto; min-width: 120px; margin: 0; }
 
-/* Hand-drawn screen system: intentionally plain, direct and field-for-field. */
+/* Screens transcribed from the sketches keep their structure, but use the app design system. */
 .bottom-nav--customer { grid-template-columns: repeat(3,1fr); }
-.draw-section { padding: 26px 4px; border-bottom: 2px dashed var(--line); }
-.draw-section:first-child { padding-top: 6px; }
-.draw-section h1 { margin: 0 0 20px; text-align: center; font-size: 1.35rem; }
+.draw-section { margin-bottom: 16px; padding: 20px; border: 1px solid var(--line); border-radius: 20px; background: #fff; box-shadow: 0 12px 32px rgb(25 20 22 / 5%); }
+.draw-section:first-child { padding-top: 20px; }
+.draw-section h1 { margin: 0 0 18px; font-size: 1.2rem; letter-spacing: -.025em; }
 .draw-section--center { display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
 .draw-section--center h1 { margin: 0; }
-.draw-button { min-width: 120px; min-height: 46px; padding: 10px 22px; border: 2px solid var(--ink); border-radius: 8px; background: #fff; font-weight: 800; }
+.draw-button { min-width: 120px; min-height: 50px; padding: 10px 22px; border: 1px solid var(--red); border-radius: 15px; background: var(--red); color: #fff; box-shadow: 0 14px 28px rgb(237 28 47 / 18%); font-weight: 800; }
 .draw-inline-form { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.draw-inline-form label { width: 100%; }
-.draw-inline-form input,.draw-form input,.draw-form textarea,.draw-form select,.draw-section select { width: 100%; min-height: 48px; border: 2px solid var(--ink); border-radius: 6px; background: #fff; }
-.draw-form { display: flex; flex-direction: column; align-items: center; gap: 28px; padding: 10px 0; }
+.draw-inline-form label { display: grid; width: 100%; gap: 8px; color: #35353b; font-size: .77rem; font-weight: 700; }
+.draw-inline-form input,.draw-form input,.draw-form textarea,.draw-form select,.draw-section select { width: 100%; min-height: 50px; padding: 0 14px; border: 1px solid var(--line); border-radius: 13px; outline: none; background: #fff; color: var(--ink); }
+.draw-inline-form input:focus,.draw-form input:focus,.draw-form textarea:focus,.draw-form select:focus,.draw-section select:focus { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-soft); }
+.draw-form { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 20px; border: 1px solid var(--line); border-radius: 20px; background: #fff; box-shadow: 0 12px 32px rgb(25 20 22 / 5%); }
 .draw-form > label,.draw-form fieldset { width: 100%; margin: 0; }
-.draw-form textarea { min-height: 92px; resize: vertical; }
-.draw-form select { width: min(100%,280px); margin: 10px auto 0; }
-.draw-list { display: flex; flex-direction: column; }
-.draw-list > span,.draw-list-row,.customer-booking,.request-list article,.draw-appointment { min-height: 66px; padding: 14px 6px; border-bottom: 1px solid var(--line); }
-.draw-list-row,.customer-booking { display: flex; width: 100%; align-items: center; justify-content: space-between; border: 0; border-bottom: 1px solid var(--line); background: transparent; text-align: left; }
+.draw-form textarea { min-height: 100px; padding: 14px; resize: vertical; }
+.draw-form select { width: 100%; margin: 8px auto 0; }
+.draw-list { display: grid; gap: 10px; }
+.draw-list > span,.draw-list-row,.customer-booking,.request-list article,.draw-appointment { min-height: 66px; padding: 14px; border: 1px solid var(--line); border-radius: 15px; background: #fff; }
+.draw-list-row,.customer-booking { display: flex; width: 100%; align-items: center; justify-content: space-between; border: 1px solid var(--line); border-radius: 15px; background: #fff; box-shadow: 0 8px 20px rgb(25 20 22 / 4%); text-align: left; }
 .draw-list-row .icon,.customer-booking .icon { width: 28px; height: 28px; }
-.draw-search { display: grid; grid-template-columns: 1fr 42px; align-items: center; border-bottom: 2px dashed var(--line); }
-.draw-search input { min-width: 0; border: 0; background: transparent; font-size: 1.15rem; }
+.draw-search { display: grid; grid-template-columns: 1fr 42px; align-items: center; min-height: 54px; padding: 0 8px 0 15px; border: 1px solid var(--line); border-radius: 16px; background: #fff; box-shadow: 0 12px 30px rgb(25 20 22 / 6%); }
+.draw-search input { min-width: 0; border: 0; outline: 0; background: transparent; font-size: 1rem; }
 .draw-search .icon { justify-self: center; }
 .week-heading { display: grid; grid-template-columns: 46px 1fr 46px; align-items: center; }
 .week-heading h1 { margin: 0; }
 .week-heading button { display: grid; place-items: center; border: 0; background: transparent; }
 .week-range { margin: 8px 0; text-align: center; }
-.draw-chart { display: flex; height: 170px; align-items: end; justify-content: space-around; gap: 8px; padding-top: 20px; border-bottom: 2px solid var(--ink); }
+.draw-chart { display: flex; height: 170px; align-items: end; justify-content: space-around; gap: 8px; padding: 20px 8px 0; border-bottom: 1px solid var(--line); }
 .draw-chart div { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: end; }
-.draw-chart span { display: block; width: min(34px,70%); min-height: 4px; background: var(--red); }
+.draw-chart span { display: block; width: min(34px,70%); min-height: 4px; border-radius: 8px 8px 3px 3px; background: var(--red); }
 .draw-chart small { min-height: 38px; text-align: center; }
 .chart-label { display: block; margin-top: 12px; text-align: right; }
 .calendar-view-head { padding: 4px 0 18px; }
 .calendar-view-head h2 { margin: 20px 0 12px; text-align: center; }
-.weekday-tabs { display: grid; grid-template-columns: repeat(7,1fr); border: 1px solid var(--line); }
+.weekday-tabs { display: grid; overflow: hidden; grid-template-columns: repeat(7,1fr); border: 1px solid var(--line); border-radius: 13px; }
 .weekday-tabs button,.weekday-tabs label span { display: grid; min-height: 44px; place-items: center; border: 0; border-right: 1px solid var(--line); background: #fff; }
-.weekday-tabs .is-active { background: var(--ink); color: #fff; }
+.weekday-tabs .is-active { background: var(--red); color: #fff; }
 .weekday-tabs--checks input { position: absolute; opacity: 0; }
-.weekday-tabs--checks input:checked + span { background: var(--ink); color: #fff; }
+.weekday-tabs--checks input:checked + span { background: var(--red); color: #fff; }
 .draw-appointment { display: flex; flex-direction: column; gap: 5px; }
 .draw-fab { position: fixed; z-index: 19; right: max(22px,calc((100vw - 520px)/2)); bottom: calc(92px + env(safe-area-inset-bottom)); display: grid; width: 60px; height: 60px; place-items: center; border: 0; border-radius: 50%; background: var(--red); color: #fff; }
 .request-list article { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
 .request-list article > span { display: flex; flex-direction: column; gap: 4px; }
 .request-list article > span:last-child { flex-direction: row; }
-.request-list button { border: 0; background: transparent; font-weight: 800; }
-#calendar-reminder label { display: flex; align-items: center; gap: 8px; }
-#calendar-reminder input { width: 64px; }
+.request-list .button { font-weight: 800; }
+#calendar-reminder label { display: grid; align-items: center; gap: 8px; }
+.empty-note { margin: 0; text-align: center; }
 .customer-booking > span { display: flex; min-width: 0; flex-direction: column; gap: 5px; }
 .customer-booking button { border: 0; background: transparent; }
 .account-email { font-size: 1.1rem; }

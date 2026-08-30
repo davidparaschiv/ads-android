@@ -78,7 +78,7 @@ export async function handleEnrollment(request) {
         ...(error instanceof ExternalProviderError ? { diagnostic: error.diagnostic } : {}),
       }); }
     }
-    if (body.action === 'email' || body.action === 'approval') {
+    if (body.action === 'email') {
       // ownerId comes from authenticated JWT, never request body; recipient comes from DB only.
       await sendLink(body.id, actor.user.id, body.action);
       return json(request, { ok: true });
@@ -97,7 +97,8 @@ export async function handleEnrollment(request) {
         p_request_id: body.id, p_owner: actor.user.id, p_sid: verification.sid, p_verified: checking,
       });
       if (error || !recorded) throw new Error('Cererea s-a schimbat. Reîncearcă verificarea.');
-      return json(request, { ok: true, verified: checking });
+      if (checking) await sendLink(body.id, actor.user.id, 'approval');
+      return json(request, { ok: true, verified: checking, approvalSent: checking });
     }
     if (body.action === 'confirm') {
       const result = await call('confirm_enrollment_link', { p_token: body.token, p_approve: body.approve !== false });
