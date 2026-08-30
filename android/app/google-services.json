@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "668612820006",
+    "project_id": "rezervari-ai-edc87",
+    "storage_bucket": "rezervari-ai-edc87.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:668612820006:android:e6fb877ff7caa5b261bae7",
+        "android_client_info": {
+          "package_name": "ro.rezerva.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFtQfrUt6WGvV1LbZ4_-8eW2nyK-5MdEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
