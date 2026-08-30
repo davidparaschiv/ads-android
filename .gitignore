@@ -1,22 +1,52 @@
+# JavaScript build output and test reports
 node_modules/
 dist/
+coverage/
+
+# Environment files: keep only sanitized examples in Git
+.env
+.env.*
+!.env.example
+!.env.*.example
 supabase/.env
 supabase/.env.*
 !supabase/.env.example
-android/app/google-services.json
-*.jks
-*.keystore
-license-keys*
-.DS_Store
-*.log
-android/.gradle/
-android/local.properties
-android/app/build/
-android/build/
-.idea/
-.env
-.env.backend.local
+
+# Local backend-test state
 .backend-test-state.json
 .backend-test-sessions.json
 .backend-test.lock
 .backend-test-results/
+
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
+
+# Firebase CLI cache and private server credentials
+.firebase/
+**/*service-account*.json
+**/*firebase-adminsdk*.json
+
+# Firebase Android client configuration is intentionally committed
+!android/app/google-services.json
+
+# Android signing credentials, local configuration and build output
+*.jks
+*.keystore
+key.properties
+keystore.properties
+android/key.properties
+android/keystore.properties
+android/.gradle/
+android/.kotlin/
+android/local.properties
+android/app/build/
+android/build/
+
+# Generated license exports
+license-keys*
+
+# Editor, OS and log files
+.idea/
+.DS_Store
+*.log
