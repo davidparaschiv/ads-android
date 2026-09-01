@@ -3,7 +3,7 @@ node_modules/
 dist/
 coverage/
 
-
+.env.backend.local
 
 # Local backend-test state
 .backend-test-state.json
