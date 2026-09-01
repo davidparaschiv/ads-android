@@ -3,14 +3,7 @@ node_modules/
 dist/
 coverage/
 
-# Environment files: keep only sanitized examples in Git
-.env
-.env.*
-!.env.example
-!.env.*.example
-supabase/.env
-supabase/.env.*
-!supabase/.env.example
+
 
 # Local backend-test state
 .backend-test-state.json
