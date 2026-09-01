@@ -20,7 +20,7 @@ export const takePendingEnrollment = () => pendingEnrollment;
 export const clearPendingEnrollment = () => { pendingEnrollment = ''; };
 export const setDemoEnrollmentToken = token => { if (config.mode === 'demo') pendingEnrollment = token; };
 export const businessEntryRoute = () => pendingEnrollment ? '/business/verification' : (pendingInvitation || store.get().inviteFlow) ? '/business/invite' : hasPendingReservationQr() ? '/business/scan' : '/business/start';
-export async function resolveBusinessEntryRoute() {
+async function businessRouteForCurrentAccount() {
   const immediate = businessEntryRoute();
   if (immediate !== '/business/start') return immediate;
   const [enrollmentService, { workspaces, getAccess }] = await Promise.all([
@@ -41,11 +41,8 @@ export async function resolveBusinessEntryRoute() {
   await store.set({ business: selected });
   return (await getAccess(selected.id)).active ? '/business/home' : '/business/plans';
 }
-export async function resolveCustomerEntryRoute() {
-  if (!store.get().user) return '/customer/login';
-  const accountResolution = await enforceBusinessAccountRole();
-  if (accountResolution === 'customer-conflict') return '/customer/login';
-  if (accountResolution === 'business') return resolveBusinessEntryRoute();
+
+async function customerRouteForCurrentAccount() {
   const { getCustomerProfile } = await import('./customer-profile.js');
   const profile = await getCustomerProfile();
   if (!profile?.completed) {
@@ -57,6 +54,20 @@ export async function resolveCustomerEntryRoute() {
     user: { ...store.get().user, name: `${profile.firstName} ${profile.lastName}`.trim() },
   });
   return '/customer/search';
+}
+
+export async function resolveBusinessEntryRoute() {
+  if (!store.get().user) return '/business/login';
+  const accountType = await enforceExistingAccountType();
+  if (accountType === 'client') return customerRouteForCurrentAccount();
+  return businessRouteForCurrentAccount();
+}
+
+export async function resolveCustomerEntryRoute() {
+  if (!store.get().user) return '/customer/login';
+  const accountType = await enforceExistingAccountType();
+  if (accountType === 'business' || accountType === 'invitee') return businessRouteForCurrentAccount();
+  return customerRouteForCurrentAccount();
 }
 export const homeRoute = () => {
   const state = store.get();
@@ -76,7 +87,7 @@ async function handleUrl(url) {
   if (parsed.protocol !== new URL(config.authRedirectUrl).protocol) return;
   if (parsed.hostname === 'reservation') {
     try { rememberReservationQr(url); } catch { return; }
-    await store.set({ role: 'business' });
+    await store.set({ role: 'business', requestedAccountType: 'business' });
     navigate(store.get().user ? '/business/scan' : '/business/login');
     return;
   }
@@ -84,7 +95,7 @@ async function handleUrl(url) {
     const token = parsed.searchParams.get('token') || '';
     if (/^RZ[EA]-[A-F0-9]{64}$/.test(token)) {
       pendingEnrollment = token;
-      await store.set({ role: 'business' });
+      await store.set({ role: 'business', requestedAccountType: 'business' });
       window.location.hash = store.get().user ? '/business/verification' : '/business/login';
     }
     return;
@@ -93,7 +104,7 @@ async function handleUrl(url) {
     const token = parsed.searchParams.get('token') || '';
     if (/^RZI-[A-F0-9]{64}$/i.test(token)) {
       pendingInvitation = token;
-      await store.set({ role: 'business' });
+      await store.set({ role: 'business', requestedAccountType: 'invitee', inviteFlow: true });
       window.location.hash = store.get().user ? '/business/invite' : '/business/login';
     }
     return;
@@ -107,11 +118,7 @@ async function handleUrl(url) {
   if (error) { window.location.hash = '/business/login'; return; }
   if (data.user) {
     await saveUser(data.user);
-    const accountResolution = await enforceBusinessAccountRole();
-    if (accountResolution === 'customer-conflict') {
-      window.location.hash = '/customer/login';
-      return;
-    }
+    await enforceExistingAccountType();
   }
   window.location.hash = store.get().role === 'business' ? await resolveBusinessEntryRoute() : await resolveCustomerEntryRoute();
 }
@@ -126,7 +133,7 @@ export async function initializeAuth() {
       const { data } = await supabase.auth.getSession();
       if (data.session?.user) {
         await saveUser(data.session.user);
-        await enforceBusinessAccountRole();
+        await enforceExistingAccountType();
       }
       // A temporary refresh/network failure must not erase the persisted UI
       // identity. Server authorization still protects every data operation.
@@ -154,9 +161,14 @@ export async function initializeAuth() {
   }
 }
 
-/** @param {'business' | 'customer'} role */
-export async function signInWithGoogle(role) {
-  await store.set({ role, authNotice: '' });
+/** @param {'business' | 'customer'} role @param {'business'|'client'|'invitee'} [accountType] */
+export async function signInWithGoogle(role, accountType = role === 'customer' ? 'client' : 'business') {
+  await store.set({
+    role,
+    requestedAccountType: accountType,
+    accountTypeNotice: '',
+    inviteFlow: accountType === 'invitee',
+  });
   if (config.mode === 'demo') {
     const user = role === 'business'
       ? { id: 'demo-business-user', name: 'Andrei Popescu', email: 'andrei@demo.ro' }
@@ -206,21 +218,34 @@ async function saveUser(user) {
   });
 }
 
-async function enforceBusinessAccountRole() {
+function selectedAccountType() {
+  const state = store.get();
+  if (['business', 'client', 'invitee'].includes(state.requestedAccountType)) return state.requestedAccountType;
+  if (state.inviteFlow) return 'invitee';
+  if (state.role === 'customer') return 'client';
+  if (state.role === 'business') return 'business';
+  return null;
+}
+
+async function enforceExistingAccountType() {
   if (config.mode === 'demo' || !store.get().user) return null;
   const client = getSupabase();
   if (!client || typeof client.rpc !== 'function') return null;
   const { rpc } = await import('./access.js');
-  const accountRole = await rpc('get_account_role');
-  if (accountRole !== 'business') return null;
-  if (store.get().role === 'customer') {
-    await signOut();
-    await store.set({
-      role: 'customer',
-      authNotice: 'Acest e-mail este e-mail de firmă. Folosește alt e-mail dacă vrei să fii client al aplicației.',
-    });
-    return 'customer-conflict';
-  }
-  await store.set({ role: 'business', customerProfileComplete: false });
-  return 'business';
+  const resolvedType = await rpc('get_account_role');
+  const accountType = resolvedType === 'customer' ? 'client' : resolvedType;
+  if (!['business', 'client', 'invitee'].includes(accountType)) return accountType === 'unassigned' ? 'unassigned' : null;
+  const requested = selectedAccountType();
+  const switched = Boolean(requested && requested !== accountType);
+  const previousNotice = store.get().accountTypeNotice || '';
+  await store.set({
+    role: accountType === 'client' ? 'customer' : 'business',
+    requestedAccountType: accountType,
+    accountTypeNotice: switched ? `Există un alt tip de cont cu această adresă. Tip ${accountType}.` : previousNotice,
+    inviteFlow: false,
+    ...(accountType === 'client'
+      ? { business: null, customerProfileComplete: true }
+      : { customerProfileComplete: false }),
+  });
+  return accountType;
 }

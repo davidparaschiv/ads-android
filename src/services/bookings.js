@@ -12,9 +12,16 @@ export async function availableSlots(businessId, resourceId, eventTypeId, date) 
 }
 
 export async function availableServiceSlots(businessId,resourceId,eventTypeId) {
-  const dates=Array.from({length:30},(_,index)=>{const date=new Date();date.setDate(date.getDate()+index);return date.toISOString().slice(0,10);});
+  const today=dateInTimezone(new Date(),config.timezone);
+  const dates=Array.from({length:30},(_,index)=>{const date=new Date(`${today}T12:00:00Z`);date.setUTCDate(date.getUTCDate()+index);return date.toISOString().slice(0,10);});
   const groups=await Promise.all(dates.map(date=>availableSlots(businessId,resourceId,eventTypeId,date)));
   return groups.flat().sort((a,b)=>Date.parse(a.start_at)-Date.parse(b.start_at));
+}
+
+function dateInTimezone(value, timezone) {
+  const parts = new Intl.DateTimeFormat('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: timezone }).formatToParts(value);
+  const part = type => parts.find(item => item.type === type)?.value || '';
+  return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
 /** @param {{businessId:string,eventTypeId:string,resourceId:string,startAt:string,customerName:string,reminderMinutes:number}} input */

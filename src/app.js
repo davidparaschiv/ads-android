@@ -20,9 +20,9 @@ import { configurationScreen, invitationLoginScreen, loginScreen, roleScreen } f
 import { profileScreen } from './screens/profile.js';
 import { businessDetailsScreen, verificationScreen, approvalCodeScreen } from './screens/enrollment.js';
 import { businessHomeScreen, businessCalendarScreen, businessCalendarViewScreen, businessAddEventScreen, reportsScreen } from './screens/dashboard.js';
-import { invitationScreen, licenseScreen, teamScreen } from './screens/team.js';
+import { invitationScreen, licenseScreen } from './screens/team.js';
 import { workspaces, getAccess } from './services/access.js';
-import { page, bindBack } from './ui/layout.js';
+import { page, bindBack, alertDialog } from './ui/layout.js';
 import { escapeHtml, trimTextControl, trimTextFields } from './ui/dom.js';
 import { navigate, currentRoute } from './router.js';
 import { businessQrScreen, customerQrScreen } from './screens/reservation-qr.js';
@@ -78,7 +78,6 @@ export async function startApp() {
       '/business/license': () => licenseScreen(root),
       '/business/approve': () => approvalCodeScreen(root),
       '/business/invite': () => invitationScreen(root),
-      '/business/team': () => teamScreen(root),
       '/business/plans': () => plansScreen(root),
       '/business/payment': () => paymentScreen(root),
       '/business/details': () => businessDetailsScreen(root),
@@ -116,7 +115,7 @@ export async function startApp() {
         const access = await getAccess(store.get().business.id);
         if (!access.active) { navigate('/business/plans'); return; }
       }
-      const requiresBusiness = ['/business/home','/business/calendar','/business/calendar-view','/business/add-event','/business/reports','/business/team','/business/notifications',
+      const requiresBusiness = ['/business/home','/business/calendar','/business/calendar-view','/business/add-event','/business/reports','/business/notifications',
         ...(store.get().role === 'business' ? ['/profile'] : [])];
       if (requiresBusiness.includes(path)) {
         const list = await workspaces();
@@ -133,6 +132,11 @@ export async function startApp() {
         navigate('/business/home'); return;
       }
       await render();
+      if (currentRoute().path === path && store.get().accountTypeNotice) {
+        const notice = store.get().accountTypeNotice;
+        await store.set({ accountTypeNotice: '' });
+        void alertDialog(notice);
+      }
     } catch (error) {
       root.innerHTML = page({ title: 'Nu putem încărca acest ecran', content: `<div class="empty-state"><p>${escapeHtml(error.message || 'Verifică conexiunea și reîncearcă.')}</p><button class="button" data-route="${escapeHtml(path)}">Reîncearcă</button><button class="text-button" data-route="/business/start">Înapoi la pagina principală</button></div>` });
       bindBack(root);

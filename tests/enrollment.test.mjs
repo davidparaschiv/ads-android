@@ -20,7 +20,7 @@ test('Verified enrollment and universal developer access', async t => {
     grant usage on schema public,auth to anon,authenticated,service_role;
     grant execute on all functions in schema auth to anon,authenticated,service_role;
     alter default privileges in schema public grant all on tables to anon,authenticated,service_role;`);
-  for (const file of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql','004_team_features.sql','006_universal_developer_license.sql','007_approval_email_details.sql','008_owner_approval_codes.sql','009_access_expiry_and_permanent_dev.sql','010_team_plan_and_member_limit.sql','011_all_team_calendars_shared.sql','012_booking_rejected_status.sql','013_customer_profiles_booking_approval.sql','014_drawn_screens_service_calendar.sql','015_calendar_service_settings.sql','016_strict_entitlement_lock.sql','017_account_roles_calendar_delete.sql','018_booking_schedule_views_and_notifications.sql','019_customer_confirmed_reminders_and_invite_privacy.sql','020_team_operational_access_and_phone_uniqueness.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+  for (const file of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql','004_team_features.sql','006_universal_developer_license.sql','007_approval_email_details.sql','008_owner_approval_codes.sql','009_access_expiry_and_permanent_dev.sql','010_team_plan_and_member_limit.sql','011_all_team_calendars_shared.sql','012_booking_rejected_status.sql','013_customer_profiles_booking_approval.sql','014_drawn_screens_service_calendar.sql','015_calendar_service_settings.sql','016_strict_entitlement_lock.sql','017_account_roles_calendar_delete.sql','018_booking_schedule_views_and_notifications.sql','019_customer_confirmed_reminders_and_invite_privacy.sql','020_team_operational_access_and_phone_uniqueness.sql','021_account_type_resolution.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
   const admin=randomUUID(), owner=randomUUID(), attacker=randomUUID(), invited=randomUUID(), phoneUser=randomUUID();
   for (const [id,email] of [[admin,'davidnicolaparaschiv@gmail.com'],[owner,'business@example.com'],[attacker,'other@example.com'],[invited,'invited@example.com'],[phoneUser,'phone@example.com']]) {
     await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[id,email]);
@@ -66,7 +66,7 @@ test('Verified enrollment and universal developer access', async t => {
     await assert.rejects(call(owner,'enrollment_record_sms',[request.id,owner,sid,true]),/permission denied/);
     assert.equal((await issue(request.id,'approval')).ok,false);
     assert.equal((await call(owner,'complete_customer_profile',['Ion','Client'])).completed,true);
-    assert.equal(await call(owner,'get_account_role',[]),'customer');
+    assert.equal(await call(owner,'get_account_role',[]),'client');
   });
   await t.test('email link is account-bound, single-use, and not an approval', async () => {
     emailLink = await issue(request.id,'email');
@@ -176,6 +176,7 @@ test('Verified enrollment and universal developer access', async t => {
     assert.equal(requestJobs[0].target_route,'/business/notifications');
     assert.equal((await db.query("select count(*)::int count from public.notification_jobs where booking_id=$1 and user_id=$2 and kind='reminder' and status='pending'",[bookingId,attacker])).rows[0].count,0);
     assert.equal((await call(invited,'accept_calendar_invitation',[teamInvitation.token])).ok,true);
+    assert.equal(await call(invited,'get_account_role',[]),'invitee');
     const invitedTeam=await call(invited,'list_team',[businessId]);
     assert.equal(invitedTeam.members.length,2);
     assert(invitedTeam.members.some(member=>member.email==='business@example.com'));
