@@ -151,6 +151,7 @@ p { color: var(--muted); line-height: 1.6; }
 .bottom-nav__item .icon { width: 20px; height: 20px; }
 .bottom-nav__item.is-active { color: var(--red); font-weight: 700; }
 .bottom-nav__item.is-active::after { position: absolute; right: 18%; bottom: 0; left: 18%; height: 3px; border-radius: 3px 3px 0 0; background: var(--red); content: ''; }
+.notification-dot { position: absolute; top: 5px; left: calc(50% + 7px); width: 9px; height: 9px; border: 2px solid #fff; border-radius: 50%; background: var(--red); box-sizing: content-box; }
 
 .date-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; }
 .date-chip { display: flex; min-height: 66px; flex-direction: column; justify-content: center; gap: 4px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
@@ -241,7 +242,7 @@ p { color: var(--muted); line-height: 1.6; }
 .booking-actions .booking-action { width: auto; min-width: 120px; margin: 0; }
 
 /* Screens transcribed from the sketches keep their structure, but use the app design system. */
-.bottom-nav--customer { grid-template-columns: repeat(3,1fr); }
+.bottom-nav--customer { grid-template-columns: repeat(4,1fr); }
 .draw-section { margin-bottom: 16px; padding: 20px; border: 1px solid var(--line); border-radius: 20px; background: #fff; box-shadow: 0 12px 32px rgb(25 20 22 / 5%); }
 .draw-section:first-child { padding-top: 20px; }
 .draw-section h1 { margin: 0 0 18px; font-size: 1.2rem; letter-spacing: -.025em; }
@@ -260,6 +261,10 @@ p { color: var(--muted); line-height: 1.6; }
 .draw-list > span,.draw-list-row,.customer-booking,.request-list article,.draw-appointment { min-height: 66px; padding: 14px; border: 1px solid var(--line); border-radius: 15px; background: #fff; }
 .draw-list-row,.customer-booking { display: flex; width: 100%; align-items: center; justify-content: space-between; border: 1px solid var(--line); border-radius: 15px; background: #fff; box-shadow: 0 8px 20px rgb(25 20 22 / 4%); text-align: left; }
 .draw-list-row .icon,.customer-booking .icon { width: 28px; height: 28px; }
+.calendar-list-row { display: grid; grid-template-columns: minmax(0,1fr) 50px; gap: 8px; }
+.calendar-list-row .draw-list-row { min-width: 0; }
+.calendar-delete { display: grid; min-height: 50px; place-items: center; border: 1px solid #fecdd3; border-radius: 15px; background: #fff1f2; color: var(--red-dark); }
+.calendar-delete .icon { width: 23px; height: 23px; }
 .draw-search { display: grid; grid-template-columns: 1fr 42px; align-items: center; min-height: 54px; padding: 0 8px 0 15px; border: 1px solid var(--line); border-radius: 16px; background: #fff; box-shadow: 0 12px 30px rgb(25 20 22 / 6%); }
 .draw-search input { min-width: 0; border: 0; outline: 0; background: transparent; font-size: 1rem; }
 .draw-search .icon { justify-self: center; }
@@ -304,7 +309,7 @@ p { color: var(--muted); line-height: 1.6; }
 .empty-state { display: flex; min-height: 70vh; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .empty-state > .icon { width: 52px; height: 52px; margin-bottom: 20px; color: var(--red); }
 .empty-state code { padding: 2px 5px; border-radius: 4px; background: var(--canvas); font-size: .75rem; }
-.toast { position: fixed; z-index: 50; top: calc(84px + env(safe-area-inset-top)); left: 50%; width: min(calc(100% - 36px), 500px); padding: 13px 16px; border-radius: 13px; background: #17171b; color: #fff; box-shadow: var(--shadow); font-size: .78rem; text-align: center; transform: translateX(-50%); }
+.toast { position: fixed; z-index: 50; top: calc(84px + env(safe-area-inset-top)); right: 18px; left: 18px; width: auto; max-width: 500px; margin-inline: auto; padding: 13px 16px; border-radius: 13px; background: #17171b; color: #fff; box-shadow: var(--shadow); font-size: .78rem; text-align: center; }
 .toast--error { background: var(--red-dark); }
 
 @media (min-width: 620px) {

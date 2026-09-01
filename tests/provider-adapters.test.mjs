@@ -59,7 +59,7 @@ test('Provider adapters: invitation authorization, correct recipient and Resend 
 test('Provider adapters: reminder worker claiming, eligibility, FCM and retries',async t=>{
   const originals={fetch:globalThis.fetch,Deno:globalThis.Deno};
   t.after(()=>{Object.assign(globalThis,originals);delete globalThis.providerFixture;});
-  let jobs=[],allowed=true,claimed=true,providerStatus=200;const calls=[],updates=[],logs=[];
+  let jobs=[],tokens=[{token:'device-token'}],allowed=true,claimed=true,providerStatus=200;const calls=[],updates=[],logs=[];
   const fixture={env:name=>name==='CRON_SECRET'?'offline-secret':name==='GCLOUD_SERVICEACCOUNT_KEYS'?JSON.stringify({type:'service_account',project_id:'test-project',client_email:'offline@example.invalid',private_key:'offline-private-key'}):'test-project',db:{
     rpc:async()=>({data:allowed,error:null}),
     from:table=>{
@@ -67,7 +67,7 @@ test('Provider adapters: reminder worker claiming, eligibility, FCM and retries'
         update(value){update=value;updates.push(value);return query;},
         async insert(value){logs.push(value);return {error:null};},
         async maybeSingle(){return {data:claimed?{id:'job'}:null,error:null};},
-        then(resolve,reject){return Promise.resolve({data:update?null:table==='notification_jobs'?jobs:[{token:'device-token'}],error:null}).then(resolve,reject);},
+        then(resolve,reject){return Promise.resolve({data:update?null:table==='notification_jobs'?jobs:tokens,error:null}).then(resolve,reject);},
       };return query;
     },
   }};
@@ -90,8 +90,17 @@ test('Provider adapters: reminder worker claiming, eligibility, FCM and retries'
     assert.deepEqual(await (await invoke()).json(),{processed:1});
     assert.deepEqual(fixture.jwtOptions, {email:'offline@example.invalid',key:'offline-private-key',scopes:['https://www.googleapis.com/auth/firebase.messaging']});
     assert.equal(calls[0].url,'https://fcm.googleapis.com/v1/projects/test-project/messages:send');
-    assert.equal(JSON.parse(calls[0].options.body).message.data.bookingId,'booking');
+    const message=JSON.parse(calls[0].options.body).message;
+    assert.equal(message.data.bookingId,'booking');
+    assert.equal(message.android.priority,'high');
+    assert.equal(message.android.notification.channel_id,'rezerva_bookings');
+    assert.equal(message.android.notification.notification_priority,'PRIORITY_HIGH');
     assert.equal(updates.at(-1).status,'sent');assert.equal(logs.length,1);
+  });
+  await t.test('missing device token keeps the job pending for a later registration',async()=>{
+    const before=calls.length;tokens=[];jobs=[job];await invoke();tokens=[{token:'device-token'}];
+    assert.equal(calls.length,before);assert.equal(updates.at(-1).status,'pending');
+    assert.equal(updates.at(-1).attempts,0);assert.equal(updates.at(-1).last_error,'No registered device token');
   });
   await t.test('FCM error retries, then fails on third attempt without logging success',async()=>{
     providerStatus=503;await invoke();assert.equal(updates.at(-1).status,'pending');

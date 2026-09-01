@@ -68,12 +68,26 @@ export async function addCalendar(businessId, name) {
   return calendar;
 }
 
+export async function deleteCalendar(businessId, calendarId) {
+  if (config.mode !== 'demo') return rpc('delete_calendar', { p_business_id: businessId, p_calendar_id: calendarId });
+  if (calendarId === 'demo-calendar-1') throw new Error('Calendarul nu poate fi șters deoarece are programări.');
+  const state = store.get();
+  const settings = { ...state.demoCalendarSettings };
+  delete settings[calendarId];
+  await store.set({
+    demoCalendars: state.demoCalendars.filter(calendar => calendar.id !== calendarId),
+    demoCalendarSettings: settings,
+  });
+  return { ok: true };
+}
+
 export async function team(businessId) {
   if (config.mode !== 'demo') return rpc('list_team', { p_business_id: businessId });
   return { members: store.get().demoMembers, invitations: store.get().demoInvitations };
 }
 
 export async function inviteMember(businessId, email, permission) {
+  permission = 'manager';
   if (config.mode === 'demo') {
     const invitations = store.get().demoInvitations.map(i => i.email === email && ['pending','sent'].includes(i.status) ? { ...i, status: 'revoked' } : i);
     await store.set({ demoInvitations: [...invitations, { id: crypto.randomUUID(), email, permission, status: 'sent', expiresAt: new Date(Date.now() + 48 * 3600000).toISOString() }] });

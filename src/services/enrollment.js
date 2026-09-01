@@ -11,7 +11,9 @@ export const isPlatformOwnerAccount = async () => config.mode === 'demo'
   : rpc('is_platform_owner_account');
 
 export async function enrollmentAction(action, values = {}) {
-  if (config.mode === 'demo') return demoAction(action, values);
+  if (config.mode === 'demo') return demoAction(action, action === 'start'
+    ? { ...values, email: store.get().user?.email || '' }
+    : values);
   const client = getSupabase();
   if (!client) throw new Error('Server neconfigurat.');
   const { data, error } = await client.functions.invoke('enrollment', { body: { ...values, action } });

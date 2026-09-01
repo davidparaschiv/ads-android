@@ -69,7 +69,7 @@ export async function handleEnrollment(request) {
       return data;
     };
     if (body.action === 'start') {
-      const data = await call('start_enrollment', { p_name: body.name, p_category: body.category, p_address: body.address, p_cui: body.cui, p_email: body.email, p_phone: body.phone });
+      const data = await call('start_enrollment', { p_name: body.name, p_category: body.category, p_address: body.address, p_cui: body.cui, p_phone: body.phone });
       try { await sendLink(data.id, actor.user.id, 'email'); return json(request, { ok: true, id: data.id }); }
       catch (error) { return json(request, {
         ok: true,

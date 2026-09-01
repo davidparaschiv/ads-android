@@ -60,7 +60,6 @@ export async function businessQrScreen(root) {
   root.innerHTML = page({ title: 'Scanează programarea', eyebrow: 'PENTRU AFACERI', backTo: '/business/home',
     content: `<section class="form-card"><p>Scanează QR-ul afișat de client. Detaliile sunt verificate pe server; programarea nu este modificată.</p>
       <button class="button button--primary" id="scan-reservation">${icon('qr')} Scanează QR-ul clientului</button>
-      <p class="info-note">La prima scanare poate fi necesară descărcarea modulului Google. Ai nevoie de internet pentru verificarea programării.</p>
       <div id="qr-scan-result" aria-live="polite"></div></section>` });
   bindBack(root, '/business/home');
   const result = root.querySelector('#qr-scan-result');
@@ -77,7 +76,7 @@ export async function businessQrScreen(root) {
     try {
       const value = await readValue();
       if (!stillHere() || ticket !== sequence) return;
-      if (value === null) { result.textContent = 'Scanare anulată.'; return; }
+      if (value === null) return;
       const booking = await resolveReservationQr(value, businessId);
       if (!stillHere() || ticket !== sequence) return;
       const workspace = list.find(b => b.id === booking.businessId);

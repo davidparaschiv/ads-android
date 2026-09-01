@@ -26,11 +26,31 @@ Deno.serve(async (request) => {
       const { data: allowed, error: allowedError } = await supabase.rpc('notification_job_recipient_allowed', { p_job: job.id });
       if (allowedError) throw allowedError;
       if (!allowed) { await supabase.from('notification_jobs').update({ status: 'cancelled' }).eq('id', job.id); continue; }
+      if (!tokens?.length) {
+        await supabase.from('notification_jobs').update({
+          status: 'pending', attempts: job.attempts, last_error: 'No registered device token',
+        }).eq('id', job.id);
+        continue;
+      }
       for (const item of tokens || []) {
         const response = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: { token: item.token, notification: { title: job.title, body: job.body }, data: { bookingId: job.booking_id, route: job.target_route || '/customer/notifications' } } }),
+          body: JSON.stringify({ message: {
+            token: item.token,
+            notification: { title: job.title, body: job.body },
+            data: { bookingId: job.booking_id, route: job.target_route || '/customer/notifications' },
+            android: {
+              priority: 'high',
+              notification: {
+                channel_id: 'rezerva_bookings',
+                sound: 'default',
+                notification_priority: 'PRIORITY_HIGH',
+                visibility: 'PUBLIC',
+                default_vibrate_timings: true,
+              },
+            },
+          } }),
         });
         if (!response.ok) throw new Error(await response.text());
       }

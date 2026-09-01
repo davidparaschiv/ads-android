@@ -60,8 +60,13 @@ public class ReservationQrPlugin extends Plugin {
                 GmsBarcodeScanning.getClient(getActivity(), options).startScan()
                     .addOnSuccessListener(barcode -> {
                         scanning.set(false);
+                        String value = barcode.getRawValue();
+                        if (value == null || value.trim().isEmpty()) {
+                            call.reject("Codul QR nu conține o rezervare validă.", "SCAN_EMPTY");
+                            return;
+                        }
                         JSObject result = new JSObject();
-                        result.put("value", barcode.getRawValue());
+                        result.put("value", value);
                         call.resolve(result);
                     })
                     .addOnCanceledListener(() -> {
@@ -70,11 +75,11 @@ public class ReservationQrPlugin extends Plugin {
                     })
                     .addOnFailureListener(error -> {
                         scanning.set(false);
-                        call.reject("Scanarea nu este disponibilă. Verifică internetul și Google Play services, apoi reîncearcă. Poți introduce codul manual.", "SCAN_UNAVAILABLE");
+                        call.reject("Scanarea nu este disponibilă. Verifică internetul și Google Play services, apoi reîncearcă.", "SCAN_UNAVAILABLE");
                     });
             } catch (Exception ignored) {
                 scanning.set(false);
-                call.reject("Scanarea nu a putut porni. Reîncearcă sau introdu codul manual.", "SCAN_UNAVAILABLE");
+                call.reject("Scanarea nu a putut porni. Reîncearcă.", "SCAN_UNAVAILABLE");
             }
         });
     }

@@ -6,7 +6,7 @@ import { signOut } from '../services/auth.js';
 import { purchasePlan, restorePurchases, offeringFor } from '../services/billing.js';
 import { getAccess, afterAccessRoute, hasBusinessFeature } from '../services/access.js';
 import { teamFeatureScreen } from '../ui/plan-gate.js';
-import { saveNotificationPreference } from '../services/businesses.js';
+import { getNotificationPreference, saveNotificationPreference } from '../services/businesses.js';
 import { registerPushNotifications } from '../services/notifications.js';
 import { store } from '../state/store.js';
 import { formData, reminderLabel } from '../ui/dom.js';
@@ -136,14 +136,15 @@ export async function notificationSettings(root, role) {
     const access = await getAccess(store.get().business?.id);
     if (!hasBusinessFeature(access, 'businessNotifications')) return teamFeatureScreen(root, 'Notificări', access.isOwner);
   }
-  const selected = store.get().notificationPreference;
+  const preference = await getNotificationPreference();
+  const selected = preference.minutes;
   root.innerHTML = page({
     eyebrow: 'ALERTE', title: 'Notificări', nav: role, active: 'notifications',
     content: `<section class="notification-hero">${icon('bell')}<div><h1>Nu rata nicio programare</h1><p>${role === 'business' ? 'Primești o alertă înaintea fiecărei programări.' : 'Primești o alertă înaintea programărilor tale.'}</p></div></section>
       <form class="form-card form-card--flat" id="notification-form"><label>Notifică-mă<select name="minutes">${config.reminders.map((minutes) => `<option value="${minutes}" ${selected === minutes ? 'selected' : ''}>${reminderLabel(minutes)}</option>`).join('')}</select></label>
-      <label class="switch-row"><span><strong>Notificări push</strong><small>Direct pe acest dispozitiv</small></span><input type="checkbox" name="enabled" checked><i></i></label>
+      <label class="switch-row"><span><strong>Notificări push</strong><small>Direct pe acest dispozitiv</small></span><input type="checkbox" name="enabled" ${preference.enabled ? 'checked' : ''}><i></i></label>
       <button class="button button--primary" type="submit">Salvează preferințele</button></form>
-      <p class="info-note">Nu trimitem notificări prin e-mail.</p>`,
+      <p class="info-note">Pentru clienți, mementoul se trimite numai pentru programările aprobate de afacere, inclusiv când aplicația este în background sau închisă. Nu trimitem notificări prin e-mail.</p>`,
   });
   bindBack(root);
   root.querySelector('#notification-form')?.addEventListener('submit', async (event) => {

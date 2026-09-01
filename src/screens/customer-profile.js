@@ -1,6 +1,7 @@
 // @ts-check
 import { completeCustomerProfile } from '../services/customer-profile.js';
 import { navigate } from '../router.js';
+import { signOut } from '../services/auth.js';
 import { bindBack, loadingButton, page, toast } from '../ui/layout.js';
 import { formData } from '../ui/dom.js';
 
@@ -12,9 +13,11 @@ export function customerProfileSetupScreen(root) {
         <label>Prenume<input name="firstName" required minlength="2" maxlength="50" autocomplete="given-name"></label>
         <label>Nume<input name="lastName" required minlength="2" maxlength="50" autocomplete="family-name"></label>
         <button class="button button--primary" type="submit">Salvează și continuă</button>
-      </form>`,
+      </form>
+      <button class="text-button" id="customer-setup-sign-out">Deconectare</button>`,
   });
   bindBack(root);
+  root.querySelector('#customer-setup-sign-out')?.addEventListener('click', async () => { await signOut(); navigate('/'); });
   root.querySelector('#customer-profile-form')?.addEventListener('submit', async event => {
     event.preventDefault();
     const form = /** @type {HTMLFormElement} */ (event.currentTarget);

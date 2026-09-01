@@ -7,6 +7,7 @@ import { config } from '../config.js';
 import { getSupabase } from '../api/supabase.js';
 import { store } from '../state/store.js';
 import { rememberReservationQr, hasPendingReservationQr, clearPendingReservationQr } from './qr-session.js';
+import { shouldIgnoreNativeBack } from './native-interaction.js';
 import { navigate } from '../router.js';
 import { loggedExternalCall } from '../observability/external-api-log.js';
 
@@ -42,6 +43,9 @@ export async function resolveBusinessEntryRoute() {
 }
 export async function resolveCustomerEntryRoute() {
   if (!store.get().user) return '/customer/login';
+  const accountResolution = await enforceBusinessAccountRole();
+  if (accountResolution === 'customer-conflict') return '/customer/login';
+  if (accountResolution === 'business') return resolveBusinessEntryRoute();
   const { getCustomerProfile } = await import('./customer-profile.js');
   const profile = await getCustomerProfile();
   if (!profile?.completed) {
@@ -101,7 +105,14 @@ async function handleUrl(url) {
   const { data, error } = await loggedExternalCall('google-oauth', 'exchange-code', () => supabase.auth.exchangeCodeForSession(code));
   await Browser.close().catch(() => undefined);
   if (error) { window.location.hash = '/business/login'; return; }
-  if (data.user) await saveUser(data.user);
+  if (data.user) {
+    await saveUser(data.user);
+    const accountResolution = await enforceBusinessAccountRole();
+    if (accountResolution === 'customer-conflict') {
+      window.location.hash = '/customer/login';
+      return;
+    }
+  }
   window.location.hash = store.get().role === 'business' ? await resolveBusinessEntryRoute() : await resolveCustomerEntryRoute();
 }
 
@@ -113,7 +124,10 @@ export async function initializeAuth() {
     if (supabase) {
       // Never trust cached UI identity as proof of authentication.
       const { data } = await supabase.auth.getSession();
-      if (data.session?.user) await saveUser(data.session.user);
+      if (data.session?.user) {
+        await saveUser(data.session.user);
+        await enforceBusinessAccountRole();
+      }
       // A temporary refresh/network failure must not erase the persisted UI
       // identity. Server authorization still protects every data operation.
       else if (!store.get().user) await store.set({ user: null, business: null });
@@ -131,6 +145,7 @@ export async function initializeAuth() {
   if (Capacitor.isNativePlatform()) {
     await App.addListener('appUrlOpen', ({ url }) => { void handleUrl(url); });
     await App.addListener('backButton', ({ canGoBack }) => {
+      if (shouldIgnoreNativeBack()) return;
       if (canGoBack) window.history.back();
       else navigate(homeRoute());
     });
@@ -141,7 +156,7 @@ export async function initializeAuth() {
 
 /** @param {'business' | 'customer'} role */
 export async function signInWithGoogle(role) {
-  await store.set({ role });
+  await store.set({ role, authNotice: '' });
   if (config.mode === 'demo') {
     const user = role === 'business'
       ? { id: 'demo-business-user', name: 'Andrei Popescu', email: 'andrei@demo.ro' }
@@ -189,4 +204,23 @@ async function saveUser(user) {
     ...(previous?.id !== user.id ? { business: null, customerProfileComplete: false } : {}),
     user: { id: user.id, email: user.email || '', name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilizator' },
   });
+}
+
+async function enforceBusinessAccountRole() {
+  if (config.mode === 'demo' || !store.get().user) return null;
+  const client = getSupabase();
+  if (!client || typeof client.rpc !== 'function') return null;
+  const { rpc } = await import('./access.js');
+  const accountRole = await rpc('get_account_role');
+  if (accountRole !== 'business') return null;
+  if (store.get().role === 'customer') {
+    await signOut();
+    await store.set({
+      role: 'customer',
+      authNotice: 'Acest e-mail este e-mail de firmă. Folosește alt e-mail dacă vrei să fii client al aplicației.',
+    });
+    return 'customer-conflict';
+  }
+  await store.set({ role: 'business', customerProfileComplete: false });
+  return 'business';
 }

@@ -13,6 +13,7 @@ const initialState = {
   selectedBusinessId: null,
   notificationPreference: 60,
   customerProfileComplete: false,
+  authNotice: '',
   inviteFlow: false,
   demoAccess: null,
   demoEnrollment: null,
@@ -20,6 +21,7 @@ const initialState = {
   demoInvitations: [],
   demoMembers: [{ userId: 'demo-staff', email: 'coleg@demo.ro', role: 'staff', permission: 'viewer' }],
   demoCalendarSettings: {},
+  businessPendingCount: 0,
 };
 
 let state = { ...initialState };

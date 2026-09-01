@@ -4,6 +4,7 @@ import { config } from '../config.js';
 import { store } from '../state/store.js';
 import { rpc } from './access.js';
 import { parseReservationQr } from './qr-session.js';
+import { beginNativeInteraction, endNativeInteraction } from './native-interaction.js';
 
 /** @type {{render(options:{value:string}):Promise<{dataUrl:string}>,scan():Promise<{value?:string,cancelled?:boolean}>}} */
 const ReservationQr = registerPlugin('ReservationQr');
@@ -25,8 +26,13 @@ export async function scanReservationQr() {
   if (store.get().role !== 'business') throw new Error('Scanarea este disponibilă numai pentru afaceri.');
   if (config.mode === 'demo') throw new Error('Scanarea reală necesită modul live.');
   androidOnly();
-  const result = await ReservationQr.scan();
-  return result.cancelled ? null : parseReservationQr(result.value);
+  beginNativeInteraction();
+  try {
+    const result = await ReservationQr.scan();
+    return result.cancelled ? null : parseReservationQr(result.value);
+  } finally {
+    endNativeInteraction();
+  }
 }
 export async function resolveReservationQr(value, businessId = null) {
   if (store.get().role !== 'business') throw new Error('Scanarea este disponibilă numai pentru afaceri.');

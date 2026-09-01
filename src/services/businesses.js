@@ -58,8 +58,8 @@ export async function setupBusiness(businessId, values, weekdays) {
 }
 
 /** @param {string} businessId */
-export async function listBusinessBookings(businessId, calendarId = '', from = '', until = '') {
-  if (config.mode === 'demo') return demoBookings.map(item => ({ ...item, calendarId: 'demo-calendar-1' })).filter(item => (!calendarId || item.calendarId === calendarId) && (!from || item.date >= from) && (!until || item.date <= until));
+export async function listBusinessBookings(businessId, calendarId = '', from = '', until = '', status = '') {
+  if (config.mode === 'demo') return demoBookings.map(item => ({ ...item, calendarId: 'demo-calendar-1' })).filter(item => (!calendarId || item.calendarId === calendarId) && (!from || item.date >= from) && (!until || item.date <= until) && (!status || item.status === status));
   const supabase = requireSupabase();
   const rows = [];
   const allowedIds = (await calendars(businessId)).map(c => c.id);
@@ -67,6 +67,7 @@ export async function listBusinessBookings(businessId, calendarId = '', from = '
   for (let offset = 0; ; offset += 500) {
     let query = supabase.from('bookings').select('id,resource_id,start_at,end_at,created_at,status,customer_name,customer_email_snapshot,event_types(name)').eq('business_id', businessId).in('resource_id', allowedIds).order('start_at').order('id').range(offset, offset + 499);
     if (calendarId) query = query.eq('resource_id', calendarId);
+    if (status) query = query.eq('status', status);
     if (from) query = query.gte('start_at', new Date(Date.parse(from) - 86400000).toISOString());
     if (until) query = query.lt('start_at', new Date(Date.parse(until) + 2 * 86400000).toISOString());
     const { data, error } = await query;
@@ -115,6 +116,9 @@ export async function getCalendarServiceSettings(calendarId) {
 
 export async function saveCalendarServiceSettings(businessId,calendarId,input) {
   if (config.mode === 'demo') {
+    if (demoBookings.some(item => item.status === 'pending' || item.status === 'confirmed')) {
+      throw new Error('Calendarul nu poate fi modificat deoarece are programări în așteptare sau aprobate.');
+    }
     const settings={calendarId,name:store.get().demoCalendars.find(item=>item.id===calendarId)?.name || 'Serviciu',
       durationMinutes:input.duration,weekdays:input.weekdays,startTime:input.startTime,endTime:input.endTime};
     await store.set({demoCalendarSettings:{...(store.get().demoCalendarSettings||{}),[calendarId]:settings}});
@@ -141,7 +145,7 @@ export async function setCalendarNotificationMinutes(calendarId,minutes) {
 export async function listBusinessReport(businessId, calendarId, from, until) {
   const access = await getAccess(businessId);
   if (!hasBusinessFeature(access, 'reports')) throw new Error('Rapoartele sunt disponibile doar cu planul Complete activ.');
-  if (config.mode === 'demo') return listBusinessBookings(businessId, calendarId, from, until);
+  if (config.mode === 'demo') return listBusinessBookings(businessId, calendarId, from, until, 'confirmed');
   const rows = [];
   for (let offset = 0; ; offset += 500) {
     const data = await rpc('get_business_report', { p_business_id: businessId, p_from: from,
@@ -182,6 +186,17 @@ export async function saveNotificationPreference(minutes, enabled) {
     updated_at: new Date().toISOString(),
   });
   if (error) throw error;
+}
+
+export async function getNotificationPreference() {
+  if (config.mode === 'demo') return { minutes: store.get().notificationPreference, enabled: true };
+  const supabase = requireSupabase();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw authError || new Error('Autentificare necesară.');
+  const { data, error } = await supabase.from('notification_preferences')
+    .select('default_minutes,push_enabled').eq('user_id', authData.user.id).maybeSingle();
+  if (error) throw error;
+  return { minutes: data?.default_minutes || 60, enabled: data?.push_enabled !== false };
 }
 
 function requireSupabase() {

@@ -24,7 +24,23 @@ export function on(root, selector, handler) {
 
 /** @param {HTMLFormElement} form */
 export function formData(form) {
+  trimTextFields(form);
   return Object.fromEntries(new FormData(form).entries());
+}
+
+const trimmedInputTypes = new Set(['text', 'email', 'tel', 'search', 'url']);
+
+/** Strip only leading/trailing whitespace from user-entered textual controls. */
+export function trimTextControl(control) {
+  if (control instanceof HTMLTextAreaElement
+    || control instanceof HTMLInputElement && trimmedInputTypes.has(control.type)) {
+    control.value = control.value.trim();
+  }
+}
+
+/** @param {ParentNode} root */
+export function trimTextFields(root) {
+  root.querySelectorAll('input, textarea').forEach(trimTextControl);
 }
 
 /** @param {string} value */

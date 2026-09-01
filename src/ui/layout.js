@@ -4,6 +4,7 @@ import { config } from '../config.js';
 import { navigate, back } from '../router.js';
 import { icon } from './icons.js';
 import { logo } from './logo.js';
+import { store } from '../state/store.js';
 
 /**
  * @param {{title?:string, eyebrow?:string, content:string, backTo?:string, nav?:'business'|'customer', active?:string, wide?:boolean}} options
@@ -46,21 +47,23 @@ function bottomNavigation(role, active) {
     : [
         ['search', '/customer/search', 'Home', 'home'],
         ['bookings', '/customer/bookings', 'Progr. mele', 'calendar'],
+        ['notifications', '/customer/notifications', 'Notif.', 'bell'],
         ['profile', '/profile', 'Cont', 'user'],
       ];
 
+  const hasPendingRequests = role === 'business' && Number(store.get().businessPendingCount || 0) > 0;
   return `<nav class="bottom-nav bottom-nav--${role}" aria-label="Navigare principală">
-    ${items.map(([id, route, label, iconName]) => `<button class="bottom-nav__item ${active === id ? 'is-active' : ''}" data-route="${route}">${icon(/** @type {any} */ (iconName))}<span>${label}</span></button>`).join('')}
+    ${items.map(([id, route, label, iconName]) => `<button class="bottom-nav__item ${active === id ? 'is-active' : ''}" data-route="${route}">${icon(/** @type {any} */ (iconName))}${id === 'notifications' && hasPendingRequests ? '<span class="notification-dot" aria-label="Există cereri de programare în așteptare"></span>' : ''}<span>${label}</span></button>`).join('')}
   </nav>`;
 }
 
 /** @param {HTMLElement} root @param {string} message @param {'success'|'error'} [type] */
 export function toast(root, message, type = 'success') {
-  root.querySelector('.toast')?.remove();
+  document.querySelector('.toast')?.remove();
   const element = document.createElement('div');
   element.className = `toast toast--${type}`;
   element.textContent = message;
-  root.append(element);
+  document.body.append(element);
   window.setTimeout(() => element.remove(), 3000);
 }
 

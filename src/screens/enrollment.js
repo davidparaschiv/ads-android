@@ -16,11 +16,12 @@ export function businessDetailsScreen(root) {
     <label>Categorie<select name="category"><option>Salon de înfrumusețare</option><option>Frizerie</option><option>Închiriere</option><option>Servicii profesionale</option><option>Altă categorie</option></select></label>
     <label>Adresă<input name="address" required minlength="2" maxlength="160"></label>
     <label>CUI<input name="cui" required maxlength="12" placeholder="RO12345678 sau 12345678"></label>
-    <label>E-mail de contact<input name="email" type="email" required maxlength="254" value="${escapeHtml(store.get().user?.email || '')}"></label>
+    <p class="info-note"><strong>E-mail Google:</strong> ${escapeHtml(store.get().user?.email || '')}<br>Adresa este preluată automat din contul autentificat și nu poate fi schimbată aici.</p>
     <label>Telefon mobil<input name="phone" type="tel" required maxlength="16" placeholder="07xxxxxxxx sau +407xxxxxxxx"></label>
     <p class="info-note">Prin continuare soliciți un cod de confirmare pe e-mail. La pasul următor poți solicita un cod SMS; nu sunt mesaje de marketing.</p>
-    <button class="button button--primary" type="submit">Trimite codul de confirmare</button></form>` });
+    <button class="button button--primary" type="submit">Trimite codul de confirmare</button></form><button class="text-button" id="business-details-sign-out">Deconectare</button>` });
   bindBack(root);
+  root.querySelector('#business-details-sign-out')?.addEventListener('click', async () => { await signOut(); navigate('/'); });
   root.querySelector('#business-form').addEventListener('submit', async event => {
     event.preventDefault(); const form = event.currentTarget, button = form.querySelector('button');
     try {
@@ -50,8 +51,9 @@ export async function verificationScreen(root) {
     <div class="access-banner"><strong>2. Telefon: ${request.phoneVerified ? 'verificat' : 'în așteptare'}</strong><span>${escapeHtml(request.phone)}</span>
     ${pending && !request.phoneVerified ? `<button class="button button--secondary" data-action="sendSms" ${!request.emailVerified ? 'disabled' : ''}>Trimite cod SMS</button><form class="form-card verification-form" id="sms-form"><label>Cod SMS<input class="verification-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" required pattern="[0-9]{4,10}" minlength="4" maxlength="10" placeholder="••••••" aria-describedby="sms-code-hint"><small id="sms-code-hint">Introdu cifrele primite prin SMS</small></label><button class="button button--primary" ${!request.emailVerified ? 'disabled' : ''}>Confirmă telefonul</button></form>` : ''}</div>
     <div class="access-banner"><strong>3. Aprobarea administratorului</strong><span>${{ pending: request.phoneVerified ? 'Cererea a fost trimisă automat · în așteptare' : 'Se trimite automat după verificarea telefonului', rejected: 'Respinsă', expired: 'Cerere expirată', superseded: 'Înlocuită cu o cerere nouă' }[request.status]}</span></div>
-    ${config.mode === 'demo' && pending ? '<div class="demo-callout">Simulare locală: cod e-mail <code>RZE-DEMO</code>, cod SMS <code>123456</code>. Ambele se introduc manual în câmpurile de mai sus.</div>' : ''}` });
+    ${config.mode === 'demo' && pending ? '<div class="demo-callout">Simulare locală: cod e-mail <code>RZE-DEMO</code>, cod SMS <code>123456</code>. Ambele se introduc manual în câmpurile de mai sus.</div>' : ''}<button class="text-button" id="verification-sign-out">Deconectare</button>` });
   bindBack(root);
+  root.querySelector('#verification-sign-out')?.addEventListener('click', async () => { await signOut(); navigate('/'); });
   if (store.get().enrollmentWarning) toast(root, store.get().enrollmentWarning, 'error');
   const action = async (button, operation, values = {}) => {
     try { loadingButton(button, true); await enrollmentAction(operation, { id: request.id, ...values }); await verificationScreen(root); toast(root, operation === 'checkSms' ? 'Telefon verificat.' : 'Mesaj trimis.'); }

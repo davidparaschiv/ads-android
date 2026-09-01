@@ -1,34 +1,176 @@
-Delete user data final 30.8.2026
+Delete user data final dupa beta
 
+
+-- Rezervari.ai / Supabase - reset complet al datelor aplicatiei
+--
+-- PASTREAZA:
+--   * contul Supabase Auth davidnicolaparaschiv@gmail.com;
+--   * profilul tehnic minim al acestui cont, necesar autentificarii;
+--   * private.platform_settings, inclusiv dev112233;
+--   * private.server_settings, schema, functiile, politicile si migrarile.
+--
+-- STERGE:
+--   * toate datele create in aplicatie, inclusiv cele ale ownerului;
+--   * toate afacerile, calendarele, serviciile, programele si rezervarile;
+--   * invitatiile, notificarile, tokenurile si preferintele;
+--   * abonamentele si toate licentele standard;
+--   * cererile de inrolare si contoarele operationale;
+--   * toate celelalte conturi si profiluri.
+--
+-- Prima rulare este intentionat DRY RUN.
 
 begin;
 
--- Enrollment and invitation data
-delete from private.enrollment_requests;
-delete from private.calendar_invitations;
+select set_config(
+  'rezerva.expected_owner_email',
+  'davidnicolaparaschiv@gmail.com',
+  true
+);
 
--- User-specific security/rate-limit data
-delete from private.developer_grants;
-delete from private.request_limits;
-delete from private.sms_budgets;
+-- Schimba false in true numai dupa verificarea mesajelor NOTICE.
+select set_config('rezerva.execute_app_reset', 'true', true);
 
--- Preserve license keys, but remove their user assignment
-update private.license_keys
-set redeemed_by = null,
-    redeemed_at = null
-where redeemed_by is not null;
+lock table auth.users in share row exclusive mode;
 
--- Preserve platform configuration, but clear the linked owner account
-update private.platform_settings
-set owner_user_id = null;
+create temporary table reset_owner on commit drop as
+select u.id, lower(btrim(u.email)) as email
+from auth.users u
+join private.platform_settings s on s.singleton
+where lower(btrim(u.email)) = lower(btrim(s.owner_email))
+  and lower(btrim(u.email)) = lower(btrim(current_setting('rezerva.expected_owner_email')))
+  and (s.owner_user_id is null or s.owner_user_id = u.id);
 
--- Cascades to calendars, services, bookings, subscriptions and notifications
-delete from public.businesses;
+do $$
+declare
+  v_owner_count integer;
+  v_owner_id uuid;
+  v_owner_email text;
+  v_count bigint;
+  v_expected_dev_hash text;
+begin
+  select count(*)
+    into v_owner_count
+  from reset_owner;
 
--- Cascades to profiles and authentication identities
-delete from auth.users;
+  if v_owner_count <> 1 then
+    raise exception using
+      message = 'OPRIT: ownerul nu a fost identificat in mod unic.',
+      detail = 'Verifica auth.users, platform_settings.owner_email, owner_user_id si expected_owner_email. Nu s-a sters nimic.';
+  end if;
+
+  select id, email
+    into strict v_owner_id, v_owner_email
+  from reset_owner;
+
+  v_expected_dev_hash := encode(sha256(convert_to('dev112233', 'UTF8')), 'hex');
+  if not exists (
+    select 1 from private.platform_settings
+    where singleton
+      and developer_bypass_enabled
+      and developer_key_hash = v_expected_dev_hash
+  ) then
+    raise exception using
+      message = 'OPRIT: configuratia activa pentru dev112233 nu a fost gasita.',
+      detail = 'Scriptul nu modifica automat cheia developer. Nu s-a sters nimic.';
+  end if;
+
+  select count(*) into v_count from auth.users where id <> v_owner_id;
+  raise notice 'Conturi auth non-owner de sters: %', v_count;
+  select count(*) into v_count from public.businesses;
+  raise notice 'Toate afacerile de sters: %', v_count;
+  select count(*) into v_count from public.bookings;
+  raise notice 'Toate programarile de sters: %', v_count;
+  select count(*) into v_count from public.subscriptions;
+  raise notice 'Toate abonamentele salvate de sters: %', v_count;
+  select count(*) into v_count from private.enrollment_requests;
+  raise notice 'Toate cererile de inrolare de sters: %', v_count;
+  select count(*) into v_count from private.calendar_invitations;
+  raise notice 'Toate invitatiile de sters: %', v_count;
+  select count(*) into v_count from private.license_keys;
+  raise notice 'Toate licentele standard de sters: %', v_count;
+
+  if current_setting('rezerva.execute_app_reset') <> 'true' then
+    raise exception using
+      message = 'DRY RUN terminat: nu s-a sters nimic.',
+      detail = 'Pentru executie, schimba execute_app_reset in true si ruleaza din nou intregul fisier.';
+  end if;
+
+  -- Date private operationale. Configuratiile nu sunt atinse.
+  delete from private.calendar_invitations;
+  delete from private.enrollment_requests; -- enrollment_links dispar in cascada
+  delete from private.booking_qr_tokens;
+  delete from private.license_keys;         -- dev112233 este in platform_settings
+  delete from private.request_limits;
+  delete from private.sms_budgets;
+  delete from private.developer_grants where user_id <> v_owner_id;
+
+  -- Date publice operationale, inclusiv datele ownerului.
+  delete from public.notification_jobs;
+  delete from public.notification_log;
+  delete from public.bookings;
+  delete from public.calendar_notification_preferences;
+  delete from public.calendar_members;
+  delete from public.availability_rules;
+  delete from public.blocked_periods;
+  delete from public.event_types;
+  delete from public.resources;
+  delete from public.locations;
+  delete from public.business_members;
+  delete from public.subscriptions;
+  delete from public.businesses;
+  delete from public.notification_preferences;
+  delete from public.device_tokens;
+
+  -- Contul owner ramane, dar profilul lui de aplicatie este resetat la minimul tehnic.
+  update public.profiles
+  set display_name = split_part(email, '@', 1),
+      first_name = null,
+      last_name = null,
+      customer_profile_completed_at = null,
+      updated_at = now()
+  where id = v_owner_id;
+
+  -- Toate celelalte conturi dispar; ownerul ramane autentificabil.
+  delete from auth.users where id <> v_owner_id;
+
+  -- Orice abatere anuleaza intreaga tranzactie.
+  if (select count(*) from auth.users) <> 1
+     or not exists (select 1 from auth.users where id = v_owner_id)
+     or (select count(*) from public.profiles) <> 1
+     or not exists (select 1 from public.profiles where id = v_owner_id)
+     or exists (select 1 from public.businesses)
+     or exists (select 1 from public.bookings)
+     or exists (select 1 from public.subscriptions)
+     or exists (select 1 from private.enrollment_requests)
+     or exists (select 1 from private.calendar_invitations)
+     or exists (select 1 from private.license_keys)
+     or not exists (
+       select 1 from private.platform_settings
+       where singleton
+         and owner_email = v_owner_email
+         and developer_bypass_enabled
+         and developer_key_hash = v_expected_dev_hash
+     ) then
+    raise exception 'Verificarea finala a esuat; tranzactia va fi anulata integral.';
+  end if;
+
+  raise notice 'Reset terminat. Au ramas contul owner % (%) si configuratiile.',
+    v_owner_email, v_owner_id;
+end;
+$$;
 
 commit;
+
+select
+  (select count(*) from auth.users) as auth_users_ramasi,
+  (select count(*) from public.profiles) as profiles_ramase,
+  (select count(*) from public.businesses) as afaceri_ramase,
+  (select count(*) from public.bookings) as programari_ramase,
+  (select count(*) from public.subscriptions) as abonamente_ramase,
+  (select count(*) from private.license_keys) as licente_standard_ramase,
+  (select count(*) from private.platform_settings) as platform_settings_ramase,
+  (select count(*) from private.server_settings) as server_settings_ramase;
+
 =====================================
 ***search logs->android logcat:
 search for RezervariExternalAPI

@@ -79,7 +79,8 @@ test('QR screens: customers only show QR; business staff see current reservation
   assert.equal(d.querySelector('[onerror]'),null);assert.match(root.textContent,/starea nu a fost schimbată/);
   assert.equal(actions.find(a=>a.name==='resolve').businessId,'business');
   assert.equal(state.business.id,'business'); assert(!JSON.stringify(state).includes(token));
-  cancelled=true;d.querySelector('#scan-reservation').click();await until(()=>root.textContent.includes('Scanare anulată'));
+  cancelled=true;d.querySelector('#scan-reservation').click();await until(()=>actions.filter(a=>a.name==='scan').length===2);
+  assert.doesNotMatch(root.textContent,/Scanare anulată|modulului Google/);
   assert.equal(d.querySelector('.qr-result-card'),null,'Old details cleared before the next scan');
   w.qrApi.rememberReservationQr('ro.rezerva.app://reservation?token='+token);
   await w.qrApi.businessQrScreen(root);

@@ -7,6 +7,7 @@ import { store } from './state/store.js';
 import {
   paymentScreen,
   plansScreen,
+  notificationSettings,
 } from './screens/business.js';
 import {
   bookingScreen,
@@ -22,12 +23,13 @@ import { businessHomeScreen, businessCalendarScreen, businessCalendarViewScreen,
 import { invitationScreen, licenseScreen, teamScreen } from './screens/team.js';
 import { workspaces, getAccess } from './services/access.js';
 import { page, bindBack } from './ui/layout.js';
-import { escapeHtml } from './ui/dom.js';
+import { escapeHtml, trimTextControl, trimTextFields } from './ui/dom.js';
 import { navigate, currentRoute } from './router.js';
 import { businessQrScreen, customerQrScreen } from './screens/reservation-qr.js';
 import { customerProfileSetupScreen } from './screens/customer-profile.js';
 import { notificationsScreen } from './screens/notifications.js';
 import { getCustomerProfile } from './services/customer-profile.js';
+import { listPendingBookingRequests } from './services/businesses.js';
 import { initializePushNavigation, registerPushNotifications } from './services/notifications.js';
 
 export async function startApp() {
@@ -45,6 +47,10 @@ export async function startApp() {
   });
   const root = document.querySelector('#app');
   if (!(root instanceof HTMLElement)) throw new Error('Elementul #app lipsește.');
+  root.addEventListener('focusout', event => trimTextControl(event.target), true);
+  root.addEventListener('submit', event => {
+    if (event.target instanceof HTMLFormElement) trimTextFields(event.target);
+  }, true);
   root.addEventListener('click', event => {
     const target = event.target instanceof Element ? event.target.closest('[data-home]') : null;
     if (target) navigate(homeRoute());
@@ -92,7 +98,7 @@ export async function startApp() {
       '/customer/booking-success': () => bookingSuccessScreen(root),
       '/customer/bookings': () => customerBookingsScreen(root),
       '/customer/booking-qr': () => customerQrScreen(root),
-      '/customer/notifications': () => notificationsScreen(root, 'customer'),
+      '/customer/notifications': () => notificationSettings(root, 'customer'),
       '/business/notifications': () => notificationsScreen(root, 'business'),
       '/profile': () => profileScreen(root),
     };
@@ -120,8 +126,10 @@ export async function startApp() {
         await store.set({ business });
         const access = await getAccess(business.id);
         if (!access.active) { navigate('/business/plans'); return; }
+        const pendingRequests = await listPendingBookingRequests(business.id);
+        await store.set({ businessPendingCount: pendingRequests.length });
       }
-      if (store.get().business?.is_owner === false && ['/business/payment','/business/details','/business/license','/business/team'].includes(path)) {
+      if (store.get().business?.is_owner === false && ['/business/payment','/business/details','/business/license'].includes(path)) {
         navigate('/business/home'); return;
       }
       await render();

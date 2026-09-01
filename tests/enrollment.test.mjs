@@ -20,9 +20,9 @@ test('Verified enrollment and universal developer access', async t => {
     grant usage on schema public,auth to anon,authenticated,service_role;
     grant execute on all functions in schema auth to anon,authenticated,service_role;
     alter default privileges in schema public grant all on tables to anon,authenticated,service_role;`);
-  for (const file of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql','006_universal_developer_license.sql','007_approval_email_details.sql','008_owner_approval_codes.sql','009_access_expiry_and_permanent_dev.sql','010_team_plan_and_member_limit.sql','011_all_team_calendars_shared.sql','012_booking_rejected_status.sql','013_customer_profiles_booking_approval.sql','014_drawn_screens_service_calendar.sql','015_calendar_service_settings.sql','016_strict_entitlement_lock.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
-  const admin=randomUUID(), owner=randomUUID(), attacker=randomUUID();
-  for (const [id,email] of [[admin,'davidnicolaparaschiv@gmail.com'],[owner,'business@example.com'],[attacker,'other@example.com']]) {
+  for (const file of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql','004_team_features.sql','006_universal_developer_license.sql','007_approval_email_details.sql','008_owner_approval_codes.sql','009_access_expiry_and_permanent_dev.sql','010_team_plan_and_member_limit.sql','011_all_team_calendars_shared.sql','012_booking_rejected_status.sql','013_customer_profiles_booking_approval.sql','014_drawn_screens_service_calendar.sql','015_calendar_service_settings.sql','016_strict_entitlement_lock.sql','017_account_roles_calendar_delete.sql','018_booking_schedule_views_and_notifications.sql','019_customer_confirmed_reminders_and_invite_privacy.sql','020_team_operational_access_and_phone_uniqueness.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+  const admin=randomUUID(), owner=randomUUID(), attacker=randomUUID(), invited=randomUUID(), phoneUser=randomUUID();
+  for (const [id,email] of [[admin,'davidnicolaparaschiv@gmail.com'],[owner,'business@example.com'],[attacker,'other@example.com'],[invited,'invited@example.com'],[phoneUser,'phone@example.com']]) {
     await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[id,email]);
     await db.query("insert into auth.identities(user_id,provider) values($1,'google')",[id]);
   }
@@ -32,7 +32,7 @@ test('Verified enrollment and universal developer access', async t => {
   }
   const call = async (id,name,params=[],role='authenticated') => (await as(id,'select public.'+name+'('+params.map((_,i)=>'$'+(i+1)).join(',')+') result',params,role))[0].result;
   const issue = (id,kind) => call(admin,'issue_enrollment_link',[id,owner,kind],'service_role');
-  let request, emailLink, approvalLink, businessId;
+  let request, emailLink, approvalLink, businessId, teamInvitation;
   const sid = 'VE'+'a'.repeat(32);
 
   await t.test('protected settings remain private and the developer key works for every verified Google account', async () => {
@@ -52,11 +52,11 @@ test('Verified enrollment and universal developer access', async t => {
     await db.query('update auth.users set email_confirmed_at=now() where id=$1',[admin]);
     await assert.rejects(call(admin,'create_business',['Bypass','Salon','București','0712345678']),/verificare/);
   });
-  await t.test('CUI, phone and contact email required; pending request is not a registered business', async () => {
-    await assert.rejects(call(owner,'start_enrollment',['Salon','Salon','București','','business@example.com','0712345678']),/Completează/);
-    await assert.rejects(call(owner,'start_enrollment',['Salon','Salon','București','12345678','business@example.com','']),/Completează/);
-    request = await call(owner,'start_enrollment',['Salon Test','Salon','București','RO12345678','contact@example.com','0712345678']);
-    await assert.rejects(call(attacker,'start_enrollment',['Duplicat','Salon','București','12345678','other@example.com','0799999999']),/Există deja.*CUI/);
+  await t.test('CUI and phone are required; contact email comes from the verified Google account', async () => {
+    await assert.rejects(call(owner,'start_enrollment',['Salon','Salon','București','','0712345678']),/Completează/);
+    await assert.rejects(call(owner,'start_enrollment',['Salon','Salon','București','12345678','']),/Completează/);
+    request = await call(owner,'start_enrollment',['Salon Test','Salon','București','RO12345678','0712345678']);
+    await assert.rejects(call(attacker,'start_enrollment',['Duplicat','Salon','București','12345678','0799999999']),/Există deja.*CUI/);
     assert.equal(request.ok,true);
     assert.equal((await db.query('select * from public.businesses')).rows.length,0);
     await assert.rejects(as(owner,'select * from private.enrollment_requests'),/permission denied/);
@@ -65,6 +65,8 @@ test('Verified enrollment and universal developer access', async t => {
     await assert.rejects(call(owner,'enrollment_sms_context',[request.id,false]),/mai întâi/);
     await assert.rejects(call(owner,'enrollment_record_sms',[request.id,owner,sid,true]),/permission denied/);
     assert.equal((await issue(request.id,'approval')).ok,false);
+    assert.equal((await call(owner,'complete_customer_profile',['Ion','Client'])).completed,true);
+    assert.equal(await call(owner,'get_account_role',[]),'customer');
   });
   await t.test('email link is account-bound, single-use, and not an approval', async () => {
     emailLink = await issue(request.id,'email');
@@ -73,7 +75,7 @@ test('Verified enrollment and universal developer access', async t => {
     await assert.rejects(call(owner,'enrollment_link_details',[firstToken]),/indisponibil|expirat/);
     const lifetime = (await db.query("select expires_at>now()+interval '29 days' valid from private.enrollment_links where token_hash=encode(sha256(convert_to($1,'UTF8')),'hex')",[emailLink.token])).rows[0].valid;
     assert.equal(lifetime,true);
-    assert.equal(emailLink.recipient,'contact@example.com');
+    assert.equal(emailLink.recipient,'business@example.com');
     assert.equal(emailLink.category,'Salon');
     assert.equal(emailLink.address,'București');
     await assert.rejects(call(attacker,'enrollment_link_details',[emailLink.token]),/Acces interzis/);
@@ -104,16 +106,19 @@ test('Verified enrollment and universal developer access', async t => {
     businessId=result.businessId;
     const businesses=(await db.query('select * from public.businesses')).rows;
     assert.equal(businesses.length,1); assert.equal(businesses[0].owner_id,owner);
-    assert.equal(businesses[0].cui,'12345678'); assert.equal(businesses[0].contact_email,'contact@example.com');
+    assert.equal(businesses[0].cui,'12345678'); assert.equal(businesses[0].contact_email,'business@example.com');
     assert.ok(businesses[0].phone_verified_at); assert.equal(businesses[0].approved_by,admin);
+    assert.equal(await call(owner,'get_account_role',[]),'business');
+    assert.equal((await call(owner,'get_customer_profile',[])).completed,false);
+    await assert.rejects(call(owner,'complete_customer_profile',['Ion','Client']),/asociat unei afaceri/);
     assert.equal((await call(admin,'confirm_enrollment_link',[approvalLink.token,true])).ok,false);
     await assert.rejects(as(owner,"update public.businesses set phone='0799999999'"),/permission denied/);
     assert.equal((await call(owner,'get_access',[result.businessId])).active,false);
   });
   await t.test('superseded/expired email links fail, developer grant can be revoked', async () => {
-    const r=await call(attacker,'start_enrollment',['Alt Salon','Salon','București','87654321','alt@example.com','0799999999']);
+    const r=await call(attacker,'start_enrollment',['Alt Salon','Salon','București','87654321','0799999999']);
     const link=await call(admin,'issue_enrollment_link',[r.id,attacker,'email'],'service_role');
-    const next=await call(attacker,'start_enrollment',['Corectat Salon','Salon','București','87654321','nou@example.com','0799999999']);
+    const next=await call(attacker,'start_enrollment',['Corectat Salon','Salon','București','87654321','0799999999']);
     assert.equal((await call(attacker,'confirm_enrollment_link',[link.token,true])).ok,false);
     assert.equal((await call(attacker,'get_enrollment_status',[])).emailVerified,false);
     const nextLink=await call(admin,'issue_enrollment_link',[next.id,attacker,'email'],'service_role');
@@ -132,6 +137,15 @@ test('Verified enrollment and universal developer access', async t => {
     assert.equal(rejected.ok,false);
     assert.equal(rejected.message,'Licență invalidă.');
   });
+  await t.test('invitation failures reveal no account or invitation details',async()=>{
+    teamInvitation=await call(owner,'issue_calendar_invitation',[businessId,'invited@example.com',[],'viewer']);
+    assert.equal(teamInvitation.ok,true);
+    assert.deepEqual(await call(attacker,'accept_calendar_invitation',[teamInvitation.token]),{ok:false,message:'Cod invalid.'});
+    assert.deepEqual(await call(attacker,'accept_calendar_invitation',['RZI-'+'A'.repeat(64)]),{ok:false,message:'Cod invalid.'});
+  });
+  await t.test('a Romanian phone number cannot enroll a second business',async()=>{
+    await assert.rejects(call(phoneUser,'start_enrollment',['Altă firmă','Salon','București','99887766','+40 712 345 678']),/Numărul de telefon este deja folosit/);
+  });
   await t.test('customer identity is stored once; booking approval and Romanian notification jobs are durable',async()=>{
     const profile=await call(attacker,'complete_customer_profile',['Ana','Client']);
     assert.equal(profile.completed,true);
@@ -141,23 +155,62 @@ test('Verified enrollment and universal developer access', async t => {
     const persisted=await call(attacker,'get_customer_profile',[]);
     assert.deepEqual(persisted,{firstName:'Ana',lastName:'Client',completed:true});
     const setup=await call(owner,'setup_business',[businessId,'Tuns',30,10000,'Calendar principal','00:00','23:59',[1,2,3,4,5,6,7]]);
-    const settings=await call(owner,'save_calendar_service_settings',[businessId,setup.resource_id,[1,2,3,4,5,6,7],'09:00','17:00',40]);
-    assert.equal(settings.durationMinutes,40);
+    const settings=await call(owner,'save_calendar_service_settings',[businessId,setup.resource_id,[1,2,3,4,5,6,7],'09:00','10:00',20]);
+    assert.equal(settings.durationMinutes,20);
     assert.deepEqual(settings.weekdays,[1,2,3,4,5,6,7]);
+    const slotDate=new Date(Date.now()+3*86400000).toISOString().slice(0,10);
+    const slots=await as(attacker,'select * from public.available_slots($1,$2,$3,$4)',[businessId,setup.resource_id,setup.event_type_id,slotDate]);
+    const localTimes=slots.map(slot=>new Intl.DateTimeFormat('ro-RO',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Europe/Bucharest'}).format(new Date(slot.start_at)));
+    assert.deepEqual(localTimes,['09:00','09:20','09:40']);
+    await call(owner,'save_calendar_service_settings',[businessId,setup.resource_id,[1,2,3,4,5,6,7],'00:00','23:59',40]);
     const start=new Date(Date.now()+2*86400000); start.setUTCHours(10,0,0,0);
     const bookingId=await call(attacker,'create_booking',[businessId,setup.event_type_id,setup.resource_id,start.toISOString(),'Nume ignorat',60]);
+    await assert.rejects(call(owner,'save_calendar_service_settings',[businessId,setup.resource_id,[1,2,3,4,5,6,7],'09:00','11:00',30]),/programări în așteptare sau aprobate/);
+    assert.equal((await as(owner,'select * from public.get_business_report($1,$2,$3,$4,$5)',[businessId,start.toISOString().slice(0,10),start.toISOString().slice(0,10),null,0])).length,0);
+    await assert.rejects(call(owner,'delete_calendar',[businessId,setup.resource_id]),/are programări/);
     await assert.rejects(call(attacker,'create_booking',[businessId,setup.event_type_id,setup.resource_id,start.toISOString(),'Nume ignorat',60]),/nu mai este disponibil/);
     assert.equal((await as(attacker,'select status from public.bookings where id=$1',[bookingId]))[0].status,'pending');
     const requestJobs=(await db.query("select title,body,target_route from public.notification_jobs where booking_id=$1 and kind='booking_request'",[bookingId])).rows;
     assert.equal(requestJobs.length,1);
     assert.match(requestJobs[0].body,/Ana Client/);
     assert.equal(requestJobs[0].target_route,'/business/notifications');
-    await call(owner,'set_booking_status',[bookingId,'confirmed']);
+    assert.equal((await db.query("select count(*)::int count from public.notification_jobs where booking_id=$1 and user_id=$2 and kind='reminder' and status='pending'",[bookingId,attacker])).rows[0].count,0);
+    assert.equal((await call(invited,'accept_calendar_invitation',[teamInvitation.token])).ok,true);
+    const invitedTeam=await call(invited,'list_team',[businessId]);
+    assert.equal(invitedTeam.members.length,2);
+    assert(invitedTeam.members.some(member=>member.email==='business@example.com'));
+    assert(invitedTeam.members.some(member=>member.email==='invited@example.com'));
+    assert.equal(invitedTeam.invitations.length,0);
+    assert.equal(await call(invited,'can_manage_calendar',[setup.resource_id]),true);
+    await call(invited,'set_calendar_notification_minutes',[setup.resource_id,7]);
+    assert.equal((await db.query('select minutes_before from public.calendar_notification_preferences where calendar_id=$1',[setup.resource_id])).rows[0].minutes_before,7);
+    await call(invited,'add_calendar',[businessId,'Calendar invitat']);
+    const invitedCalendarId=(await db.query("select id from public.resources where business_id=$1 and name='Calendar invitat'",[businessId])).rows[0].id;
+    assert.equal((await call(invited,'delete_calendar',[businessId,invitedCalendarId])).ok,true);
+    await call(invited,'set_booking_status',[bookingId,'confirmed']);
     assert.equal((await as(attacker,'select status from public.bookings where id=$1',[bookingId]))[0].status,'confirmed');
     const statusJobs=(await db.query("select title,target_route from public.notification_jobs where booking_id=$1 and kind='status_update'",[bookingId])).rows;
     assert.equal(statusJobs.length,1);
     assert.equal(statusJobs[0].title,'Programare confirmată');
     assert.equal(statusJobs[0].target_route,'/customer/notifications');
+    const reminderJobs=(await db.query("select title,target_route,status from public.notification_jobs where booking_id=$1 and user_id=$2 and kind='reminder'",[bookingId,attacker])).rows;
+    assert.equal(reminderJobs.length,1);
+    assert.equal(reminderJobs[0].title,'Programarea ta se apropie');
+    assert.equal(reminderJobs[0].target_route,'/customer/notifications');
+    assert.equal(reminderJobs[0].status,'pending');
+    const rejectedStart=new Date(start.getTime()+2*60*60*1000);
+    const rejectedId=await call(attacker,'create_booking',[businessId,setup.event_type_id,setup.resource_id,rejectedStart.toISOString(),'Nume ignorat',60]);
+    assert.equal((await db.query("select count(*)::int count from public.notification_jobs where booking_id=$1 and kind='reminder'",[rejectedId])).rows[0].count,0);
+    await call(owner,'set_booking_status',[rejectedId,'rejected']);
+    assert.equal((await db.query("select count(*)::int count from public.notification_jobs where booking_id=$1 and kind='reminder'",[rejectedId])).rows[0].count,0);
+    assert.equal((await as(owner,'select * from public.get_business_report($1,$2,$3,$4,$5)',[businessId,start.toISOString().slice(0,10),start.toISOString().slice(0,10),null,0])).length,1);
+    await assert.rejects(call(owner,'save_calendar_service_settings',[businessId,setup.resource_id,[1,2,3,4,5,6,7],'09:00','11:00',30]),/programări în așteptare sau aprobate/);
+    await assert.rejects(call(owner,'delete_calendar',[businessId,setup.resource_id]),/are programări/);
+    await call(owner,'add_calendar',[businessId,'Calendar gol']);
+    const emptyCalendarId=(await db.query("select id from public.resources where business_id=$1 and name='Calendar gol'",[businessId])).rows[0].id;
+    assert.equal((await call(owner,'delete_calendar',[businessId,emptyCalendarId])).ok,true);
+    assert.equal((await db.query('select count(*)::int count from public.resources where id=$1',[emptyCalendarId])).rows[0].count,0);
+    await assert.rejects(call(attacker,'delete_calendar',[businessId,setup.resource_id]),/Acces interzis/);
     await assert.rejects(as(owner,'select public.set_calendar_active($1,false)',[setup.resource_id]),/does not exist/);
   });
   await t.test('cancelled payment immediately locks UI-facing data and every business operation',async()=>{

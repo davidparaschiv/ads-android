@@ -39,6 +39,13 @@ test('Enrollment edge adapter: authentication, SMS provider proof, and fixed rec
     assert.equal((await handleEnrollment(new Request('https://example.com/enrollment'))).status,405);
     assert.equal(calls.length,0); authenticated=true;
   });
+  await t.test('business email is never accepted from the app payload',async()=>{
+    const response=await handleEnrollment(request({action:'start',name:'Salon',category:'Salon',address:'București',cui:'12345678',phone:'0712345678',email:'forged@example.com'}));
+    assert.equal(response.status,200);
+    const start=calls.find(c=>c.name==='start_enrollment');
+    assert.deepEqual(start.args,{p_name:'Salon',p_category:'Salon',p_address:'București',p_cui:'12345678',p_phone:'0712345678'});
+    assert.equal(Object.hasOwn(start.args,'p_email'),false);
+  });
   await t.test('pending/wrong-destination OTP never marks the phone verified',async()=>{
     const body={action:'checkSms',id:'request-id',code:'123456',phone:'+40799999999'};
     assert.equal((await handleEnrollment(request(body))).status,400);
@@ -53,7 +60,7 @@ test('Enrollment edge adapter: authentication, SMS provider proof, and fixed rec
   });
   await t.test('successful SMS automatically sends one approval email to the DB recipient',async()=>{
     const issue=calls.find(c=>c.name==='issue_enrollment_link'); assert.equal(issue.args.p_owner,'actual-owner');
-    const mail=calls.find(c=>c.kind==='fetch' && c.url.includes('resend'));
+    const mail=calls.filter(c=>c.kind==='fetch' && c.url.includes('resend')).at(-1);
     const message=JSON.parse(mail.options.body);
     assert.deepEqual(message.to,['davidnicolaparaschiv@gmail.com']);
     for(const detail of ['Denumire: Salon Aurora','Categorie: Salon','CUI: 12345678','Adresă: Strada Florilor 10, București','E-mail business: contact@example.com','Telefon: +40712345678','Cod aprobare:\ncontact@example.com/RZA-','Valabil 30 de zile.']) assert.match(message.text,new RegExp(detail.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));

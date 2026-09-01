@@ -50,11 +50,12 @@ export function invitationLoginScreen(root){
 /** @param {HTMLElement} root @param {'business'|'customer'} role */
 export function loginScreen(root, role) {
   const isBusiness = role === 'business';
+  const accountNotice = !isBusiness ? store.get().authNotice || '' : '';
   root.innerHTML = page({
     title: 'Autentificare',
     eyebrow: isBusiness ? 'PENTRU AFACERI' : 'PENTRU CLIENȚI',
     backTo: '/',
-    content: `<section class="auth-card">
+    content: `${accountNotice ? `<div class="access-banner" role="alert"><strong>Acest e-mail este e-mail de firmă.</strong><span>Folosește alt e-mail dacă vrei să fii client al aplicației.</span></div>` : ''}<section class="auth-card">
       <div class="auth-illustration">${icon(isBusiness ? 'calendar' : 'user')}</div>
       <h1>${isBusiness ? 'Administrare fără haos' : 'Programarea ta, în câteva secunde'}</h1>
       <p>${isBusiness ? 'Configurează serviciile, programul și notificările într-un singur loc.' : 'Folosește contul Google pentru a-ți păstra programările sincronizate.'}</p>

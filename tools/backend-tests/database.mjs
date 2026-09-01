@@ -131,7 +131,11 @@ export async function databaseCases(db, check) {
     ensure(attempts >= 6, 'Failed attempts did not persist inside the transaction.');
   });
   await run('DB: enrollment stays private; email tokens are account-bound and single-use', async () => {
-    ctx.enrollment = await scalar('applicant', "select public.start_enrollment('BACKEND TEST','Test','Test address',$1,$2,'+40700000000') result", [String(1000000000 + Math.floor(Math.random()*8000000000)),emails.applicant]);
+    const cui=String(1000000000 + Math.floor(Math.random()*8000000000));
+    const modernEnrollment=(await db.query("select to_regprocedure('public.start_enrollment(text,text,text,text,text)') is not null available")).rows[0].available;
+    ctx.enrollment = modernEnrollment
+      ? await scalar('applicant', "select public.start_enrollment('BACKEND TEST','Test','Test address',$1,'+40700000000') result", [cui])
+      : await scalar('applicant', "select public.start_enrollment('BACKEND TEST','Test','Test address',$1,$2,'+40700000000') result", [cui,emails.applicant]);
     ensure(ctx.enrollment.ok && !(await db.query('select id from public.businesses where owner_id=$1',[ids.applicant])).rows.length, 'Business created before verification/approval.');
     await denied(() => as('applicant', "select public.create_business('Test','Test','Test','')"));
     const link = await scalar('applicant', "select public.issue_enrollment_link($1,$2,'email') result", [ctx.enrollment.id,ids.applicant], 'service_role');
