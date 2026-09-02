@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
@@ -13,7 +14,7 @@ const loggerUrl=new URL('../src/observability/database-action-log.js',import.met
 async function loadLogger(fixture) {
   const fixtureKey=`databaseLoggerFixture${Math.random().toString(36).slice(2)}`;
   globalThis[fixtureKey]=fixture;
-  const result=await build({entryPoints:[loggerUrl.pathname],bundle:true,write:false,format:'esm',platform:'node',plugins:[{
+  const result=await build({entryPoints:[fileURLToPath(loggerUrl)],bundle:true,write:false,format:'esm',platform:'node',plugins:[{
     name:'database-logger-fixture',setup(builder){
       builder.onResolve({filter:/\/config\.js$/},()=>({path:'config',namespace:'fixture'}));
       builder.onResolve({filter:/\/api\/supabase\.js$/},()=>({path:'supabase',namespace:'fixture'}));
