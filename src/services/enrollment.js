@@ -4,6 +4,7 @@ import { getSupabase } from '../api/supabase.js';
 import { rpc } from './access.js';
 import { store } from '../state/store.js';
 import { externalApiLog } from '../observability/external-api-log.js';
+import { databaseActionForEnrollment, loggedDatabaseAction } from '../observability/database-action-log.js';
 
 export const enrollmentStatus = async () => config.mode === 'demo' ? store.get().demoEnrollment : rpc('get_enrollment_status');
 export const isPlatformOwnerAccount = async () => config.mode === 'demo'
@@ -16,21 +17,25 @@ export async function enrollmentAction(action, values = {}) {
     : values);
   const client = getSupabase();
   if (!client) throw new Error('Server neconfigurat.');
-  const { data, error } = await client.functions.invoke('enrollment', { body: { ...values, action } });
-  if (error) {
-    const response = await error.context?.json?.().catch(() => null);
-    externalApiLog('error', response?.diagnostic?.provider || 'supabase', `enrollment:${action}`, {
-      phase: 'provider-failure',
-      diagnostic: response?.diagnostic || null,
-      publicError: response?.error || null,
+  return loggedDatabaseAction(databaseActionForEnrollment(action,values),async()=>{
+    const { data, error } = await client.functions.invoke('enrollment', { body: { ...values, action } });
+    if (error) {
+      const response = await error.context?.json?.().catch(() => null);
+      externalApiLog('error', response?.diagnostic?.provider || 'supabase', `enrollment:${action}`, {
+        phase: 'provider-failure',
+        diagnostic: response?.diagnostic || null,
+        publicError: response?.error || null,
+      });
+      const failure = new Error(response?.error || 'Verificarea nu poate fi efectuată. Verifică serviciile configurate.');
+      Object.assign(failure,{code:error.code || '',details:error.message || '',hint:response?.diagnostic?.code || ''});
+      throw failure;
+    }
+    if (data?.diagnostic) externalApiLog('error', data.diagnostic.provider || 'supabase', `enrollment:${action}`, {
+      phase: 'provider-failure', diagnostic: data.diagnostic, publicError: data.warning || data.error || null,
     });
-    throw new Error(response?.error || 'Verificarea nu poate fi efectuată. Verifică serviciile configurate.');
-  }
-  if (data?.diagnostic) externalApiLog('error', data.diagnostic.provider || 'supabase', `enrollment:${action}`, {
-    phase: 'provider-failure', diagnostic: data.diagnostic, publicError: data.warning || data.error || null,
+    if (!data?.ok) throw new Error(data?.error || 'Operație indisponibilă.');
+    return data;
   });
-  if (!data?.ok) throw new Error(data?.error || 'Operație indisponibilă.');
-  return data;
 }
 export async function enrollmentLinkDetails(token) {
   if (config.mode !== 'demo') return rpc('enrollment_link_details', { p_token: token });

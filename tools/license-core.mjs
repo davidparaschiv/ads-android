@@ -11,7 +11,7 @@ export function hashKey(key) {
   return createHash('sha256').update(normalizeKey(key), 'utf8').digest('hex');
 }
 
-export function generateLicense({ email, start, months }) {
+export function generateLicense({ email, start, months, type }) {
   const boundEmail = String(email || '').trim().toLowerCase();
   if (!/^[a-z0-9.!#$%&'*+/=?^_\x60{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(boundEmail) || boundEmail.length > 254) {
     throw new Error('Provide a valid Google-account email.');
@@ -25,6 +25,10 @@ export function generateLicense({ email, start, months }) {
   }
   const duration = Number(months);
   if (!Number.isInteger(duration) || duration < 1 || duration > 120) throw new Error('Months must be an integer from 1 to 120.');
+  const requestedType = String(type || '').trim().toLowerCase();
+  const licenseType = requestedType === 'complete' ? 'Complete' : requestedType === 'half_complete' ? 'half_complete' : '';
+  if (!licenseType) throw new Error('Type must be Complete or half_complete.');
+  const calendarLimit = licenseType === 'Complete' ? 10 : 5;
   const random = randomBytes(32).toString('hex').toUpperCase();
   const key = 'RZL-' + random.match(/.{8}/g).join('-');
   const hash = hashKey(key);
@@ -33,8 +37,8 @@ export function generateLicense({ email, start, months }) {
   const sql = [
     '-- Run manually in Supabase SQL Editor as database administrator.',
     '-- The plaintext key is intentionally NOT included in this SQL.',
-    'insert into private.license_keys (key_hash, bound_email, starts_at, duration_months)',
-    "values ('" + hash + "', '" + sqlEmail + "', '" + startsAt + "'::timestamptz, " + duration + ');',
+    'insert into private.license_keys (key_hash, bound_email, starts_at, duration_months, type)',
+    "values ('" + hash + "', '" + sqlEmail + "', '" + startsAt + "'::timestamptz, " + duration + ", '" + licenseType + "'::private.license_type);",
   ].join('\n');
-  return { key, hash, boundEmail, startsAt, months: duration, sql };
+  return { key, hash, boundEmail, startsAt, months: duration, type: licenseType, calendarLimit, sql };
 }

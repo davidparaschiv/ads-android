@@ -10,16 +10,19 @@
 <p>Windows / Git Bash → hosted services → your Android debug app. Real email, paid SMS and push notifications; no public app release is needed for bookings.</p>
 <div class="badges"><span>rezervari-ai.com</span><span>support@rezervari-ai.com</span><span>ro.rezerva.app</span><span>1 September 2026</span></div></header>
 <div class="layout"><nav aria-label="Setup steps"><strong>START HERE</strong>
-<a href="#changes">What changed</a><a href="#commands">Commands to run now</a><a href="#qr-setup">QR update &amp; phone test</a><a href="#phone-readiness">Remaining configuration</a><a href="#step-1">1. Windows tools</a><a href="#step-2">2. Extract and install</a><a href="#step-3">3. Database migrations</a><a href="#step-4">4. Google sign-in</a><a href="#step-5">5. Domain, email &amp; paid SMS</a><a href="#step-6">6. Firebase push</a><a href="#step-7">7. Exact secret names</a><a href="#step-8">8. Link and deploy</a><a href="#step-9">9. Build and install Android</a><a href="#step-10">10. Business enrollment</a><a href="#step-11">11. Reminder scheduler</a><a href="#step-12">12. Manual phone checks</a><a href="#step-13">13. Billing &amp; release</a><a href="#backend-tests">Local versus live tests</a><a href="#verification">Verification boundaries</a></nav><main>
+<a href="#changes">What changed</a><a href="#commands">Commands to run now</a><a href="#qr-setup">QR update &amp; phone test</a><a href="#phone-readiness">Remaining configuration</a><a href="#step-1">1. Windows tools</a><a href="#step-2">2. Extract and install</a><a href="#step-3">3. Database migrations</a><a href="#step-4">4. Google sign-in</a><a href="#step-5">5. Domain, email &amp; paid SMS</a><a href="#step-6">6. Firebase push</a><a href="#step-7">7. Exact secret names</a><a href="#step-8">8. Link and deploy</a><a href="#step-9">9. Build and install Android</a><a href="#step-10">10. Business enrollment</a><a href="#step-11">11. Scheduled jobs and logging</a><a href="#step-12">12. Manual phone checks</a><a href="#step-13">13. Billing &amp; release</a><a href="#backend-tests">Local versus live tests</a><a href="#verification">Verification boundaries</a></nav><main>
 <section id="changes"><h2>Update your setup, don’t recreate it.</h2>
-<p>This update keeps your frontend/Firebase configuration, icons, secret names and Small/Complete plans. <strong>New migration: 022_notification_scheduler.sql.</strong> Apply it once after 021. It enables <code>pg_cron</code>/<code>pg_net</code> and creates the <code>rezerva-reminders</code> job only when that job does not already exist.</p>
+<p>This update keeps your frontend/Firebase configuration, icons and secret names. <strong>Latest migration: 025_complete_calendars_and_license_types.sql.</strong> Apply it once after 024. Migration 025 changes Complete to 10 calendars, adds Complete/half_complete license types and enforces the separate 15-calendar database ceiling.</p>
 <ul><li>Explicit Android permissions, notification channel, transparent notification R, launcher/adaptive icons and icon-only splash from your supplied PNG.</li><li>Exact existing secret names: <code>TWILLIO_ACCOUNT_SID</code>, <code>TWILLIO_AUTH_TOKEN</code> and <code>TWILIO_VERIFY_SERVICE_SID</code>.</li><li>Full Firebase JSON under <code>GCLOUD_SERVICEACCOUNT_KEYS</code>; project ID under <code>FIREBASE_PROJID</code>.</li><li>Google OAuth values must be entered into hosted Supabase Auth, not only custom Edge secrets.</li></ul>
-<div class="table"><table><thead><tr><th>Plan</th><th>Monthly price</th><th>Calendars</th><th>Business reports / reminders</th></tr></thead><tbody><tr><td>Small</td><td>€50</td><td>1</td><td>No</td></tr><tr><td>Complete</td><td>€150</td><td>5</td><td>Yes</td></tr></tbody></table></div>
+<div class="table"><table><thead><tr><th>Plan</th><th>Monthly price</th><th>Calendars</th><th>Business reports / reminders</th></tr></thead><tbody><tr><td>Small</td><td>€50</td><td>1</td><td>No</td></tr><tr><td>Complete</td><td>€150</td><td>10</td><td>Yes</td></tr></tbody></table></div>
 <p>Customer reminders remain available on either plan. Invited staff do not buy separate plans. Complete's internal identifier remains <code>large</code>.</p>
 <p class="check"><strong>New:</strong> customers open a reservation QR from Programările mele. Authorized business staff use Scanează programarea to open that reservation. This works with Small and Complete. Scanning only reads current details; it does not mark arrival, complete, cancel or consume the reservation.</p>
 <p class="check"><strong>Account/calendar update:</strong> after Google login, the server resolves exactly one existing type: <code>business</code>, <code>invitee</code> or <code>client</code>. If a different type was selected, the app keeps the session, opens the existing account automatically and shows a centered explanatory dialog. The enrollment email comes directly from Google. Owners can delete only calendars with no booking history. Text inputs are trimmed at their edges before use.</p>
 <p class="check"><strong>Scheduling update:</strong> slots advance by the service duration and never finish after the configured end time. Business reports/calendar show approved bookings only; pending requests remain in Notif. with their date. Scheduling settings cannot be saved while that calendar has pending or approved bookings.</p>
 <p class="check"><strong>Android update:</strong> QR cancellation no longer navigates to Home or shows a cancellation/add-on notice. Business booking-request pushes use the existing high-priority Android channel, and jobs with no registered device token remain queued instead of being falsely marked sent.</p>
+<p class="check"><strong>Notification data update:</strong> <code>business_notification_preferences</code> stores per-calendar business timing and <code>client_notification_preferences</code> stores client timing/opt-in. Every job has <code>type=business</code> or <code>type=client</code>. Approval/rejection jobs target the client. A job is sent when at least one of that user's devices accepts it and fails only when none do.</p>
+<p class="check"><strong>Database action logging:</strong> UI database operations write best-effort events to <code>logger_engine</code>. Business actions use explicit <code>BV_…</code> values and client actions use <code>CV_…</code>. Success payloads are minimal; error payloads are sanitized. Logging is not awaited and cannot fail the primary UI operation. <code>config_purge</code> stores the current 13-day retention.</p>
+<p class="check"><strong>Calendar/license update:</strong> Complete and <code>dev112233</code> grant 10 active calendars. A <code>Complete</code> license grants 10, while <code>half_complete</code> grants 5 and retains Complete features. Existing license rows are migrated to <code>Complete</code>. The database also rejects a sixteenth stored calendar.</p>
 <p class="check"><strong>Invitations and customer notifications:</strong> invitation failures now return only “Cod invalid.”; invitation e-mail fields are validated and use <code>coleg@gmail.com</code>. Customer navigation includes Notif. Customer reminder jobs are created only after business approval, never while pending or after rejection. The existing FCM worker can deliver them while the app is in the background or closed.</p>
 <p class="check"><strong>Session and legal labels:</strong> incomplete business, customer-profile and invited-member screens include Deconectare, which clears the authenticated session and local state. User-facing logout labels are Romanian. Terms no longer start with a draft notice and the account screen shows both terms and privacy links.</p>
 <p class="check"><strong>Business team update:</strong> a red dot appears beside the BV notification bell while booking requests are pending. Invited members can see the complete member list and have operational editing access to calendars, services, scheduling settings, booking decisions and deletion of empty calendars. Billing, licenses, sending/revoking invitations and removing members remain owner-only.</p>
@@ -37,7 +40,7 @@ npm run check:phone
 npm run android:sync
 npm run android:open</code></pre>
 <p><code>npm ci</code> downloads dependencies. Assets, lint, typechecking and local tests do not call your cloud services. <code>check:phone</code> reads local settings without displaying values. It cannot prove cloud readiness. Android sync builds/copies the frontend; it does not deploy backend functions.</p>
-<p><strong>For this update:</strong> apply migration 022 after every earlier migration through 021. The migration contains no secret values. Before expecting the scheduler to deliver notifications, configure the two Vault entries from <a href="#step-11">Step 11</a> and keep the Edge <code>CRON_SECRET</code> identical to the Vault cron secret.</p>
+<p><strong>For this update:</strong> apply migration 025 after every earlier migration through 024, then rebuild/sync the Android app. Migration 025 contains no secret values and requires no new Edge Function secret.</p>
 <p>The following deployments are needed only if you have not yet deployed the previous archive's renamed-secret functions. QR itself does not change them. Link the folder first if needed (<a href="#step-8">Step 8.1</a>):</p>
 <pre><code>npx supabase functions deploy enrollment --use-api
 npx supabase functions deploy send-reminders --use-api</code></pre>
@@ -55,9 +58,9 @@ java -version</code></pre>
 <p>The ZIP retains your uploaded account-specific configuration. Keep it private; never upload the entire source ZIP, private keys or test session files to GitHub Pages.</p>
 <p class="check">Run <code>npm run check:phone</code>. Fix failures; review warnings manually.</p></section>
 <section id="step-3"><h2>3. Database migrations</h2>
-<p>Keep your existing Supabase development project. If migrations 001–021 already succeeded, <strong>do not rerun them</strong>. Back up the database, then apply only <code>022_notification_scheduler.sql</code>. It does not modify application records.</p>
+<p>Keep your existing Supabase development project. If migrations 001–024 already succeeded, <strong>do not rerun them</strong>. Back up the database, then apply only <code>025_complete_calendars_and_license_types.sql</code>. Existing license rows become <code>Complete</code>; application, booking, notification and device-token data are not deleted.</p>
 <p>For a new project only, execute each complete file in SQL Editor, in this order:</p>
-<ol><li>Run every complete SQL file in <code>supabase/migrations</code> in numeric order, from <code>001_initial_schema.sql</code> through <code>022_notification_scheduler.sql</code>.</li><li>Migration 012 must finish before 013, 019 after 018, 020 after 019, 021 after 020, and 022 after 021; do not combine migration files into one transaction.</li></ol>
+<ol><li>Run every complete SQL file in <code>supabase/migrations</code> in numeric order, from <code>001_initial_schema.sql</code> through <code>025_complete_calendars_and_license_types.sql</code>.</li><li>Migration 012 must finish before 013, 019 after 018, 020 after 019, 021 after 020, 022 after 021, 023 after 022, 024 after 023 and 025 after 024; do not combine migration files into one transaction.</li></ol>
 <p>On an existing database, back up first and apply only missing migrations. Stop on errors; do not disable RLS or reset tables to hide a problem. Check:</p>
 <pre><code>select to_regclass('public.bookings'),
        to_regclass('private.license_keys'),
@@ -131,6 +134,9 @@ npx supabase migration repair 019 --status applied
 npx supabase migration repair 020 --status applied
 npx supabase migration repair 021 --status applied
 npx supabase migration repair 022 --status applied
+npx supabase migration repair 023 --status applied
+npx supabase migration repair 024 --status applied
+npx supabase migration repair 025 --status applied
 npx supabase migration list</code></pre>
 <p>Repair changes history, not schema. It does not validate or run missing SQL. Do not mark partial/failed migrations complete, reset the database, or blindly push old migrations.</p>
 <h3>8.3 — Functions from the previous update (no QR redeployment required)</h3>
@@ -169,9 +175,11 @@ cd ..</code></pre>
 <ol><li>Choose Business and sign in as <code>davidnicolaparaschiv@gmail.com</code> for the existing developer-license path.</li><li>Enter <code>dev112233</code> when asked for a license. The server limits this key to the verified platform owner. It grants Complete access for 30 days; there is no global payment-skip flag.</li><li>Submit business name/details, CUI and your Romanian mobile. The e-mail is read automatically from the verified Google account and is not editable in the form.</li><li>Open the real email verification message on the phone, signed in as the initiating account, and confirm using its code.</li><li>Request the SMS and enter the actual received code. This is a paid Verify request, not a demo code.</li><li>Request platform approval. The email goes to the fixed owner from the database. Open as David, review and approve.</li><li>Refresh status and create calendars, event types, durations and available hours. Use a different Google account for the customer test.</li></ol>
 <p>A pending request is stored privately. The active business appears in <code>public.businesses</code> only after verified approval. The developer license bypasses neither email nor SMS nor admin approval. Do not edit verification flags manually.</p>
 <p>Other owners need a valid email-bound license through the existing local license-generator/admin SQL workflow or a verified purchase. Do not assume dev112233 works for every user or is a production secret.</p></section>
-<section id="step-11"><h2>11. Schedule reminders — no extra broker</h2>
+<section id="step-11"><h2>11. Scheduled jobs and database logging</h2>
 <p><code>public.notification_jobs</code> is the queue. Supabase scheduling calls the send-reminders worker, which sends FCM messages. RabbitMQ/Kafka are not required.</p>
 <p>Migration <code>022_notification_scheduler.sql</code> enables <code>pg_cron</code> and <code>pg_net</code>, then creates <code>rezerva-reminders</code> only if a job with that name is absent. Do not manually create a second schedule. The migration deliberately contains only Vault secret names, never environment-specific values.</p>
+<p>Migration <code>023_notification_preferences_and_job_types.sql</code> adds the client/business recipient type and keeps future reminder jobs synchronized with their corresponding preferences. Apply it after 022, then redeploy <code>send-reminders</code>.</p>
+<p>Migration <code>024_ui_database_action_logging.sql</code> creates <code>logger_engine</code>, <code>config_purge</code>, the protected logger RPC and the daily <code>rezerva-logger-engine-purge</code> job. It requires no Vault or Edge Function secret.</p>
 <h3>11.1 — Create the shared cron secret</h3>
 <p>If <code>CRON_SECRET</code> is not already configured, generate one value locally in Git Bash:</p>
 <pre><code>node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"</code></pre>
@@ -195,12 +203,15 @@ select vault.create_secret(
   'Shared authorization secret for send-reminders'
 );</code></pre>
 <p class="warn">Do not run the placeholder text literally. The project URL must use <code>.supabase.co</code> with no trailing slash. The second value must match Edge <code>CRON_SECRET</code> character for character. Vault values belong to the hosted environment and must never be added to a migration or committed file.</p>
-<h3>11.3 — Apply and verify migration 022</h3>
-<p>Apply <code>supabase/migrations/022_notification_scheduler.sql</code> after migration 021. Using the linked CLI:</p>
+<h3>11.3 — Apply and verify migrations 022–025</h3>
+<p>Apply missing migrations in numeric order. On the current update, 025 follows 024. Using the linked CLI:</p>
 <pre><code>npx supabase db push
 npx supabase migration list</code></pre>
 <p>If you instead executed the complete migration manually in SQL Editor and verified it succeeded, record only its history:</p>
 <pre><code>npx supabase migration repair 022 --status applied
+npx supabase migration repair 023 --status applied
+npx supabase migration repair 024 --status applied
+npx supabase migration repair 025 --status applied
 npx supabase migration list</code></pre>
 <p>Verify the extensions and the single active job:</p>
 <pre><code>select extname
@@ -220,9 +231,24 @@ from net._http_response order by created desc limit 10;
 select id, send_at, status, attempts, last_error
 from public.notification_jobs order by created_at desc limit 20;</code></pre>
 <p>A successful cron query does not prove HTTP success or phone delivery. Inspect HTTP status, Edge logs and the phone. Keep one schedule; paused projects cannot process reminders. <a href="https://supabase.com/docs/guides/functions/schedule-functions">Supabase scheduler pattern</a>.</p>
+<h3>11.4 — Verify UI database logging and retention</h3>
+<p>After migration 024 and <code>npm run android:sync</code>, install/run the debug app and perform one client or business database action. Then use SQL Editor:</p>
+<pre><code>select target_table, retention_days, updated_at
+from public.config_purge
+where target_table = 'logger_engine';
+
+select logged_at, user_id, status, action_type, message
+from public.logger_engine
+order by logged_at desc
+limit 25;
+
+select jobid, jobname, schedule, active
+from cron.job
+where jobname = 'rezerva-logger-engine-purge';</code></pre>
+<p>The configuration row must show <code>13</code>. The cron query must return exactly one active job with schedule <code>17 2 * * *</code> (02:17 UTC daily). The application does not wait for logging, so allow a moment before refreshing the SQL query. Do not expose <code>logger_engine</code> or <code>config_purge</code> through client table grants.</p>
 <p class="warn">Push is best-effort, not an exact alarm. Register the phone token before testing; jobs without a token remain pending. Force-stopping Android, battery restrictions, invalid FCM credentials or a stopped scheduler can still prevent/delay delivery.</p></section>
 <section id="step-12"><h2>12. Manual phone checklist</h2>
-<ul><li><strong>Login:</strong> authenticate, use Deconectare, restart and repeat. All required Google test accounts must be in the OAuth audience while in Testing.</li><li><strong>Enrollment:</strong> actual email, SMS and fixed-owner approval; wrong accounts and invalid/expired links should fail.</li><li><strong>Bookings:</strong> create as customer, inspect as business, attempt the same capacity again and cancel through the app.</li><li><strong>Invites:</strong> send to another Google account you control. A wrong e-mail/code combination must show only “Cod invalid.”. Accept up to 15 team members; the 16th must be rejected. Use your verified Resend sender.</li><li><strong>Plans:</strong> Small has one calendar/no business reports or reminders; Complete has five with both. Customer reminders remain available.</li><li><strong>Push:</strong> enable/register the customer phone, create a sufficiently future booking and confirm it from the business account. Verify that pending/rejected bookings have no timed reminder and a confirmed booking does. Allow for the one-minute scheduler interval.</li><li><strong>Android:</strong> check foreground, background, screen-locked and app-closed notifications. Check channel settings if muted. Force-stopping the app can prevent delivery until reopened; battery restrictions can delay it.</li><li><strong>Security:</strong> no private keys in source/APK, no disabled RLS, no publicly exposed private schema. Do not share private logs, tokens or customer details.</li></ul>
+<ul><li><strong>Login:</strong> authenticate, use Deconectare, restart and repeat. All required Google test accounts must be in the OAuth audience while in Testing.</li><li><strong>Enrollment:</strong> actual email, SMS and fixed-owner approval; wrong accounts and invalid/expired links should fail.</li><li><strong>Bookings:</strong> create as customer, inspect as business, attempt the same capacity again and cancel through the app.</li><li><strong>Invites:</strong> send to another Google account you control. A wrong e-mail/code combination must show only “Cod invalid.”. Accept up to 15 team members; the 16th must be rejected. Use your verified Resend sender.</li><li><strong>Plans:</strong> Small has one calendar/no business reports or reminders; Complete has ten with both. A half_complete license has five. Customer reminders remain available.</li><li><strong>Push:</strong> enable/register the customer phone, create a sufficiently future booking and confirm it from the business account. Verify that pending/rejected bookings have no timed reminder and a confirmed booking does. Allow for the one-minute scheduler interval.</li><li><strong>Android:</strong> check foreground, background, screen-locked and app-closed notifications. Check channel settings if muted. Force-stopping the app can prevent delivery until reopened; battery restrictions can delay it.</li><li><strong>Security:</strong> no private keys in source/APK, no disabled RLS, no publicly exposed private schema. Do not share private logs, tokens or customer details.</li></ul>
 <p>The manifest includes internet, network state, notifications, wake lock, vibration and Play billing. It does not request SMS read/send, contacts, device calendar, storage, location or exact-alarm access. The QR scanner delegates its camera screen to Google Play services, so this app does not need its own CAMERA permission. Camera hardware is optional: customers can still display their QR without a camera.</p>
 <p class="check">These manual checks establish your real setup's behavior. Offline tests cannot certify delivery or external credentials.</p></section>
 <section id="step-13"><h2>13. Billing and release boundaries</h2>

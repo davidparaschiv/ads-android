@@ -22,7 +22,7 @@ test('PostgreSQL integration: licenses, billing limits, invitations and RLS', as
     grant execute on all functions in schema auth to anon,authenticated,service_role;
     alter default privileges in schema public grant all on tables to anon,authenticated,service_role;
   `);
-  for (const filename of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','011_all_team_calendars_shared.sql']) {
+  for (const filename of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql','006_universal_developer_license.sql','009_access_expiry_and_permanent_dev.sql','011_all_team_calendars_shared.sql','025_complete_calendars_and_license_types.sql']) {
     await db.exec(await readFile(new URL('../supabase/migrations/' + filename, import.meta.url), 'utf8'));
   }
   const owner = randomUUID(), staff = randomUUID(), other = randomUUID(), customer = randomUUID();
@@ -36,22 +36,35 @@ test('PostgreSQL integration: licenses, billing limits, invitations and RLS', as
     try { return (await db.query(sql,args)).rows; } finally { await db.exec('reset role'); }
   }
   const start = new Date(Date.now()-86400000).toISOString().replace(/\.\d{3}Z$/, 'Z');
-  const key = generateLicense({ email: 'owner@example.com', start, months: 1 });
+  const key = generateLicense({ email: 'owner@example.com', start, months: 1, type: 'Complete' });
   await db.exec(key.sql);
   await t.test('keys are private and email-bound; valid redemption is idempotent', async () => {
     await assert.rejects(as(owner,'select * from private.license_keys'), /permission denied/);
     await assert.rejects(as(owner,"update public.subscriptions set status='active'"), /permission denied/);
     assert.equal((await as(other,'select public.redeem_license($1) result',[key.key]))[0].result.ok,false);
-    for (let i=0;i<2;i++) assert.equal((await as(owner,'select public.redeem_license($1) result',[key.key]))[0].result.access.calendarLimit,5);
+    for (let i=0;i<2;i++) assert.equal((await as(owner,'select public.redeem_license($1) result',[key.key]))[0].result.access.calendarLimit,10);
     assert.equal((await db.query('select redeemed_by from private.license_keys')).rows[0].redeemed_by,owner);
   });
-  const business = (await as(owner,"select (public.create_business('Salon Test','Salon','București','')).id id"))[0].id;
+  const business = randomUUID();
+  await db.query("insert into public.businesses(id,owner_id,name,category,address) values($1,$2,'Salon Test','Salon','București')",[business,owner]);
   const setup = (await as(owner,"select public.setup_business($1,'Serviciu',30,10000,'Calendar 1','00:00','23:59',array[1,2,3,4,5,6,7]::smallint[]) result",[business]))[0].result;
   const calendarIds = [setup.resource_id];
-  await t.test('five-calendar license allows five, refuses six and direct client mutation', async () => {
-    for (let i=2;i<=5;i++) calendarIds.push((await as(owner,'select (public.add_calendar($1,$2)).id id',[business,`Calendar ${i}`]))[0].id);
-    await assert.rejects(as(owner,"select public.add_calendar($1,'Calendar 6')",[business]), /Limita/);
+  await t.test('Complete license allows ten active calendars, refuses eleven and direct client mutation', async () => {
+    for (let i=2;i<=10;i++) calendarIds.push((await as(owner,'select (public.add_calendar($1,$2)).id id',[business,`Calendar ${i}`]))[0].id);
+    await assert.rejects(as(owner,"select public.add_calendar($1,'Calendar 11')",[business]), /Limita/);
     await assert.rejects(as(owner,"insert into public.resources(business_id,name) values($1,'Bypass')",[business]), /permission denied/);
+  });
+  await t.test('database defense-in-depth permits at most fifteen stored calendars', async () => {
+    const cappedBusiness=randomUUID();
+    await db.query("insert into public.businesses(id,owner_id,name,category,address) values($1,$2,'Cap Test','Test','București')",[cappedBusiness,other]);
+    await db.exec('alter table public.resources disable trigger enforce_calendar_count');
+    try {
+      for(let i=1;i<=15;i++) await db.query('insert into public.resources(business_id,name) values($1,$2)',[cappedBusiness,`DB Calendar ${i}`]);
+      assert.equal((await db.query('select count(*)::int count from public.resources where business_id=$1',[cappedBusiness])).rows[0].count,15);
+      await assert.rejects(db.query("insert into public.resources(business_id,name) values($1,'DB Calendar 16')",[cappedBusiness]),/maximum 15 calendare/);
+    } finally {
+      await db.exec('alter table public.resources enable trigger enforce_calendar_count');
+    }
   });
   let invitation;
   await t.test('invites are owner-only, email-bound, single-use and share every calendar', async () => {
@@ -60,7 +73,7 @@ test('PostgreSQL integration: licenses, billing limits, invitations and RLS', as
     assert.equal((await as(other,'select public.accept_calendar_invitation($1) result',[invitation.token]))[0].result.ok,false);
     assert.equal((await as(staff,'select public.accept_calendar_invitation($1) result',[invitation.token]))[0].result.ok,true);
     assert.equal((await as(staff,'select public.accept_calendar_invitation($1) result',[invitation.token]))[0].result.ok,false);
-    assert.equal((await as(staff,'select * from public.list_my_calendars($1)',[business])).length,5);
+    assert.equal((await as(staff,'select * from public.list_my_calendars($1)',[business])).length,10);
     assert.equal((await as(staff,'select public.get_access($1) result',[business]))[0].result.isOwner,false);
     await assert.rejects(as(staff,'select public.list_team($1)',[business]), /Acces interzis/);
   });
@@ -91,7 +104,8 @@ test('PostgreSQL integration: licenses, billing limits, invitations and RLS', as
   await t.test('expiry blocks new bookings; history retained; paid small plan requires archiving', async () => {
     await db.query("update private.license_keys set starts_at=now()-interval '2 months'");
     assert.equal((await as(owner,'select public.get_access($1) result',[business]))[0].result.active,false);
-    assert.equal((await as(owner,'select * from public.bookings')).length,2);
+    assert.equal((await as(owner,'select * from public.bookings')).length,0);
+    assert.equal((await db.query('select count(*)::int count from public.bookings where business_id=$1',[business])).rows[0].count,2);
     await assert.rejects(as(customer,'select public.create_booking($1,$2,$3,$4,$5,60)',[business,setup.event_type_id,calendarIds[2],date.toISOString(),'Client Test']), /expirat/);
     await db.query("insert into public.subscriptions(owner_id,business_id,plan_id,product_id,status,environment,expires_at) values($1,$2,'small','rezerva_small_monthly','active','production',now()+interval '1 month')",[owner,business]);
     assert.equal((await as(owner,'select public.get_access($1) result',[business]))[0].result.overLimit,true);
@@ -107,7 +121,7 @@ test('PostgreSQL integration: licenses, billing limits, invitations and RLS', as
   await t.test('expired, revoked and unverified keys never grant access; no account transfer', async () => {
     await db.exec('delete from private.request_limits');
     assert.equal((await as(owner,'select public.redeem_license($1) result',[key.key]))[0].result.ok,false);
-    const fresh = generateLicense({ email: 'owner@example.com', start, months: 1 });
+    const fresh = generateLicense({ email: 'owner@example.com', start, months: 1, type: 'Complete' });
     await db.exec(fresh.sql);
     await db.query('update auth.users set email_confirmed_at=null where id=$1',[owner]);
     assert.equal((await as(owner,'select public.redeem_license($1) result',[fresh.key]))[0].result.ok,false);
@@ -127,7 +141,7 @@ test('PostgreSQL integration: licenses, billing limits, invitations and RLS', as
     assert.match(result.message, /Prea multe/);
   });
   await t.test('future starts do not grant early access; month-end expiry uses calendar months', async () => {
-    const future = generateLicense({ email: 'staff@example.com', start: '2099-01-31T00:00:00Z', months: 1 });
+    const future = generateLicense({ email: 'staff@example.com', start: '2099-01-31T00:00:00Z', months: 1, type: 'half_complete' });
     await db.exec(future.sql);
     const result = (await as(staff,'select public.redeem_license($1) result',[future.key]))[0].result;
     assert.equal(result.ok,true); assert.equal(result.scheduled,true); assert.equal(result.access.active,false);

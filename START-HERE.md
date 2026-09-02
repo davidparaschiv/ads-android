@@ -2,7 +2,7 @@
 
 This is the current Rezerva v0.4 development source. You will install it privately, use real Google login/DB/email/SMS/push, and use your authorized developer license instead of purchasing a plan. Nothing here publishes the app to the public Play Store.
 
-**Plans:** Small = €50/month, 1 calendar, no business reports or reminders. Complete = €150/month, 5 calendars with business reports and push reminders. Customer reminders remain available with either plan. Active five-calendar licenses include Complete features. **Already at setup Step 4 or later with 001–003 applied? Apply only migration 004 before continuing:** [update instructions](docs/PLAN-UPDATE.md).
+**Plans:** Small = €50/month, 1 calendar, no business reports or reminders. Complete = €150/month, 10 calendars with business reports and push reminders. Customer reminders remain available with either plan. Complete/half_complete licenses grant 10/5 calendars with Complete features. Apply all missing migrations through 025 in numeric order.
 
 **Not included yet: reservation QR codes/check-in, a compiled APK, or production approval.** The existing app and tests are included. Do not treat this archive as a fully finished production release.
 
@@ -201,7 +201,7 @@ If the phone is not listed, check its USB driver/cable and Android Studio's devi
 
 If your email client refuses the app link, copy the fallback code from the email into **Confirmă un link de înscriere**. If you switch accounts, reopen the link or paste it again; sign-out clears pending links. Do not edit DB verification flags manually.
 
-**Check:** before final approval there is only a private pending request. After approval, `public.businesses` contains the business. `dev112233` grants this authorized account five calendars for 30 days; it does not bypass enrollment.
+**Check:** before final approval there is only a private pending request. After approval, `public.businesses` contains the business. `dev112233` grants this authorized account ten calendars; it does not bypass enrollment.
 
 ## 11. Schedule and test real reminders
 
@@ -250,7 +250,7 @@ Your own-account email test works without a domain. Email invitations to OTHER s
 
 For Play billing, follow full guide Steps 19–21: products `rezerva_small_monthly` and `rezerva_large_monthly`, RevenueCat entitlement `business_pro`, a current Offering, server credentials/webhook, and a private Play internal-testing release with license testers. You do not need a public Play release. Confirm the checkout displays test payment methods.
 
-Use a business account without an active five-calendar license to test the one-calendar purchase limit. A free license would otherwise hide the billing result. Keep sandbox payment acceptance enabled only in the development database.
+Use a business account without an active license to test the one-calendar purchase limit. A free license would otherwise hide the billing result. Keep sandbox payment acceptance enabled only in the development database.
 
 **Check:** do not claim staff email delivery or Google Play payments are tested until those real integrations pass. You can finish Steps 1–11 using your authorized license without setting up billing.
 

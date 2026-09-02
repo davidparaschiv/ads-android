@@ -6,6 +6,7 @@ import { config } from '../config.js';
 import { getSupabase } from '../api/supabase.js';
 import { store } from '../state/store.js';
 import { loggedExternalCall } from '../observability/external-api-log.js';
+import { DATABASE_ACTIONS, loggedDatabaseAction } from '../observability/database-action-log.js';
 
 let configuredFor = '';
 export async function configureBilling(userId) {
@@ -81,7 +82,13 @@ export async function openSubscriptionManagement(userId) {
 async function syncEntitlement() {
   const supabase = getSupabase();
   if (!supabase) throw new Error('Server neconfigurat.');
-  const { data, error } = await supabase.functions.invoke('sync-subscription', { body: {} });
-  if (error || !data?.active) throw new Error('Abonamentul nu a fost confirmat de server. Reîncearcă restaurarea; nu cumpăra din nou.');
-  return data;
+  return loggedDatabaseAction(DATABASE_ACTIONS.BV_SYNCHRONIZE_GOOGLE_PLAY_SUBSCRIPTION_ENTITLEMENT,async()=>{
+    const { data, error } = await supabase.functions.invoke('sync-subscription', { body: {} });
+    if (error || !data?.active) {
+      const failure = new Error('Abonamentul nu a fost confirmat de server. Reîncearcă restaurarea; nu cumpăra din nou.');
+      if (error) Object.assign(failure,{code:error.code || '',details:error.message || ''});
+      throw failure;
+    }
+    return data;
+  });
 }

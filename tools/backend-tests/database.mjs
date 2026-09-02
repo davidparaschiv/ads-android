@@ -30,12 +30,13 @@ export async function inspectDatabase(config, check) {
   const db = await connectDb(config);
   try {
     await db.query('begin read only');
-    await check('Database: all seven migration versions recorded', async () => {
+    await check('Database: all migration versions through 025 recorded', async () => {
       const rows = (await db.query('select version from supabase_migrations.schema_migrations')).rows;
-      ensure(['001', '002', '003', '004', '005', '006', '007'].every(v => rows.some(r => r.version === v)), 'Migration history is incomplete; apply/record only the SQL files that actually succeeded.');
+      const required=Array.from({length:25},(_,index)=>String(index+1).padStart(3,'0'));
+      ensure(required.every(v => rows.some(r => r.version === v)), 'Migration history is incomplete; apply/record only the SQL files that actually succeeded.');
     });
     await check('Database: required tables use RLS; private schema is not client-accessible', async () => {
-      const names = ['profiles','businesses','business_members','subscriptions','resources','event_types','bookings','device_tokens','notification_jobs','calendar_members'];
+      const names = ['profiles','businesses','business_members','subscriptions','resources','event_types','bookings','device_tokens','notification_jobs','calendar_members','logger_engine','config_purge'];
       const rows = (await db.query("select c.relname,c.relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname=any($1)", [names])).rows;
       ensure(rows.length === names.length && rows.every(r => r.relrowsecurity), 'Required table missing or RLS disabled.');
       const row = (await db.query("select has_schema_privilege('anon','private','USAGE') a, has_schema_privilege('authenticated','private','USAGE') b")).rows[0];
@@ -48,6 +49,10 @@ export async function inspectDatabase(config, check) {
       const jobs = (await db.query("select active, schedule, command from cron.job where jobname='rezerva-reminders'")).rows;
       ensure(jobs.length === 1 && jobs[0].active && jobs[0].schedule === '* * * * *', 'Expected one active every-minute rezerva-reminders schedule.');
       ensure(jobs[0].command.includes('/functions/v1/send-reminders') && jobs[0].command.includes('x-cron-secret') && jobs[0].command.includes('rezerva_cron_secret'), 'Cron command does not match the reminder worker.');
+      const loggerJobs = (await db.query("select active,schedule,command from cron.job where jobname='rezerva-logger-engine-purge'")).rows;
+      ensure(loggerJobs.length === 1 && loggerJobs[0].active && loggerJobs[0].schedule === '17 2 * * *' && loggerJobs[0].command.includes('purge_expired_logger_engine_rows'), 'Expected one active daily logger purge schedule.');
+      const retention=(await db.query("select retention_days from public.config_purge where target_table='logger_engine'")).rows[0];
+      ensure(retention?.retention_days === 13, 'logger_engine retention must be configured to 13 days.');
       // Compare digest on the server; never return decrypted secrets to reports.
       const secrets = (await db.query("select name, case when name='rezerva_cron_secret' then encode(sha256(convert_to(decrypted_secret,'UTF8')),'hex') else decrypted_secret end as value from vault.decrypted_secrets where name in ('rezerva_cron_secret','rezerva_project_url')")).rows;
       ensure(secrets.length === 2 && secrets.find(s => s.name === 'rezerva_project_url')?.value === config.SUPABASE_URL && secrets.find(s => s.name === 'rezerva_cron_secret')?.value === digest(config.CRON_SECRET), 'Vault URL/cron secret is absent or does not match local test configuration.');
@@ -99,30 +104,36 @@ export async function databaseCases(db, check) {
   const report = (who, plan, calendar = null) => as(who, 'select * from public.get_business_report($1,$2,$3,$4,0)', [biz[plan], day, day, calendar]);
   const allowed = (booking, who) => scalar('customer', 'select public.notification_recipient_allowed($1,$2) result', [booking, ids[who]], 'service_role');
 
-  await run('DB: Small / Complete features and 1 / 5 calendar limits', async () => {
+  await run('DB: Small / Complete features and 1 / 10 calendar limits', async () => {
     const small = await access('small'), large = await access('large');
     ensure(small.calendarLimit === 1 && !small.features.reports && !small.features.businessNotifications, 'Small entitlement mismatch.');
-    ensure(large.calendarLimit === 5 && large.features.reports && large.features.businessNotifications, 'Complete entitlement mismatch.');
+    ensure(large.calendarLimit === 10 && large.features.reports && large.features.businessNotifications, 'Complete entitlement mismatch.');
     await denied(() => as('small', "select public.add_calendar($1,'Extra')", [biz.small]));
     ctx.largeCalendars = [ctx.large.resource_id];
-    for (let i = 2; i <= 5; i++) ctx.largeCalendars.push((await as('large', "select (public.add_calendar($1,$2)).id", [biz.large, `Test ${i}`]))[0].id);
-    await denied(() => as('large', "select public.add_calendar($1,'Sixth')", [biz.large]));
+    for (let i = 2; i <= 10; i++) ctx.largeCalendars.push((await as('large', "select (public.add_calendar($1,$2)).id", [biz.large, `Test ${i}`]))[0].id);
+    await denied(() => as('large', "select public.add_calendar($1,'Eleventh')", [biz.large]));
   });
   await run('DB: license privacy, email binding, redemption idempotency and revocation', async () => {
-    const license = generateLicense({ email: emails.license, start: new Date(Date.now()-86400000).toISOString().replace(/\.\d{3}Z$/, 'Z'), months: 1 });
-    await db.query('insert into private.license_keys(key_hash,bound_email,starts_at,duration_months) values($1,$2,$3,1)', [license.hash, emails.license, license.startsAt]);
+    const license = generateLicense({ email: emails.license, start: new Date(Date.now()-86400000).toISOString().replace(/\.\d{3}Z$/, 'Z'), months: 1, type: 'Complete' });
+    await db.query("insert into private.license_keys(key_hash,bound_email,starts_at,duration_months,type) values($1,$2,$3,1,'Complete')", [license.hash, emails.license, license.startsAt]);
     await denied(() => as('license', 'select * from private.license_keys'));
     ensure(!(await scalar('other','select public.redeem_license($1) result',[license.key])).ok, 'Wrong-email license accepted.');
     ensure(!(await scalar('unverified','select public.redeem_license($1) result',[license.key])).ok, 'Unverified user accepted.');
-    for (let i=0;i<2;i++) ensure((await scalar('license','select public.redeem_license($1) result',[license.key])).access.calendarLimit === 5, 'License grant is not idempotent.');
+    for (let i=0;i<2;i++) ensure((await scalar('license','select public.redeem_license($1) result',[license.key])).access.calendarLimit === 10, 'License grant is not idempotent.');
     await db.query('update private.license_keys set revoked_at=now() where key_hash=$1',[license.hash]);
     ensure(!(await access('license')).active, 'Revoked license still grants access.');
-    ensure((await scalar('other','select public.redeem_license($1) result',['dev112233'])).access.calendarLimit === 5, 'Universal developer key was rejected.');
+    const half = generateLicense({ email: emails.license, start: new Date(Date.now()-86400000).toISOString().replace(/\.\d{3}Z$/, 'Z'), months: 1, type: 'half_complete' });
+    await db.query("insert into private.license_keys(key_hash,bound_email,starts_at,duration_months,type) values($1,$2,$3,1,'half_complete')",[half.hash,emails.license,half.startsAt]);
+    const halfAccess=(await scalar('license','select public.redeem_license($1) result',[half.key])).access;
+    const halfUiAccess=await access('license');
+    ensure(halfAccess.calendarLimit === 5 && halfAccess.planId === 'large' && halfUiAccess.features.reports, 'half_complete entitlement mismatch.');
+    await db.query('update private.license_keys set revoked_at=now() where key_hash=$1',[half.hash]);
+    ensure((await scalar('other','select public.redeem_license($1) result',['dev112233'])).access.calendarLimit === 10, 'Universal developer key was rejected.');
   });
   await run('DB: future/expired licenses and rate limiting', async () => {
     for (const [offset, expectedOk] of [[10,true],[-500,false]]) {
-      const license = generateLicense({ email: emails.license, start: new Date(Date.now()+offset*86400000).toISOString().replace(/\.\d{3}Z$/, 'Z'), months: 1 });
-      await db.query('insert into private.license_keys(key_hash,bound_email,starts_at,duration_months) values($1,$2,$3,1)',[license.hash,emails.license,license.startsAt]);
+      const license = generateLicense({ email: emails.license, start: new Date(Date.now()+offset*86400000).toISOString().replace(/\.\d{3}Z$/, 'Z'), months: 1, type: 'half_complete' });
+      await db.query("insert into private.license_keys(key_hash,bound_email,starts_at,duration_months,type) values($1,$2,$3,1,'half_complete')",[license.hash,emails.license,license.startsAt]);
       const result = await scalar('license','select public.redeem_license($1) result',[license.key]);
       ensure(result.ok === expectedOk && !result.access?.active, 'Future/expired license incorrectly grants access.');
     }
@@ -165,7 +176,7 @@ export async function databaseCases(db, check) {
     ensure(!(await scalar('other','select public.accept_calendar_invitation($1) result',[invitation.token])).ok, 'Wrong account accepted invitation.');
     ensure((await scalar('staff','select public.accept_calendar_invitation($1) result',[invitation.token])).ok, 'Staff could not accept invitation.');
     ensure(!(await scalar('staff','select public.accept_calendar_invitation($1) result',[invitation.token])).ok, 'Invitation replay accepted.');
-    ensure((await as('staff','select * from public.list_my_calendars($1)',[biz.large])).length === 5, 'Staff did not receive every shared calendar.');
+    ensure((await as('staff','select * from public.list_my_calendars($1)',[biz.large])).length === 10, 'Staff did not receive every shared calendar.');
   });
   await run('DB: booking creation, slot exclusion and customer ownership', async () => {
     ctx.smallBooking=await book('small'); ctx.largeBooking=await book('large');
@@ -190,7 +201,9 @@ export async function databaseCases(db, check) {
     const smallJobs=(await db.query('select user_id from public.notification_jobs where booking_id=$1',[ctx.smallBooking])).rows;
     ensure(smallJobs.length === 1 && smallJobs[0].user_id === ids.customer, 'Small queued a business reminder.');
     ensure(await allowed(ctx.largeBooking,'large') && await allowed(ctx.largeBooking,'staff') && !await allowed(ctx.largeBooking,'other'), 'Reminder eligibility mismatch.');
-    await as('customer','insert into public.notification_preferences(user_id,push_enabled,default_minutes) values($1,false,5)',[ids.customer]);
+    const modernPreferences=(await db.query("select to_regclass('public.client_notification_preferences') is not null modern")).rows[0].modern;
+    if(modernPreferences) await as('customer','select public.set_client_notification_preferences($1,$2)',[5,false]);
+    else await as('customer','insert into public.notification_preferences(user_id,push_enabled,default_minutes) values($1,false,5)',[ids.customer]);
     ensure(!await allowed(ctx.largeBooking,'customer'), 'Opt-out ignored.');
     await as('customer',"select public.set_booking_status($1,'cancelled')",[ctx.smallBooking]);
     ensure(!await allowed(ctx.smallBooking,'customer'), 'Cancelled booking eligible for reminder.');

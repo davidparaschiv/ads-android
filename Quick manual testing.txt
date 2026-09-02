@@ -119,7 +119,7 @@ begin
   delete from public.notification_jobs;
   delete from public.notification_log;
   delete from public.bookings;
-  delete from public.calendar_notification_preferences;
+  delete from public.business_notification_preferences;
   delete from public.calendar_members;
   delete from public.availability_rules;
   delete from public.blocked_periods;
@@ -129,7 +129,7 @@ begin
   delete from public.business_members;
   delete from public.subscriptions;
   delete from public.businesses;
-  delete from public.notification_preferences;
+  delete from public.client_notification_preferences;
   delete from public.device_tokens;
 
   -- Contul owner ramane, dar profilul lui de aplicatie este resetat la minimul tehnic.
@@ -202,8 +202,9 @@ update cloud backend:
 mark as done sql:
 npx supabase migration repair 006 --status applied
 
-generate licence:
-npm run license:generate -- --email contafacere@gmail.com --start "2026-09-01T00:00:00+03:00" --months 3
+#generate #licence:
+npm run license:generate -- --email contafacere@gmail.com --start "2026-09-01T00:00:00+03:00" --months 3 --type Complete
+npm run license:generate -- --email contafacere@gmail.com --start "2026-09-01T00:00:00+03:00" --months 3 --type half_complete
 
 Done—the checklist is included in **SETUP.html → “Remaining configuration”** inside [rezerva-app-qr-update.zip](sandbox:/workspace/scratch/e54d28157bf9/rezerva-app-qr-update.zip).
 

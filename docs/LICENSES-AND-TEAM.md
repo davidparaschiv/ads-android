@@ -7,13 +7,14 @@ Actualizare: înscrierea afacerii necesită email confirmat, telefon verificat p
 | Acces | Calendare active | Cine plătește |
 | --- | ---: | --- |
 | Small · 50 EUR/lună | 1 | Proprietarul |
-| Complete · 150 EUR/lună | 5 | Proprietarul |
-| Cheie de licență | 5 | Fără plată pe durata licenței |
+| Complete · 150 EUR/lună | 10 | Proprietarul |
+| Licență Complete | 10 | Fără plată pe durata licenței |
+| Licență half_complete | 5 | Fără plată pe durata licenței |
 | Membru invitat | Toate calendarele afacerii, automat | Nu plătește separat |
 
-Numai Complete include Team flow, rapoarte și notificări pentru afacere. Licențele active de 5 calendare includ aceleași beneficii. Small este strict pentru proprietar: un calendar, un singur utilizator și fără invitații de echipă. Notificările personale ale clienților nu depind de plan. Aplică și migrarea 010 pentru aceste reguli server-side: [PLAN-UPDATE.md](PLAN-UPDATE.md).
+Numai Complete include Team flow, rapoarte și notificări pentru afacere. Ambele tipuri de licență păstrează aceste funcții; diferența este limita de 10 sau 5 calendare. Small este strict pentru proprietar: un calendar, un singur utilizator și fără invitații de echipă. Notificările personale ale clienților nu depind de plan. Aplică migrarea 025 pentru limitele și tipurile actuale.
 
-Un calendar este o resursă care acceptă o singură programare simultană: un angajat, un post de lucru sau o barcă. Cele 5 calendare Complete se pot denumi diferit și se partajează între membrii echipei conform alocărilor. Complete permite maximum 15 membri staff complet înscriși; invitațiile încă neacceptate nu consumă locuri. O afacere deținută per cont Google; același cont poate fi invitat în alte afaceri.
+Un calendar este o resursă care acceptă o singură programare simultană: un angajat, un post de lucru sau o barcă. Cele 10 calendare Complete se pot denumi diferit și se partajează între membrii echipei conform alocărilor. Complete permite maximum 15 membri staff complet înscriși; invitațiile încă neacceptate nu consumă locuri. Separat, baza de date nu permite mai mult de 15 calendare stocate pentru aceeași afacere. O afacere deținută per cont Google; același cont poate fi invitat în alte afaceri.
 
 ## 1. Generează cheia local, în CMD
 
@@ -22,31 +23,31 @@ Ai nevoie doar de Node.js pentru generator; acesta nu folosește Supabase, inter
 Din folderul proiectului, în Windows CMD:
 
 ```bat
-node tools\generate-license.mjs --email owner@gmail.com --start "2026-09-01T00:00:00+03:00" --months 3
+node tools\generate-license.mjs --email owner@gmail.com --start "2026-09-01T00:00:00+03:00" --months 3 --type Complete
 ```
 
 Alternativ, pe orice platformă:
 
 ```bash
-npm run license:generate -- --email owner@gmail.com --start "2026-09-01T00:00:00+03:00" --months 3
+npm run license:generate -- --email owner@gmail.com --start "2026-09-01T00:00:00+03:00" --months 3 --type Complete
 ```
 
 Există și wrapperul `tools\generate-license.cmd`, care acceptă aceiași parametri. Generatorul afișează:
 
 1. Cheia privată `RZL-…`, generată din 32 octeți aleatori criptografic.
-2. Adresa normalizată, data UTC și numărul de luni.
-3. O comandă SQL care conține **numai hash-ul**, adresa, începutul și durata.
+2. Adresa normalizată, data UTC, numărul de luni, tipul și limita de calendare.
+3. O comandă SQL care conține **numai hash-ul**, adresa, începutul, durata și tipul.
 
 Nu execută SQL și nu încarcă nimic automat. Cheia apare în ieșirea terminalului; nu partaja capturi/înregistrări ale terminalului și nu o pune în Git sau fișiere publice. Păstreaz-o într-un manager de parole până o transmiți proprietarului. Dacă o pierzi, hash-ul nu permite recuperarea: revocă înregistrarea și emite alta.
 
 ## 2. Înregistrează manual în Supabase
 
-Aplică întâi migrațiile `001_initial_schema.sql`, apoi `002_plans_licenses_invitations.sql`. În SQL Editor, conectat ca administrator, copiază **numai blocul SQL** afișat de generator.
+Aplică toate migrațiile până la `025_complete_calendars_and_license_types.sql`. În SQL Editor, conectat ca administrator, copiază **numai blocul SQL** afișat de generator.
 
 Înregistrarea este în `private.license_keys`, nu într-un tabel accesibil prin API-ul aplicației. Poți vedea datele administrative astfel:
 
 ```sql
-select id, bound_email, starts_at, duration_months, expires_at,
+select id, bound_email, type, starts_at, duration_months, expires_at,
        redeemed_by, redeemed_at, revoked_at, note
 from private.license_keys
 order by created_at desc;
@@ -84,7 +85,7 @@ Serverul compară timpul bazei de date, nu ceasul telefonului. Nu este necesar u
 - Fără alt drept activ, accesul operațional al proprietarului și membrilor este blocat până la activarea unui abonament sau a unei licențe valide. Datele nu sunt șterse.
 - Proprietarul alege explicit un abonament Google Play. Cheia nu configurează o plată și nu produce debitare automată.
 - Dacă are deja un abonament Play, cheia nu îl anulează și nu suspendă facturarea acestuia. Abonamentul se gestionează din Google Play.
-- Dacă scade de la 5 la 1 calendar, proprietarul arhivează calendarele în plus. Datele și programările existente nu sunt șterse; programările noi se reiau când numărul de calendare active respectă planul.
+- Dacă scade de la 10 sau 5 la 1 calendar, proprietarul arhivează calendarele în plus. Datele și programările existente nu sunt șterse; programările noi se reiau când numărul de calendare active respectă planul.
 - Când există mai multe drepturi active, se alege limita cea mai mare, apoi expirarea cea mai târzie. Licențele nu se adună automat ca durată.
 
 ## 4. Invitații pe e-mail
@@ -105,7 +106,7 @@ Proprietarul deschide Acasă → Calendare și echipă, introduce adresa Google,
 
 Invitația expiră în 48 de ore și este de unică folosință. Retrimiterea creează un cod nou și invalidează linkul anterior. Revocarea unei invitații neacceptate blochează acceptarea; pentru un membru deja acceptat folosește „Elimină accesul”. Modificarea permisiunilor și eliminarea membrilor sunt verificate pe server. Eliminarea blochează citirile viitoare, nu poate retrage date deja văzute/copiate.
 
-Destinatarul deschide aplicația → Reprezint o afacere → Google → Am cod de invitație, apoi introduce manual codul `RZI-…`. Folosește exact adresa destinatară și primește automat acces la toate calendarele actuale și viitoare. Nu plătește separat, dar accesul cere plan Complete/licență de 5 calendare activă la proprietar.
+Destinatarul deschide aplicația → Reprezint o afacere → Google → Am cod de invitație, apoi introduce manual codul `RZI-…`. Folosește exact adresa destinatară și primește automat acces la toate calendarele actuale și viitoare. Nu plătește separat, dar accesul cere plan Complete ori o licență Complete/half_complete activă la proprietar.
 
 E-mailurile sunt folosite pentru invitații și, în v0.3, pentru verificarea înscrierii/aprobare. Reminderele pentru programări sunt push. La livrare se verifică din nou apartenența și preferința destinatarului; retragerea accesului anulează reminderele încă în așteptare. Un push deja trimis nu poate fi retras.
 

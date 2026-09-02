@@ -2,7 +2,7 @@
 
 | Funcție pentru afacere | Small · 50 €/lună | Complete · 150 €/lună |
 | --- | --- | --- |
-| Calendare active | 1 | 5 |
+| Calendare active | 1 | 10 |
 | Rezervări și calendar zilnic | Da | Da |
 | Colegi invitați prin e-mail | Nu — un singur utilizator | Da — maximum 15 membri acceptați |
 | Rapoarte zi/săptămână/lună | Nu | Da |
@@ -10,7 +10,7 @@
 
 Notificările personale ale clienților sunt disponibile indiferent de planul afacerii. E-mailurile de înscriere, aprobare și invitație, precum și SMS-ul de verificare, nu sunt beneficii premium și nu au fost dezactivate.
 
-Cheile normale acordă Complete (5 calendare partajate automat cu toată echipa, Team flow, rapoarte/notificări) în perioada lor de valabilitate; `dev112233` nu expiră. Un coleg nu plătește separat. Sunt numărați numai membrii care au acceptat invitația; invitațiile pending nu consumă din limita de 15.
+Cheile `Complete` acordă 10 calendare, iar `half_complete` acordă 5; ambele includ Team flow, rapoarte/notificări în perioada lor de valabilitate. `dev112233` acordă Complete și nu expiră. Un coleg nu plătește separat. Sunt numărați numai membrii care au acceptat invitația; invitațiile pending nu consumă din limita de 15.
 
 ## Dacă ai aplicat deja migrațiile 001–003
 
@@ -45,7 +45,7 @@ Pentru o bază nouă, aplică toate migrațiile: 001 → 002 → 003 → 004. Nu
 - Complete: rapoartele și setările de notificare funcționează pentru colegii invitați pe toate calendarele afacerii.
 - La o rezervare nouă pe Small se programează doar notificarea clientului. Complete include proprietarul și colegii alocați care acceptă notificări.
 - Expirarea sau downgrade-ul blochează livrarea notificărilor afacerii deja programate, la următoarea verificare a workerului. Mesajele deja trimise nu pot fi retrase. Upgrade-ul nu recreează automat notificările rezervărilor vechi.
-- Licența activă de 5 calendare acordă Complete chiar dacă există și o plată Small. Pentru verificarea Small folosește un cont fără licență/grant activ; nu modifica verificările sau politicile de securitate.
+- O licență Complete/half_complete activă acordă funcțiile Complete chiar dacă există și o plată Small. Pentru verificarea Small folosește un cont fără licență/grant activ; nu modifica verificările sau politicile de securitate.
 
 ## Compatibilitate și limite
 

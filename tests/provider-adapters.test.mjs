@@ -59,11 +59,11 @@ test('Provider adapters: invitation authorization, correct recipient and Resend 
 test('Provider adapters: reminder worker claiming, eligibility, FCM and retries',async t=>{
   const originals={fetch:globalThis.fetch,Deno:globalThis.Deno};
   t.after(()=>{Object.assign(globalThis,originals);delete globalThis.providerFixture;});
-  let jobs=[],tokens=[{token:'device-token'}],allowed=true,claimed=true,providerStatus=200;const calls=[],updates=[],logs=[];
+  let jobs=[],tokens=[{token:'device-token'}],allowed=true,claimed=true,providerStatus=200,providerStatuses=[];const calls=[],updates=[],logs=[];
   const fixture={env:name=>name==='CRON_SECRET'?'offline-secret':name==='GCLOUD_SERVICEACCOUNT_KEYS'?JSON.stringify({type:'service_account',project_id:'test-project',client_email:'offline@example.invalid',private_key:'offline-private-key'}):'test-project',db:{
     rpc:async()=>({data:allowed,error:null}),
     from:table=>{
-      let update;const query={select(){return query;},eq(){return query;},lte(){return query;},limit(){return query;},
+      let update;const query={select(){return query;},eq(){return query;},lte(){return query;},limit(){return query;},delete(){return query;},
         update(value){update=value;updates.push(value);return query;},
         async insert(value){logs.push(value);return {error:null};},
         async maybeSingle(){return {data:claimed?{id:'job'}:null,error:null};},
@@ -71,7 +71,7 @@ test('Provider adapters: reminder worker claiming, eligibility, FCM and retries'
       };return query;
     },
   }};
-  globalThis.fetch=async(url,options)=>{calls.push({url:String(url),options});return Response.json({},{status:providerStatus});};
+  globalThis.fetch=async(url,options)=>{calls.push({url:String(url),options});return Response.json({},{status:providerStatuses.length?providerStatuses.shift():providerStatus});};
   const handler=await adapter('supabase/functions/send-reminders/index.js',fixture);
   const invoke=()=>handler(post({}, {'x-cron-secret':'offline-secret'}));
   const job={id:'job',booking_id:'booking',user_id:'customer',attempts:0,title:'Test',body:'Test'};
@@ -97,14 +97,21 @@ test('Provider adapters: reminder worker claiming, eligibility, FCM and retries'
     assert.equal(message.android.notification.notification_priority,'PRIORITY_HIGH');
     assert.equal(updates.at(-1).status,'sent');assert.equal(logs.length,1);
   });
+  await t.test('one successful device marks the user notification sent even when another device fails',async()=>{
+    const beforeLogs=logs.length;
+    jobs=[job];tokens=[{token:'offline-device'},{token:'active-device'}];providerStatuses=[503,200];
+    assert.deepEqual(await (await invoke()).json(),{processed:1});
+    assert.equal(updates.at(-1).status,'sent');assert.equal(logs.length,beforeLogs+1);
+    tokens=[{token:'device-token'}];
+  });
   await t.test('missing device token keeps the job pending for a later registration',async()=>{
     const before=calls.length;tokens=[];jobs=[job];await invoke();tokens=[{token:'device-token'}];
     assert.equal(calls.length,before);assert.equal(updates.at(-1).status,'pending');
     assert.equal(updates.at(-1).attempts,0);assert.equal(updates.at(-1).last_error,'No registered device token');
   });
   await t.test('FCM error retries, then fails on third attempt without logging success',async()=>{
-    providerStatus=503;await invoke();assert.equal(updates.at(-1).status,'pending');
-    jobs=[{...job,attempts:2}];await invoke();assert.equal(updates.at(-1).status,'failed');assert.equal(logs.length,1);
+    const beforeLogs=logs.length;providerStatus=503;await invoke();assert.equal(updates.at(-1).status,'pending');
+    jobs=[{...job,attempts:2}];await invoke();assert.equal(updates.at(-1).status,'failed');assert.equal(logs.length,beforeLogs);
   });
 });
 

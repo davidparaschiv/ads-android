@@ -32,28 +32,42 @@ Deno.serve(async (request) => {
         }).eq('id', job.id);
         continue;
       }
+      let delivered = 0;
       for (const item of tokens || []) {
-        const response = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: {
-            token: item.token,
-            notification: { title: job.title, body: job.body },
-            data: { bookingId: job.booking_id, route: job.target_route || '/customer/notifications' },
-            android: {
-              priority: 'high',
-              notification: {
-                channel_id: 'rezerva_bookings',
-                sound: 'default',
-                notification_priority: 'PRIORITY_HIGH',
-                visibility: 'PUBLIC',
-                default_vibrate_timings: true,
+        try {
+          const response = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: {
+              token: item.token,
+              notification: { title: job.title, body: job.body },
+              data: { bookingId: job.booking_id, route: job.target_route || '/customer/notifications' },
+              android: {
+                priority: 'high',
+                notification: {
+                  channel_id: 'rezerva_bookings',
+                  sound: 'default',
+                  notification_priority: 'PRIORITY_HIGH',
+                  visibility: 'PUBLIC',
+                  default_vibrate_timings: true,
+                },
               },
-            },
-          } }),
-        });
-        if (!response.ok) throw new Error(await response.text());
+            } }),
+          });
+          if (response.ok) {
+            delivered += 1;
+            continue;
+          }
+          const providerError = await response.text();
+          if (isInvalidFcmToken(providerError)) {
+            await supabase.from('device_tokens').delete().eq('token', item.token);
+          }
+        } catch {
+          // Continue with every registered device. The job succeeds when at
+          // least one device belonging to this user accepts the notification.
+        }
       }
+      if (delivered === 0) throw new Error('No device accepted the notification');
       await supabase.from('notification_jobs').update({ status: 'sent', last_error: null }).eq('id', job.id);
       await supabase.from('notification_log').insert({ user_id: job.user_id, booking_id: job.booking_id, title: job.title, body: job.body });
       processed += 1;
@@ -63,3 +77,13 @@ Deno.serve(async (request) => {
   }
   return Response.json({ processed });
 });
+
+function isInvalidFcmToken(responseText) {
+  try {
+    const payload = JSON.parse(responseText);
+    return payload?.error?.details?.some((detail) =>
+      detail?.errorCode === 'UNREGISTERED' || detail?.errorCode === 'SENDER_ID_MISMATCH');
+  } catch {
+    return false;
+  }
+}

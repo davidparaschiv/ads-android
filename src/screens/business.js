@@ -33,7 +33,7 @@ export async function plansScreen(root) {
         ${planCard('large', selected)}
       </div>
       <button class="button button--primary" id="continue-plan">${store.get().business ? 'Continuă' : 'Continuă la verificarea afacerii'}</button>
-      ${config.features.licenseRedemption ? '<button class="button button--secondary" data-route="/business/license">Am o cheie de licență · 5 calendare</button>' : ''}
+      ${config.features.licenseRedemption ? '<button class="button button--secondary" data-route="/business/license">Am o cheie de licență</button>' : ''}
       <button class="text-button" id="plan-sign-out">Deconectare</button>`,
   });
   bindBack(root, '/business/start');
@@ -62,10 +62,10 @@ export function planCard(id, selected) {
   const plan = config.plans[id];
   return `<button class="plan-card ${selected === id ? 'is-selected' : ''}" data-plan="${id}">
     <span class="plan-card__check">${selected === id ? icon('check') : ''}</span>
-    <span class="plan-tag">${id === 'small' ? '1 calendar' : '5 calendare'}</span>
+    <span class="plan-tag">${id === 'small' ? '1 calendar' : '10 calendare'}</span>
     <strong>${plan.name}</strong>
     <span class="plan-price"><b>${config.mode === 'demo' ? plan.price + ' €' : 'Preț în Google Play'}</b>${config.mode === 'demo' ? '/lună' : ''}</span>
-    <ul><li>${plan.locations} locație</li><li>${plan.resources === 1 ? '1 calendar' : 'Până la 5 calendare partajate'}</li><li>${plan.resources === 1 ? 'Un singur utilizator · fără Team flow' : 'Până la 15 membri acceptați'}</li><li>Confirmare sau respingere rezervări</li><li>${plan.reports ? 'Rapoarte pe zi, săptămână și lună' : 'Fără rapoarte'}</li><li>${plan.businessNotifications ? 'Notificări push pentru afacere: aprobări și mementouri' : 'Aprobări de programări prin push'}</li></ul>
+    <ul><li>${plan.locations} locație</li><li>${plan.resources === 1 ? '1 calendar' : 'Până la 10 calendare partajate'}</li><li>${plan.resources === 1 ? 'Un singur utilizator · fără Team flow' : 'Până la 15 membri acceptați'}</li><li>Confirmare sau respingere rezervări</li><li>${plan.reports ? 'Rapoarte pe zi, săptămână și lună' : 'Fără rapoarte'}</li><li>${plan.businessNotifications ? 'Notificări push pentru afacere: aprobări și mementouri' : 'Aprobări de programări prin push'}</li></ul>
   </button>`;
 }
 

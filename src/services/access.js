@@ -2,13 +2,16 @@
 import { config } from '../config.js';
 import { getSupabase } from '../api/supabase.js';
 import { store } from '../state/store.js';
+import { DATABASE_ACTIONS, databaseActionForRpc, loggedDatabaseAction } from '../observability/database-action-log.js';
 
 export async function rpc(name, args = {}) {
   const client = getSupabase();
   if (!client) throw new Error('Conexiunea cu serverul nu este configurată.');
-  const { data, error } = await client.rpc(name, args);
-  if (error) throw new Error(error.message);
-  return data;
+  return loggedDatabaseAction(databaseActionForRpc(name,args),async()=>{
+    const { data, error } = await client.rpc(name, args);
+    if (error) throw error;
+    return data;
+  });
 }
 
 export async function getAccess(businessId = null) {
@@ -18,8 +21,8 @@ export async function getAccess(businessId = null) {
   const active = Boolean(grant && ((grant.source === 'developer' && (grant.expiresAt === null || grant.expiresAt === 'infinity')) || ((state.business?.is_owner === false && grant.source === 'demo') && Date.parse(grant.expiresAt) > Date.now())));
   const calendarLimit = active ? grant.calendarLimit : 0;
   return { active, calendarLimit, source: active ? grant.source : 'none', expiresAt: grant?.expiresAt,
-    features: { reports: active && calendarLimit === 5, businessNotifications: active && calendarLimit === 5 },
-    planId: active && calendarLimit === 5 ? 'large' : 'small', isOwner: state.business?.is_owner !== false,
+    features: { reports: active && calendarLimit >= 5, businessNotifications: active && calendarLimit >= 5 },
+    planId: active && calendarLimit >= 5 ? 'large' : 'small', isOwner: state.business?.is_owner !== false,
     activeCalendars: state.demoCalendars.filter(c => c.is_active).length,
     overLimit: state.demoCalendars.filter(c => c.is_active).length > calendarLimit };
 }
@@ -31,7 +34,7 @@ export function hasBusinessFeature(access, feature) {
 
 export async function demoGrant(planId, source = 'demo') {
   if (config.mode !== 'demo') throw new Error('Simularea este disponibilă doar în demo.');
-  await store.set({ demoAccess: { source, calendarLimit: planId === 'large' ? 5 : 1,
+  await store.set({ demoAccess: { source, calendarLimit: planId === 'large' ? 10 : 1,
     expiresAt: source === 'developer' ? null : new Date(Date.now() + 30 * 86400000).toISOString() } });
   return getAccess();
 }
@@ -95,8 +98,14 @@ export async function inviteMember(businessId, email, permission) {
   }
   const client = getSupabase();
   if (!client) throw new Error('Server neconfigurat.');
-  const { data, error } = await client.functions.invoke('send-calendar-invite', { body: { businessId, email, permission } });
-  if (error || !data?.ok) throw new Error(data?.error || 'Invitația nu a putut fi trimisă. Verifică Echipă și configurarea e-mailului.');
+  await loggedDatabaseAction(DATABASE_ACTIONS.BV_SEND_NEW_BUSINESS_TEAM_MEMBER_EMAIL_INVITATION,async()=>{
+    const { data, error } = await client.functions.invoke('send-calendar-invite', { body: { businessId, email, permission } });
+    if (error || !data?.ok) {
+      const failure = new Error(data?.error || 'Invitația nu a putut fi trimisă. Verifică Echipă și configurarea e-mailului.');
+      if (error) Object.assign(failure,{code:error.code || '',details:error.message || ''});
+      throw failure;
+    }
+  });
 }
 
 export async function acceptInvitation(token) {

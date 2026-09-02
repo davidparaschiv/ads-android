@@ -50,9 +50,9 @@ Nu mai există un comutator de configurare care să sară peste plată. O config
 
 Introdu `dev112233` în ecranul de licență:
 
-- În demo: acordă permanent 5 calendare în simularea locală. Nu transmite mesaje sau plăți.
+- În demo: acordă permanent 10 calendare în simularea locală. Nu transmite mesaje sau plăți.
 - În live: serverul acceptă cheia de dezvoltare pentru orice cont Google verificat. Aprobarea înscrierii rămâne separată și rezervată administratorului platformei.
-- Acordă 5 calendare fără expirare, până la dezactivarea server-side a accesului dezvoltatorului.
+- Acordă 10 calendare fără expirare, până la dezactivarea server-side a accesului dezvoltatorului.
 - Nu confirmă emailuri, telefoane sau cereri și nu ocolește aprobarea înscrierii.
 - Codul este cunoscut și scurt, deci **nu este tratat ca un secret de securitate**. Verificarea contului și regulile server sunt protecția reală.
 - Licențele normale generate local continuă să funcționeze în live, cu adresa și perioada lor. Nu primesc regulile speciale ale dezvoltatorului.

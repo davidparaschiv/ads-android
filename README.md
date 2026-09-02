@@ -14,12 +14,12 @@ Aplicație Android de programări, în română, alb/roșu. HTML, CSS, JavaScrip
 - Înscriere cu CUI, e-mail de contact și telefon obligatorii; confirmare prin cod, SMS prin Twilio Verify și aprobare prin cod de către ownerul fixat în DB. Emailurile nu conțin linkuri. Afacerea este creată numai după aprobarea finală. [Ghidul înscrierii și al cheii dev112233](docs/ENROLLMENT.md).
 - Comutatorul de test care sărea peste plată a fost eliminat. Bypass-ul de dezvoltare necesită introducerea cheii `dev112233`; cheia poate fi folosită de orice cont Google verificat.
 
-- Small: **50 EUR/lună, 1 calendar, un singur utilizator, fără Team flow, rapoarte sau notificări pentru afacere**. Complete: **150 EUR/lună, 5 calendare partajate și maximum 15 membri acceptați, cu rapoarte și notificări pentru afacere**. Doar proprietarul plătește. Notificările personale ale clienților rămân disponibile la ambele planuri.
-- Chei generate local prin CMD, înregistrate manual în DB cu hash, e-mail, început și luni de valabilitate. Orice cheie acordă 5 calendare, niciodată planul de 1 calendar.
+- Small: **50 EUR/lună, 1 calendar, un singur utilizator, fără Team flow, rapoarte sau notificări pentru afacere**. Complete: **150 EUR/lună, 10 calendare partajate și maximum 15 membri acceptați, cu rapoarte și notificări pentru afacere**. Doar proprietarul plătește. Notificările personale ale clienților rămân disponibile la ambele planuri.
+- Chei generate local prin CMD, înregistrate manual în DB cu hash, e-mail, început, luni de valabilitate și tip. `Complete` acordă 10 calendare; `half_complete` acordă 5, cu funcțiile Complete.
 - Activare și expirare verificate pe server; cheia nu este salvată în Preferences. La expirare accesul operațional este blocat până la un drept nou, fără ștergerea datelor.
 - Invitații pe e-mail, selectarea calendarelor, vizualizare/gestionare, retrimitere, revocare și editarea accesului membrilor.
 - Angajații invitați intră direct în spațiul afacerii, fără achiziție personală.
-- Calendar zilnic la ambele planuri. Pe Complete, toate cele 5 calendare sunt partajate automat cu toți membrii acceptați; rapoartele pe zi/săptămână/lună rămân verificate pe server.
+- Calendar zilnic la ambele planuri. Pe Complete, toate cele 10 calendare sunt partajate automat cu toți membrii acceptați; rapoartele pe zi/săptămână/lună rămân verificate pe server.
 - Crearea/reactivarea calendarelor este limitată tranzacțional. Clienții aleg calendarul și orele calculate pe server, fără expunerea altor clienți.
 - Remindere numai push; e-mail pentru invitații/verificări/aprobare; SMS pentru verificarea telefonului.
 

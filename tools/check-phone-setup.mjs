@@ -45,7 +45,7 @@ try {
   await read('supabase/migrations/005_reservation_qr.sql');
   report(manifest.includes('android:host="reservation"') && manifest.includes('barcode_ui') && activity.includes('registerPlugin(ReservationQrPlugin.class)') ? 'PASS' : 'FAIL', 'QR deep link, Google scanner module hint, native plugin and migration file are present');
 } catch { report('FAIL', 'QR native files or migration 005 are missing locally'); }
-report('WARN', 'Apply migrations 005, 018, 019, 020 and 021 to hosted Supabase as applicable; keep send-reminders deployed, then rebuild the APK');
+report('WARN', 'Apply all missing migrations through 025 to hosted Supabase; then sync and rebuild the APK');
 report('WARN', 'For camera testing, display the customer QR on another screen or a printout; the scanning phone cannot scan its own display');
 report('WARN', 'Offline checks cannot verify hosted OAuth, secrets, DNS, migrations, cron, paid SMS or device delivery');
 console.log(failures ? `RESULT: ${failures} local configuration issue(s). See SETUP.html.` : 'RESULT: local prerequisites pass; live service readiness is NOT certified.');

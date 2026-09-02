@@ -2,7 +2,7 @@
 
 Start with [START-HERE.md](../START-HERE.md) for the shorter no-domain setup.
 
-Applies to the current **v0.4 source ZIP**. Instructions are in English; the app is Romanian. Each numbered step ends with a checkpoint. Small (€50, 1 calendar) excludes business reports/reminders; Complete (€150, 5 calendars) includes both. Customer reminders remain available. Existing v0.3 projects need migration 004: [update instructions](PLAN-UPDATE.md).
+Applies to the current source ZIP. Instructions are in English; the app is Romanian. Each numbered step ends with a checkpoint. Small (€50, 1 calendar) excludes business reports/reminders; Complete (€150, 10 calendars) includes both. Complete/half_complete licenses grant 10/5 calendars. Customer reminders remain available. Apply every missing migration through 025 in numeric order.
 
 Your target is **real cloud services with a privately installed Android app**, not simulated demo mode. Use `VITE_APP_MODE=live` and a separate development Supabase project. The word “live” in this code selects real integrations; it does not publish the app.
 
@@ -417,7 +417,7 @@ Sign in through the real Google account chooser. Check Supabase Authentication �
 
 ### 17. Complete real enrollment, then create a real booking
 
-For your simplest developer test, sign in with any verified Google account, choose the license route and enter `dev112233`. The live server grants that account five calendars for 30 days. The key does not bypass enrollment or create a business by itself; administrator approval remains restricted separately.
+For your simplest developer test, sign in with an authorized verified Google account, choose the license route and enter `dev112233`. The live server grants Complete access with ten calendars. The key does not bypass enrollment or create a business by itself; administrator approval remains restricted separately.
 
 Complete the business form with test business details, a unique CUI-format value in this isolated development project, your real contact email and a mobile number you control. Do not impersonate a real business. The app checks CUI format, not ANAF ownership.
 
@@ -434,7 +434,7 @@ Before final approval, only a private pending application should exist. After ap
 For another business owner's free development access, generate a normal email-bound license in CMD:
 
 ```bat
-node tools\generate-license.mjs --email owner@example.com --start "2026-09-01T00:00:00+03:00" --months 1
+node tools\generate-license.mjs --email owner@example.com --start "2026-09-01T00:00:00+03:00" --months 1 --type Complete
 ```
 
 Replace the email and start with your actual tester and intended date. A future start grants no early access. Paste only the generator's SQL block into Supabase SQL Editor; it stores the hash, email and period, not the plaintext key. Give the tester the key privately. Enrollment verification still applies.
@@ -465,7 +465,7 @@ Skip this stage if a license-based development test is enough. Play account regi
 | Product ID (must match code) | Example base plan ID | Access |
 | --- | --- | --- |
 | `rezerva_small_monthly` | `monthly` | 1 calendar, intended €50/month |
-| `rezerva_large_monthly` | `monthly` | 5 calendars, intended €150/month |
+| `rezerva_large_monthly` | `monthly` | 10 calendars, intended €150/month |
 
 5. Create a RevenueCat project and its Google Play app for the same package. Follow its Google service-account setup: enable the required Google APIs, grant that service account the documented Play permissions for your app, and provide its JSON credential to RevenueCat. This is a separate credential from your FCM sender. Wait for RevenueCat's credential validation. [Play service credentials](https://www.revenuecat.com/docs/service-credentials/creating-play-service-credentials).
 6. Import both base-plan products into RevenueCat (they may appear as `subscription_id:base_plan_id`). Attach both to entitlement **`business_pro`**. Create a current/default Offering with two distinct packages, e.g. custom package identifiers `small_monthly` and `large_monthly`, each containing its matching product. [Product configuration](https://www.revenuecat.com/docs/getting-started/entitlements/android-products).
@@ -521,9 +521,9 @@ This is not an app payment-skip flag: an actual verified sandbox purchase is sti
 
 Add your purchase tester as both an internal-track tester and a **license tester** in Play Console. Install through the Play opt-in link using that account. Being an internal tester alone is not proof a purchase is free; confirm the purchase sheet explicitly shows a test payment method before proceeding. [Google Play sandbox testing](https://www.revenuecat.com/docs/test-and-launch/sandbox/google-play-store).
 
-Use an approved business owner account without an active free license/developer grant, or those five-calendar grants may mask the result. The account installing from Play and the intended billing tester must be configured correctly; the in-app Google account is separately the Supabase owner.
+Use an approved business owner account without an active free license/developer grant, or those grants may mask the result. The account installing from Play and the intended billing tester must be configured correctly; the in-app Google account is separately the Supabase owner.
 
-Test the 1-calendar purchase, rejection of a second active calendar, upgrade to 5, restore on the same owner account, cancellation, accelerated test renewal/expiry, and downgrade. If five calendars exist after downgrade, archive extras rather than deleting history. Test another account cannot take over the subscription.
+Test the 1-calendar purchase, rejection of a second active calendar, upgrade to 10, restore on the same owner account, cancellation, accelerated test renewal/expiry, and downgrade. If several calendars exist after downgrade, archive extras rather than deleting history. Test another account cannot take over the subscription.
 
 **Checkpoint:** RevenueCat, `public.subscriptions`, and the app agree on the product, sandbox environment, expiration and access. A Play success dialog alone is not sufficient.
 

@@ -59,6 +59,7 @@ test('Small/Complete feature entitlements: migration, report RPC and reminder de
   await migrate('009_access_expiry_and_permanent_dev.sql');
   await migrate('010_team_plan_and_member_limit.sql');
   await migrate('011_all_team_calendars_shared.sql');
+  await migrate('025_complete_calendars_and_license_types.sql');
   const allowed=(booking,user) => scalar(customer,'select public.notification_recipient_allowed($1,$2) result',[booking,user],'service_role');
   const report=(user,business,calendar=null,from=day,until=day,offset=0) => as(user,'select * from public.get_business_report($1,$2,$3,$4,$5)',[business,from,until,calendar,offset]);
 
@@ -135,7 +136,7 @@ test('Small/Complete feature entitlements: migration, report RPC and reminder de
     assert.equal((await as(complete,'select * from public.bookings')).length,0);
   });
   await t.test('active licenses and universal developer grants retain Complete features', async () => {
-    const license=generateLicense({email:'complete@example.com',start:new Date(Date.now()-3600000).toISOString().replace(/\.\d{3}Z$/,'Z'),months:1});
+    const license=generateLicense({email:'complete@example.com',start:new Date(Date.now()-3600000).toISOString().replace(/\.\d{3}Z$/,'Z'),months:1,type:'Complete'});
     await db.exec(license.sql);
     assert.equal((await scalar(complete,'select public.redeem_license($1) result',[license.key])).ok,true);
     assert.equal((await access(complete,largeBusiness)).features.reports,true);

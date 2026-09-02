@@ -47,7 +47,7 @@ export const config = Object.freeze({
       name: 'Complete',
       price: Number(env.VITE_LARGE_PLAN_PRICE || 150),
       productId: 'rezerva_large_monthly',
-      resources: 5,
+      resources: 10,
       locations: 1,
       reports: true,
       businessNotifications: true,

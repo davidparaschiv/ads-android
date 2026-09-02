@@ -7,6 +7,7 @@ import { getSupabase } from '../api/supabase.js';
 import { loggedExternalCall } from '../observability/external-api-log.js';
 import { navigate } from '../router.js';
 import { store } from '../state/store.js';
+import { currentDeviceRegistrationAction, loggedDatabaseAction } from '../observability/database-action-log.js';
 
 let registration = null;
 let navigationListenerInstalled = false;
@@ -53,8 +54,10 @@ async function register() {
             if (!supabase) throw new Error('Server neconfigurat.');
             const { data } = await supabase.auth.getUser();
             if (!data.user) throw new Error('Autentificare necesară.');
-            const { error } = await supabase.from('device_tokens').upsert({ user_id: data.user.id, token: value, platform: 'android', updated_at: new Date().toISOString() }, { onConflict: 'token' });
-            if (error) throw error;
+            await loggedDatabaseAction(currentDeviceRegistrationAction(),async()=>{
+              const { error } = await supabase.from('device_tokens').upsert({ user_id: data.user.id, token: value, platform: 'android', updated_at: new Date().toISOString() }, { onConflict: 'token' });
+              if (error) throw error;
+            });
             await Preferences.set({ key: 'rezerva.push.token', value });
             resolve({ enabled: true, demo: false });
           } catch (error) { reject(error); }

@@ -1,6 +1,6 @@
 # Backend integration tests — Git Bash guide
 
-This update starts from your uploaded **rezerva-app(1).zip**. It adds tests, not a new app. Your Android project, app configuration, Firebase client file, backend functions and migrations are preserved.
+This guide belongs to the current Rezerva project. The Android project, app configuration and Firebase client file remain unchanged by backend test execution.
 
 All new code is JavaScript (`.mjs`, `// @ts-check`), without a UI framework or TypeScript source. The existing `typecheck` command checks `src/`; the new test runner is validated by ESLint and executable tests, not by that frontend typecheck.
 
@@ -8,9 +8,9 @@ All new code is JavaScript (`.mjs`, `// @ts-check`), without a UI framework or T
 
 | Area | Automated coverage | What still needs you |
 | --- | --- | --- |
-| Supabase | Auth configuration, REST, deployed-function authorization, RLS, RPCs, migrations 001–004 | Configure your development project and deploy the existing functions |
+| Supabase | Auth configuration, REST, deployed-function authorization, RLS, RPCs, migrations through 025, logger retention configuration and cron jobs | Configure your development project and apply only missing migrations |
 | Google login | Verify real Google-backed Supabase sessions and role/email matching | Sign in once per test account; renew expired sessions |
-| Plans and licenses | Small: 1 calendar, no business reports/reminders; Complete: 5 calendars and both features; expiry, email binding, revocation, invalid attempts, non-owner developer-key rejection | These DB fixtures are rolled back; they do not prove Google Play checkout |
+| Plans and licenses | Small: 1 calendar; Complete: 10 calendars; Complete/half_complete licenses: 10/5 calendars with Complete features; expiry, binding, revocation and limits | These DB fixtures are rolled back; they do not prove Google Play checkout |
 | Booking | Real hosted RPCs, **two concurrent requests for one slot**, customer identity, visibility, report gate, cancellation | Existing test business/calendar/service with availability |
 | Business enrollment | Real email link, real SMS code, fixed administrator approval, business appears only after approval | Read the email/SMS; approval requires the fixed administrator account |
 | Invitations | Real email through deployed backend, account-bound acceptance, single use, calendar scope | Read the invitation email and use a separate Google test account |
@@ -125,7 +125,7 @@ npm run test:backend:all -- --allow-db-writes
 
 ### Migration history
 
-No new migration is introduced by this update. Keep your existing migrations 001–004. The read-only check compares recorded versions in `supabase_migrations.schema_migrations` and tests the actual schema separately.
+The current schema ends with migration `025_complete_calendars_and_license_types.sql`. The read-only check expects successfully applied versions 001–025, verifies RLS on the logging tables, requires `config_purge.retention_days = 13` and checks both scheduled jobs.
 
 If you ran SQL manually earlier, missing history does not necessarily mean the tables are missing. Confirm each complete SQL file really succeeded before using the existing guide's `migration repair --status applied` procedure for that version. Do not rerun every SQL file blindly. The tests will not repair history for you.
 
@@ -358,7 +358,7 @@ TEST_REVENUECAT_USER_ID=THE_SAME_SUPABASE_OWNER_UUID
 TEST_EXPECTED_PLAN=small
 ```
 
-Use `small` for **Small (€50, one calendar)** or `large` for **Complete (€150, five calendars)**. `large` is the existing internal plan/product identifier; the display name remains Complete. Expected product IDs are `rezerva_small_monthly` / `rezerva_large_monthly`, with any provider base-plan suffix handled by the backend.
+Use `small` for **Small (€50, one calendar)** or `large` for **Complete (€150, ten calendars)**. `large` is the existing internal plan/product identifier; the display name remains Complete. Expected product IDs are `rezerva_small_monthly` / `rezerva_large_monthly`, with any provider base-plan suffix handled by the backend.
 
 ```bash
 npm run test:backend -- billing --allow-writes --allow-billing

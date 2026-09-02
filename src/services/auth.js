@@ -10,6 +10,7 @@ import { rememberReservationQr, hasPendingReservationQr, clearPendingReservation
 import { shouldIgnoreNativeBack } from './native-interaction.js';
 import { navigate } from '../router.js';
 import { loggedExternalCall } from '../observability/external-api-log.js';
+import { currentDeviceRemovalAction, loggedDatabaseAction } from '../observability/database-action-log.js';
 
 let listenerInstalled = false;
 let explicitSignOut = false;
@@ -196,7 +197,10 @@ export async function signOut() {
       const user = store.get().user;
       // Prevent push on a device after sign-out. Server policies still check recipient identity.
       const { value: token } = await Preferences.get({ key: 'rezerva.push.token' });
-      if (token && user) await supabase.from('device_tokens').delete().eq('user_id', user.id).eq('token', token);
+      if (token && user) await loggedDatabaseAction(currentDeviceRemovalAction(),async()=>{
+        const { error } = await supabase.from('device_tokens').delete().eq('user_id', user.id).eq('token', token);
+        if (error) throw error;
+      }).catch(() => undefined);
       await Preferences.remove({ key: 'rezerva.push.token' });
       await supabase.auth.signOut();
     }
