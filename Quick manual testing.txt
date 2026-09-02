@@ -1,7 +1,7 @@
-npm install
+npm ci
 npm run check
 npm run typecheck
-npm run test:local
+npm run test:local sau...      TZ=UTC npm test   -> acelasi efect exact acelasi
 npm run check:phone
 npm run build
 npx cap sync android
@@ -204,6 +204,7 @@ npx supabase migration repair 006 --status applied
 
 generate licence:
 npm run license:generate -- --email contafacere@gmail.com --start "2026-09-01T00:00:00+03:00" --months 3 --type Complete
+npm run license:generate -- --email contafacere@gmail.com --start "2026-09-01T00:00:00+03:00" --months 3 --type half_complete
 
 Done—the checklist is included in **SETUP.html → “Remaining configuration”** inside [rezerva-app-qr-update.zip](sandbox:/workspace/scratch/e54d28157bf9/rezerva-app-qr-update.zip).
 

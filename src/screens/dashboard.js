@@ -10,16 +10,16 @@ import {page,bindBack,toast,loadingButton,confirmDialog} from '../ui/layout.js';
 
 const days=['L','Ma','Mi','J','V','S','D'];
 
-export async function businessHomeScreen(root,anchor=todayIso()){
-  const business=store.get().business;const [from,until]=weekBounds(anchor);
+export async function businessHomeScreen(root,anchor=todayIso(),reportMode='week'){
+  const business=store.get().business;const isDay=reportMode==='day';const [weekFrom,weekUntil]=weekBounds(anchor);const from=isDay?anchor:weekFrom;const until=isDay?anchor:weekUntil;
   const [bookings,roster,access]=await Promise.all([listBusinessBookings(business.id,'',from,until,'confirmed'),team(business.id),getAccess(business.id)]);
-  const counts=Array.from({length:7},(_,index)=>bookings.filter(item=>item.date===addDays(from,index)).length);const max=Math.max(1,...counts);
+  const chartDates=isDay?[anchor]:Array.from({length:7},(_,index)=>addDays(weekFrom,index));const counts=chartDates.map(date=>bookings.filter(item=>item.date===date).length);const max=Math.max(1,...counts);const step=isDay?1:7;
   root.innerHTML=page({title:'Home',nav:'business',active:'home',content:`
     <section class="draw-section draw-section--center"><h1>Scanează codul QR</h1><button class="draw-button" data-route="/business/scan">Scanează</button></section>
-    <section class="draw-section"><div class="week-heading"><button data-week="-7" aria-label="Săptămâna precedentă">${icon('arrow','icon--back')}</button><h1>Rapoarte</h1><button data-week="7" aria-label="Săptămâna următoare">${icon('arrow')}</button></div><p class="week-range">${formatRange(from,until)}</p><div class="draw-chart">${counts.map((count,index)=>`<div><span style="height:${Math.max(4,Math.round(count/max*120))}px"></span><small>${days[index]}<br>${Number(addDays(from,index).slice(8,10))}</small></div>`).join('')}</div><strong class="chart-label">Rezervări</strong></section>
+    <section class="draw-section report-section"><div class="report-mode-switch" role="group" aria-label="Perioada raportului"><button class="${isDay?'is-active':''}" data-report-mode="day">Zi</button><button class="${isDay?'':'is-active'}" data-report-mode="week">Săptămână</button></div><div class="week-heading"><button data-week="-${step}" aria-label="${isDay?'Ziua':'Săptămâna'} precedentă">${icon('arrow','icon--back')}</button><h1>Rapoarte</h1><button data-week="${step}" aria-label="${isDay?'Ziua':'Săptămâna'} următoare">${icon('arrow')}</button></div><p class="week-range">${isDay?formatChartDate(anchor):formatRange(weekFrom,weekUntil)}</p><div class="draw-chart draw-chart--${isDay?'day':'week'}">${counts.map((count,index)=>`<div class="draw-chart__item"><small class="draw-chart__date">${formatChartDate(chartDates[index])}</small><div class="draw-chart__bar"><span style="height:${Math.max(4,Math.round(count/max*108))}px"></span></div><strong class="draw-chart__count">${count}</strong></div>`).join('')}</div><strong class="chart-label">Rezervări</strong></section>
     ${business.is_owner===false||access.planId!=='large'?'':`<section class="draw-section"><h1>Invită pe cineva (adresa de mail)</h1><form id="home-invite" class="draw-inline-form"><label>Adresa de mail<input name="email" type="email" inputmode="email" autocomplete="email" placeholder="coleg@gmail.com" required maxlength="254"></label><button class="draw-button">Trimite</button></form></section>`}
     ${access.planId==='large'?`<section class="draw-section"><h1>Membri</h1><div class="draw-list">${roster.members.map(item=>`<span>${escapeHtml(item.email)}</span>`).join('')}</div></section>`:''}`});
-  bindBack(root);root.querySelectorAll('[data-week]').forEach(button=>button.addEventListener('click',()=>businessHomeScreen(root,addDays(anchor,Number(button.getAttribute('data-week'))))));
+  bindBack(root);root.querySelectorAll('[data-week]').forEach(button=>button.addEventListener('click',()=>businessHomeScreen(root,addDays(anchor,Number(button.getAttribute('data-week'))),reportMode)));root.querySelectorAll('[data-report-mode]').forEach(button=>button.addEventListener('click',()=>businessHomeScreen(root,anchor,button.getAttribute('data-report-mode')||'week')));
   root.querySelector('#home-invite')?.addEventListener('submit',async event=>{event.preventDefault();const form=/** @type {HTMLFormElement} */(event.currentTarget);const button=/** @type {HTMLButtonElement} */(form.querySelector('button'));try{loadingButton(button,true);const values=formData(form);await inviteMember(business.id,String(values.email).toLowerCase(),'manager');await businessHomeScreen(root,anchor);toast(root,'Invitație trimisă.');}catch(error){loadingButton(button,false);toast(root,error.message,'error');}});
 }
 
@@ -46,5 +46,6 @@ function appointmentRow(item){return `<article class="draw-appointment"><strong>
 function weekBounds(value){const date=new Date(`${value}T12:00:00Z`);date.setUTCDate(date.getUTCDate()-(date.getUTCDay()+6)%7);const from=date.toISOString().slice(0,10);return[from,addDays(from,6)];}
 function addDays(value,count){const date=new Date(`${value}T12:00:00Z`);date.setUTCDate(date.getUTCDate()+count);return date.toISOString().slice(0,10);}
 function formatRange(from,until){const fmt=new Intl.DateTimeFormat('ro-RO',{day:'2-digit',month:'short'});return `${fmt.format(new Date(`${from}T12:00:00Z`))} - ${fmt.format(new Date(`${until}T12:00:00Z`))}`;}
+function formatChartDate(value){return new Intl.DateTimeFormat('ro-RO',{day:'numeric',month:'short'}).format(new Date(`${value}T12:00:00Z`));}
 function formatDayDate(value){return new Intl.DateTimeFormat('ro-RO',{day:'2-digit',month:'2-digit'}).format(new Date(`${value}T12:00:00Z`));}
 function routeParams(){return new URLSearchParams(window.location.hash.split('?')[1]||'');}
