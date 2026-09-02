@@ -52,7 +52,7 @@ export async function inspectDatabase(config, check) {
       const loggerJobs = (await db.query("select active,schedule,command from cron.job where jobname='rezerva-logger-engine-purge'")).rows;
       ensure(loggerJobs.length === 1 && loggerJobs[0].active && loggerJobs[0].schedule === '17 2 * * *' && loggerJobs[0].command.includes('purge_expired_logger_engine_rows'), 'Expected one active daily logger purge schedule.');
       const retention=(await db.query("select retention_days from public.config_purge where target_table='logger_engine'")).rows[0];
-      ensure(retention?.retention_days === 13, 'logger_engine retention must be configured to 13 days.');
+      ensure(retention?.retention_days === 4, 'logger_engine retention must be configured to 4 days.');
       // Compare digest on the server; never return decrypted secrets to reports.
       const secrets = (await db.query("select name, case when name='rezerva_cron_secret' then encode(sha256(convert_to(decrypted_secret,'UTF8')),'hex') else decrypted_secret end as value from vault.decrypted_secrets where name in ('rezerva_cron_secret','rezerva_project_url')")).rows;
       ensure(secrets.length === 2 && secrets.find(s => s.name === 'rezerva_project_url')?.value === config.SUPABASE_URL && secrets.find(s => s.name === 'rezerva_cron_secret')?.value === digest(config.CRON_SECRET), 'Vault URL/cron secret is absent or does not match local test configuration.');

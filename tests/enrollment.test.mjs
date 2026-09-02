@@ -20,9 +20,9 @@ test('Verified enrollment and universal developer access', async t => {
     grant usage on schema public,auth to anon,authenticated,service_role;
     grant execute on all functions in schema auth to anon,authenticated,service_role;
     alter default privileges in schema public grant all on tables to anon,authenticated,service_role;`);
-  for (const file of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql','004_team_features.sql','006_universal_developer_license.sql','007_approval_email_details.sql','008_owner_approval_codes.sql','009_access_expiry_and_permanent_dev.sql','010_team_plan_and_member_limit.sql','011_all_team_calendars_shared.sql','012_booking_rejected_status.sql','013_customer_profiles_booking_approval.sql','014_drawn_screens_service_calendar.sql','015_calendar_service_settings.sql','016_strict_entitlement_lock.sql','017_account_roles_calendar_delete.sql','018_booking_schedule_views_and_notifications.sql','019_customer_confirmed_reminders_and_invite_privacy.sql','020_team_operational_access_and_phone_uniqueness.sql','021_account_type_resolution.sql','023_notification_preferences_and_job_types.sql','025_complete_calendars_and_license_types.sql','026_notification_preference_save_updates_jobs.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
-  const admin=randomUUID(), owner=randomUUID(), attacker=randomUUID(), invited=randomUUID(), phoneUser=randomUUID();
-  for (const [id,email] of [[admin,'davidnicolaparaschiv@gmail.com'],[owner,'business@example.com'],[attacker,'other@example.com'],[invited,'invited@example.com'],[phoneUser,'phone@example.com']]) {
+  for (const file of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql','004_team_features.sql','006_universal_developer_license.sql','007_approval_email_details.sql','008_owner_approval_codes.sql','009_access_expiry_and_permanent_dev.sql','010_team_plan_and_member_limit.sql','011_all_team_calendars_shared.sql','012_booking_rejected_status.sql','013_customer_profiles_booking_approval.sql','014_drawn_screens_service_calendar.sql','015_calendar_service_settings.sql','016_strict_entitlement_lock.sql','017_account_roles_calendar_delete.sql','018_booking_schedule_views_and_notifications.sql','019_customer_confirmed_reminders_and_invite_privacy.sql','020_team_operational_access_and_phone_uniqueness.sql','021_account_type_resolution.sql','023_notification_preferences_and_job_types.sql','025_complete_calendars_and_license_types.sql','026_notification_preference_save_updates_jobs.sql','027_simplify_logger_action_types.sql','028_owner_delete_invitee_account.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+  const admin=randomUUID(), owner=randomUUID(), attacker=randomUUID(), invited=randomUUID(), removedInvitee=randomUUID(), phoneUser=randomUUID();
+  for (const [id,email] of [[admin,'davidnicolaparaschiv@gmail.com'],[owner,'business@example.com'],[attacker,'other@example.com'],[invited,'invited@example.com'],[removedInvitee,'removed@example.com'],[phoneUser,'phone@example.com']]) {
     await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[id,email]);
     await db.query("insert into auth.identities(user_id,provider) values($1,'google')",[id]);
   }
@@ -142,6 +142,28 @@ test('Verified enrollment and universal developer access', async t => {
     assert.equal(teamInvitation.ok,true);
     assert.deepEqual(await call(attacker,'accept_calendar_invitation',[teamInvitation.token]),{ok:false,message:'Cod invalid.'});
     assert.deepEqual(await call(attacker,'accept_calendar_invitation',['RZI-'+'A'.repeat(64)]),{ok:false,message:'Cod invalid.'});
+  });
+  await t.test('only the owner deletes an invitee persona and the same Auth account can start again',async()=>{
+    await db.query("insert into public.business_members(business_id,user_id,role) values($1,$2,'staff')",[businessId,removedInvitee]);
+    await db.query("update public.profiles set display_name='Invitat Șters',first_name='Invitat',last_name='Șters',customer_profile_completed_at=now() where id=$1",[removedInvitee]);
+    await db.query("insert into public.device_tokens(user_id,token,platform) values($1,'removed-device','android')",[removedInvitee]);
+    await db.query("insert into public.client_notification_preferences(user_id,default_minutes,push_enabled) values($1,30,true) on conflict(user_id) do update set default_minutes=30",[removedInvitee]);
+    await assert.rejects(call(removedInvitee,'delete_invitee_account',[businessId,removedInvitee]),/Doar proprietarul/);
+    await assert.rejects(call(owner,'delete_invitee_account',[businessId,owner]),/Proprietarul nu poate fi șters/);
+
+    assert.deepEqual(await call(owner,'delete_invitee_account',[businessId,removedInvitee]),{ok:true});
+    assert.equal((await db.query('select count(*)::int count from public.business_members where user_id=$1',[removedInvitee])).rows[0].count,0);
+    assert.equal((await db.query('select count(*)::int count from public.calendar_members where user_id=$1',[removedInvitee])).rows[0].count,0);
+    assert.equal((await db.query('select count(*)::int count from public.device_tokens where user_id=$1',[removedInvitee])).rows[0].count,0);
+    assert.equal((await db.query('select count(*)::int count from public.client_notification_preferences where user_id=$1',[removedInvitee])).rows[0].count,0);
+    assert.deepEqual((await db.query('select display_name,first_name,last_name,customer_profile_completed_at from public.profiles where id=$1',[removedInvitee])).rows[0],{
+      display_name:'',first_name:null,last_name:null,customer_profile_completed_at:null,
+    });
+    assert.equal((await db.query('select count(*)::int count from auth.users where id=$1',[removedInvitee])).rows[0].count,1);
+    assert.deepEqual((await db.query('select reset_by,reason from public.account_reset_events where user_id=$1',[removedInvitee])).rows[0],{reset_by:owner,reason:'invitee_deleted'});
+    assert.equal(await call(removedInvitee,'get_account_role',[]),'unassigned');
+    assert.equal((await call(removedInvitee,'complete_customer_profile',['Cont','Nou'])).completed,true);
+    assert.equal(await call(removedInvitee,'get_account_role',[]),'client');
   });
   await t.test('a Romanian phone number cannot enroll a second business',async()=>{
     await assert.rejects(call(phoneUser,'start_enrollment',['Altă firmă','Salon','București','99887766','+40 712 345 678']),/Numărul de telefon este deja folosit/);

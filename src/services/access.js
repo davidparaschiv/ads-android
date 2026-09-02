@@ -98,7 +98,7 @@ export async function inviteMember(businessId, email, permission) {
   }
   const client = getSupabase();
   if (!client) throw new Error('Server neconfigurat.');
-  await loggedDatabaseAction(DATABASE_ACTIONS.BV_SEND_NEW_BUSINESS_TEAM_MEMBER_EMAIL_INVITATION,async()=>{
+  await loggedDatabaseAction(DATABASE_ACTIONS.BV_INVITE_TEAM_MEMBER,async()=>{
     const { data, error } = await client.functions.invoke('send-calendar-invite', { body: { businessId, email, permission } });
     if (error || !data?.ok) {
       const failure = new Error(data?.error || 'Invitația nu a putut fi trimisă. Verifică Echipă și configurarea e-mailului.');
@@ -126,4 +126,10 @@ export async function setMemberAccess(businessId, userId, permission, remove = f
   if (config.mode !== 'demo') return rpc('set_team_member', { p_business_id: businessId, p_user_id: userId, p_permission: permission, p_remove: remove });
   const existing = store.get().demoMembers.find(m => m.userId === userId);
   await store.set({ demoMembers: store.get().demoMembers.filter(m => m.userId !== userId).concat(remove ? [] : [{ userId, email: existing?.email || '', role: 'staff', permission }]) });
+}
+
+export async function deleteInviteeAccount(businessId,userId) {
+  if (config.mode !== 'demo') return rpc('delete_invitee_account', { p_business_id: businessId, p_user_id: userId });
+  await store.set({ demoMembers: store.get().demoMembers.filter(member => member.userId !== userId) });
+  return { ok: true };
 }

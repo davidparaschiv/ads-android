@@ -30,7 +30,7 @@ export async function createBooking(input) {
   if (config.mode === 'demo') {
     return { id: `demo-${crypto.randomUUID()}`, ...input, status: 'pending' };
   }
-  return loggedDatabaseAction(DATABASE_ACTIONS.CV_CREATE_NEW_BOOKING_REQUEST,async()=>{
+  return loggedDatabaseAction(DATABASE_ACTIONS.CV_MAKE_APPOINTMENT,async()=>{
     const supabase = getSupabase();
     if (!supabase) throw new Error('Supabase nu este configurat.');
     const { data, error } = await supabase.rpc('create_booking', {
@@ -48,7 +48,7 @@ export async function createBooking(input) {
 
 export async function listCustomerBookings() {
   if (config.mode === 'demo') return demoBookings.slice(0, 2);
-  return loggedDatabaseAction(DATABASE_ACTIONS.CV_READ_CURRENT_CLIENT_BOOKINGS,async()=>{
+  return loggedDatabaseAction(DATABASE_ACTIONS.CV_VIEW_MY_APPOINTMENTS,async()=>{
     const supabase = getSupabase();
     if (!supabase) return [];
     const { data: authData } = await supabase.auth.getUser();

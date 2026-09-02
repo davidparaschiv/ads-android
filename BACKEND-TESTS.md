@@ -125,7 +125,7 @@ npm run test:backend:all -- --allow-db-writes
 
 ### Migration history
 
-The current schema ends with migration `025_complete_calendars_and_license_types.sql`. The read-only check expects successfully applied versions 001–025, verifies RLS on the logging tables, requires `config_purge.retention_days = 13` and checks both scheduled jobs.
+The read-only check verifies RLS on the logging tables, requires `config_purge.retention_days = 4` and checks both scheduled jobs. Apply all pending migrations through `029_logger_retention_four_days.sql` before running it.
 
 If you ran SQL manually earlier, missing history does not necessarily mean the tables are missing. Confirm each complete SQL file really succeeded before using the existing guide's `migration repair --status applied` procedure for that version. Do not rerun every SQL file blindly. The tests will not repair history for you.
 

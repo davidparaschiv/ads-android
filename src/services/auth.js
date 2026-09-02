@@ -14,6 +14,8 @@ import { currentDeviceRemovalAction, loggedDatabaseAction } from '../observabili
 
 let listenerInstalled = false;
 let explicitSignOut = false;
+let accountResetSignOut = false;
+let accountResetChannel = null;
 // In memory only: never persist invitation or license secrets in Preferences.
 let pendingInvitation = '';
 let pendingEnrollment = '';
@@ -133,15 +135,18 @@ export async function initializeAuth() {
       // Never trust cached UI identity as proof of authentication.
       const { data } = await supabase.auth.getSession();
       if (data.session?.user) {
-        await saveUser(data.session.user);
-        await enforceExistingAccountType();
+        const reset = await watchAccountReset(supabase,data.session);
+        if (!reset) {
+          await saveUser(data.session.user);
+          await enforceExistingAccountType();
+        }
       }
       // A temporary refresh/network failure must not erase the persisted UI
       // identity. Server authorization still protects every data operation.
       else if (!store.get().user) await store.set({ user: null, business: null });
       supabase.auth.onAuthStateChange((_event, session) => {
         // Avoid another Supabase call inside this callback.
-        if (session?.user) void saveUser(session.user);
+        if (session?.user) queueMicrotask(()=>void handleAuthenticatedSession(supabase,session));
         else if (explicitSignOut) void store.set({ user: null, business: null });
       });
       if (!Capacitor.isNativePlatform() && new URL(window.location.href).searchParams.has('code')) {
@@ -192,6 +197,7 @@ export async function signInWithGoogle(role, accountType = role === 'customer' ?
 export async function signOut() {
   explicitSignOut = true;
   const supabase = getSupabase();
+  let failure = null;
   try {
     if (supabase) {
       const user = store.get().user;
@@ -204,13 +210,73 @@ export async function signOut() {
       await Preferences.remove({ key: 'rezerva.push.token' });
       await supabase.auth.signOut();
     }
+  } catch (error) {
+    failure = error;
+    if (supabase) await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
   } finally {
+    await stopAccountResetWatcher(supabase);
     explicitSignOut = false;
+    pendingInvitation = '';
+    pendingEnrollment = '';
+    clearPendingReservationQr();
+    await store.clear();
   }
-  pendingInvitation = '';
-  pendingEnrollment = '';
-  clearPendingReservationQr();
-  await store.clear();
+  if (failure) throw failure;
+}
+
+async function handleAuthenticatedSession(supabase,session) {
+  if (await watchAccountReset(supabase,session)) return;
+  await saveUser(session.user);
+}
+
+async function watchAccountReset(supabase,session) {
+  if (!session?.user?.id || typeof supabase.from !== 'function') return false;
+  await stopAccountResetWatcher(supabase);
+  const { data } = await supabase.from('account_reset_events')
+    .select('reset_at').eq('user_id',session.user.id).maybeSingle();
+  const resetAt = Date.parse(data?.reset_at || '');
+  if (Number.isFinite(resetAt) && sessionStartedAt(session) <= resetAt) {
+    await forceAccountResetSignOut();
+    return true;
+  }
+  if (typeof supabase.channel === 'function') {
+    accountResetChannel = supabase.channel(`account-reset-${session.user.id}`)
+      .on('postgres_changes',{
+        event:'*',schema:'public',table:'account_reset_events',filter:`user_id=eq.${session.user.id}`,
+      },()=>{ void forceAccountResetSignOut(); })
+      .subscribe();
+  }
+  return false;
+}
+
+function sessionStartedAt(session) {
+  const lastSignIn = Date.parse(session?.user?.last_sign_in_at || '');
+  if (Number.isFinite(lastSignIn)) return lastSignIn;
+  try {
+    const encoded = String(session?.access_token || '').split('.')[1] || '';
+    const payload = JSON.parse(atob(encoded.replace(/-/g,'+').replace(/_/g,'/')));
+    const issuedAt = Number(payload.iat) * 1000;
+    return Number.isFinite(issuedAt) ? issuedAt : 0;
+  } catch { return 0; }
+}
+
+async function stopAccountResetWatcher(supabase=getSupabase()) {
+  const channel = accountResetChannel;
+  accountResetChannel = null;
+  if (channel && supabase && typeof supabase.removeChannel === 'function') {
+    await supabase.removeChannel(channel).catch(() => undefined);
+  }
+}
+
+async function forceAccountResetSignOut() {
+  if (accountResetSignOut) return;
+  accountResetSignOut = true;
+  try { await signOut(); }
+  catch { /* Local state is cleared by signOut even if the server is unavailable. */ }
+  finally {
+    accountResetSignOut = false;
+    navigate('/');
+  }
 }
 
 /** @param {import('@supabase/supabase-js').User} user */

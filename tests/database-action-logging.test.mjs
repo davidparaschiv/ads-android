@@ -9,6 +9,8 @@ import { PGlite } from '@electric-sql/pglite';
 import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
 
 const migrationUrl=new URL('../supabase/migrations/024_ui_database_action_logging.sql',import.meta.url);
+const renameMigrationUrl=new URL('../supabase/migrations/027_simplify_logger_action_types.sql',import.meta.url);
+const retentionMigrationUrl=new URL('../supabase/migrations/029_logger_retention_four_days.sql',import.meta.url);
 const loggerUrl=new URL('../src/observability/database-action-log.js',import.meta.url);
 
 async function loadLogger(fixture) {
@@ -28,13 +30,13 @@ async function loadLogger(fixture) {
   return import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
 }
 
-test('database logger schema, enum and 13-day cron retention stay explicit',async()=>{
+test('database logger schema, enum and 4-day cron retention stay explicit',async()=>{
   const [sql,module]=await Promise.all([readFile(migrationUrl,'utf8'),loadLogger({config:{mode:'demo'},client:null,state:{role:'business'}})]);
   const enumBody=sql.match(/create type public\.logger_action_type as enum \(([\s\S]*?)\);/)?.[1]||'';
   const sqlActions=[...enumBody.matchAll(/'([A-Z][A-Z0-9_]+)'/g)].map(match=>match[1]);
   assert.deepEqual(sqlActions.sort(),Object.values(module.DATABASE_ACTIONS).sort());
   assert.match(sql,/create table public\.logger_engine[\s\S]*logged_at timestamptz[\s\S]*message jsonb[\s\S]*user_id uuid[\s\S]*status public\.logger_status[\s\S]*action_type public\.logger_action_type/);
-  assert.match(sql,/values\('logger_engine',13\)/);
+  assert.match(sql,/values\('logger_engine',4\)/);
   assert.match(sql,/where logged_at < now\(\)-make_interval\(days=>v_days\)/);
   assert.match(sql,/jobname='rezerva-logger-engine-purge'/);
   assert.match(sql,/'17 2 \* \* \*'/);
@@ -55,23 +57,67 @@ test('migration 024 stores authenticated events and purges rows using config_pur
   const user=randomUUID();
   await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user]);
   await db.exec('set role authenticated');
-  assert.equal((await db.query("select public.write_logger_event('CV_CREATE_NEW_BOOKING_REQUEST','ok','{\"event\":\"completed\"}'::jsonb) result")).rows[0].result,true);
+  assert.equal((await db.query("select public.write_logger_event('CV_MAKE_APPOINTMENT','ok','{\"event\":\"completed\"}'::jsonb) result")).rows[0].result,true);
   await assert.rejects(db.query('select * from public.logger_engine'),/permission denied/);
   await db.exec('reset role');
   const row=(await db.query('select user_id,status,action_type,message from public.logger_engine')).rows[0];
-  assert.equal(row.user_id,user);assert.equal(row.status,'ok');assert.equal(row.action_type,'CV_CREATE_NEW_BOOKING_REQUEST');
+  assert.equal(row.user_id,user);assert.equal(row.status,'ok');assert.equal(row.action_type,'CV_MAKE_APPOINTMENT');
   assert.deepEqual(row.message,{event:'completed'});
-  await db.query("update public.logger_engine set logged_at=now()-interval '14 days'");
+  await db.query("update public.logger_engine set logged_at=now()-interval '5 days'");
   assert.equal((await db.query('select private.purge_expired_logger_engine_rows() deleted')).rows[0].deleted,1);
   assert.equal((await db.query('select count(*)::int count from public.logger_engine')).rows[0].count,0);
-  assert.equal((await db.query("select retention_days from public.config_purge where target_table='logger_engine'")).rows[0].retention_days,13);
+  assert.equal((await db.query("select retention_days from public.config_purge where target_table='logger_engine'")).rows[0].retention_days,4);
+});
+
+test('migration 029 changes an existing logger retention setting to four days',async t=>{
+  const db=new PGlite();t.after(()=>db.close());
+  await db.exec(`create table public.config_purge(
+    target_table text primary key,
+    retention_days smallint not null,
+    updated_at timestamptz not null default now()
+  );
+  insert into public.config_purge(target_table,retention_days) values('logger_engine',13);`);
+  await db.exec(await readFile(retentionMigrationUrl,'utf8'));
+  assert.equal((await db.query("select retention_days from public.config_purge where target_table='logger_engine'")).rows[0].retention_days,4);
+});
+
+test('migration 027 renames every action enum and preserves historical logger rows',async t=>{
+  const [sql,module]=await Promise.all([
+    readFile(renameMigrationUrl,'utf8'),
+    loadLogger({config:{mode:'demo'},client:null,state:{role:'business'}}),
+  ]);
+  const mappings=[...sql.matchAll(/\('([A-Z][A-Z0-9_]+)','([A-Z][A-Z0-9_]+)'\)/g)]
+    .map(match=>({old:match[1],next:match[2]}));
+  const renamedActions=Object.values(module.DATABASE_ACTIONS)
+    .filter(action=>action!==module.DATABASE_ACTIONS.BV_DELETE_INVITEE_ACCOUNT);
+  assert.equal(mappings.length,renamedActions.length);
+  assert.equal(new Set(mappings.map(item=>item.old)).size,mappings.length);
+  assert.equal(new Set(mappings.map(item=>item.next)).size,mappings.length);
+  assert.deepEqual(mappings.map(item=>item.next).sort(),renamedActions.sort());
+
+  const db=new PGlite();t.after(()=>db.close());
+  await db.exec(`create type public.logger_action_type as enum (
+    'CV_CREATE_NEW_BOOKING_REQUEST',
+    'BV_UPDATE_BUSINESS_CALENDAR_NOTIFICATION_PREFERENCES',
+    'BV_APPROVE_PENDING_CLIENT_BOOKING_REQUEST'
+  );
+  create table public.logger_engine(action_type public.logger_action_type not null);
+  insert into public.logger_engine(action_type) values
+    ('CV_CREATE_NEW_BOOKING_REQUEST'),
+    ('BV_UPDATE_BUSINESS_CALENDAR_NOTIFICATION_PREFERENCES'),
+    ('BV_APPROVE_PENDING_CLIENT_BOOKING_REQUEST');`);
+  await db.exec(sql);
+  assert.deepEqual(
+    (await db.query('select action_type::text action_type from public.logger_engine order by action_type::text')).rows.map(row=>row.action_type),
+    ['BV_APPROVE_APPOINTMENT','BV_UPDATE_CALENDAR_REMINDER','CV_MAKE_APPOINTMENT']
+  );
 });
 
 test('database logging is fire-and-forget, minimal on success and sanitized on errors',async t=>{
   const calls=[];let release;
   const fixture={config:{mode:'live'},state:{role:'customer'},client:{rpc(name,args){calls.push({name,args});return new Promise(resolve=>{release=resolve;});}}};
   const logger=await loadLogger(fixture);
-  const action=logger.DATABASE_ACTIONS.CV_CREATE_NEW_BOOKING_REQUEST;
+  const action=logger.DATABASE_ACTIONS.CV_MAKE_APPOINTMENT;
 
   const result=await logger.loggedDatabaseAction(action,async()=>({id:'booking'}));
   assert.deepEqual(result,{id:'booking'});
@@ -114,7 +160,8 @@ test('every static UI RPC and direct Supabase service has an explicit logger pat
       assert.ok(module.databaseActionForRpc(match[1],{}),`Missing action type for RPC ${match[1]} in ${name}`);
     }
   }
-  assert.equal(module.databaseActionForRpc('set_booking_status',{p_status:'confirmed'}),module.DATABASE_ACTIONS.BV_APPROVE_PENDING_CLIENT_BOOKING_REQUEST);
-  assert.equal(module.databaseActionForRpc('set_booking_status',{p_status:'rejected'}),module.DATABASE_ACTIONS.BV_REJECT_PENDING_CLIENT_BOOKING_REQUEST);
-  assert.equal(module.databaseActionForRpc('set_team_member',{p_remove:true}),module.DATABASE_ACTIONS.BV_REMOVE_BUSINESS_TEAM_MEMBER_FROM_TEAM);
+  assert.equal(module.databaseActionForRpc('set_booking_status',{p_status:'confirmed'}),module.DATABASE_ACTIONS.BV_APPROVE_APPOINTMENT);
+  assert.equal(module.databaseActionForRpc('set_booking_status',{p_status:'rejected'}),module.DATABASE_ACTIONS.BV_REJECT_APPOINTMENT);
+  assert.equal(module.databaseActionForRpc('set_team_member',{p_remove:true}),module.DATABASE_ACTIONS.BV_REMOVE_TEAM_MEMBER);
+  assert.equal(module.databaseActionForRpc('delete_invitee_account',{}),module.DATABASE_ACTIONS.BV_DELETE_INVITEE_ACCOUNT);
 });

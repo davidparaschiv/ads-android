@@ -82,7 +82,7 @@ export async function openSubscriptionManagement(userId) {
 async function syncEntitlement() {
   const supabase = getSupabase();
   if (!supabase) throw new Error('Server neconfigurat.');
-  return loggedDatabaseAction(DATABASE_ACTIONS.BV_SYNCHRONIZE_GOOGLE_PLAY_SUBSCRIPTION_ENTITLEMENT,async()=>{
+  return loggedDatabaseAction(DATABASE_ACTIONS.BV_REFRESH_SUBSCRIPTION,async()=>{
     const { data, error } = await supabase.functions.invoke('sync-subscription', { body: {} });
     if (error || !data?.active) {
       const failure = new Error('Abonamentul nu a fost confirmat de server. Reîncearcă restaurarea; nu cumpăra din nou.');

@@ -41,13 +41,13 @@ test('Business report chart and calendar request approved bookings only', async 
     listBusinessBookings:async(...args)=>{calls.push(args);return[];},
     getCalendarServiceSettings:async()=>({weekdays:[]}),saveCalendarServiceSettings:async()=>{},
     calendars:async()=>[{id:'calendar',name:'Calendar'}],addCalendar:async()=>({id:'calendar'}),deleteCalendar:async()=>{},
-    getAccess:async()=>({planId:'small'}),inviteMember:async()=>{},team:async()=>({members:[]}),navigate:()=>{},back:()=>{},
+    getAccess:async()=>({planId:'small'}),inviteMember:async()=>{},team:async()=>({members:[]}),deleteInviteeAccount:async()=>{},navigate:()=>{},back:()=>{},
   };
   t.after(()=>{delete globalThis.businessDashboardFixture;});
   const output=await build({entryPoints:['src/screens/dashboard.js'],bundle:true,write:false,format:'esm',platform:'browser',plugins:[{
     name:'business-dashboard-fixture',setup(builder){
       builder.onResolve({filter:/config\.js$|state\/store\.js$|services\/(access|businesses)\.js$|router\.js$/},()=>({path:'fixture',namespace:'fixture'}));
-      builder.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const {config,store,listBusinessBookings,getCalendarServiceSettings,saveCalendarServiceSettings,calendars,addCalendar,deleteCalendar,getAccess,inviteMember,team,navigate,back}=globalThis.businessDashboardFixture;'}));
+      builder.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const {config,store,listBusinessBookings,getCalendarServiceSettings,saveCalendarServiceSettings,calendars,addCalendar,deleteCalendar,getAccess,inviteMember,team,deleteInviteeAccount,navigate,back}=globalThis.businessDashboardFixture;'}));
     },
   }]});
   const screen=await import('data:text/javascript;base64,'+Buffer.from(output.outputFiles[0].text).toString('base64'));
