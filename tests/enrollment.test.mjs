@@ -20,7 +20,7 @@ test('Verified enrollment and universal developer access', async t => {
     grant usage on schema public,auth to anon,authenticated,service_role;
     grant execute on all functions in schema auth to anon,authenticated,service_role;
     alter default privileges in schema public grant all on tables to anon,authenticated,service_role;`);
-  for (const file of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql','004_team_features.sql','006_universal_developer_license.sql','007_approval_email_details.sql','008_owner_approval_codes.sql','009_access_expiry_and_permanent_dev.sql','010_team_plan_and_member_limit.sql','011_all_team_calendars_shared.sql','012_booking_rejected_status.sql','013_customer_profiles_booking_approval.sql','014_drawn_screens_service_calendar.sql','015_calendar_service_settings.sql','016_strict_entitlement_lock.sql','017_account_roles_calendar_delete.sql','018_booking_schedule_views_and_notifications.sql','019_customer_confirmed_reminders_and_invite_privacy.sql','020_team_operational_access_and_phone_uniqueness.sql','021_account_type_resolution.sql','023_notification_preferences_and_job_types.sql','025_complete_calendars_and_license_types.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+  for (const file of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql','004_team_features.sql','006_universal_developer_license.sql','007_approval_email_details.sql','008_owner_approval_codes.sql','009_access_expiry_and_permanent_dev.sql','010_team_plan_and_member_limit.sql','011_all_team_calendars_shared.sql','012_booking_rejected_status.sql','013_customer_profiles_booking_approval.sql','014_drawn_screens_service_calendar.sql','015_calendar_service_settings.sql','016_strict_entitlement_lock.sql','017_account_roles_calendar_delete.sql','018_booking_schedule_views_and_notifications.sql','019_customer_confirmed_reminders_and_invite_privacy.sql','020_team_operational_access_and_phone_uniqueness.sql','021_account_type_resolution.sql','023_notification_preferences_and_job_types.sql','025_complete_calendars_and_license_types.sql','026_notification_preference_save_updates_jobs.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
   const admin=randomUUID(), owner=randomUUID(), attacker=randomUUID(), invited=randomUUID(), phoneUser=randomUUID();
   for (const [id,email] of [[admin,'davidnicolaparaschiv@gmail.com'],[owner,'business@example.com'],[attacker,'other@example.com'],[invited,'invited@example.com'],[phoneUser,'phone@example.com']]) {
     await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[id,email]);
@@ -196,20 +196,101 @@ test('Verified enrollment and universal developer access', async t => {
     assert.equal(statusJobs[0].title,'Programare confirmată');
     assert.equal(statusJobs[0].target_route,'/customer/notifications');
     assert.equal(statusJobs[0].type,'client');
-    const reminderJobs=(await db.query("select title,target_route,status,type from public.notification_jobs where booking_id=$1 and user_id=$2 and kind='reminder'",[bookingId,attacker])).rows;
+    const reminderJobs=(await db.query("select id,title,target_route,status,type from public.notification_jobs where booking_id=$1 and user_id=$2 and kind='reminder'",[bookingId,attacker])).rows;
     assert.equal(reminderJobs.length,1);
     assert.equal(reminderJobs[0].title,'Programarea ta se apropie');
     assert.equal(reminderJobs[0].target_route,'/customer/notifications');
     assert.equal(reminderJobs[0].status,'pending');
     assert.equal(reminderJobs[0].type,'client');
+
+    // Scope fixture: the same CV has another confirmed booking on another
+    // calendar. Saving CV preferences must update both client reminders, but
+    // it must not touch a business reminder from that other calendar.
+    await call(owner,'add_calendar',[businessId,'Calendar scope test']);
+    const scopeCalendarId=(await db.query("select id from public.resources where business_id=$1 and name='Calendar scope test'",[businessId])).rows[0].id;
+    const scopeStart=new Date(start.getTime()+4*86400000);
+    const scopeBookingId=randomUUID();
+    await db.query(`insert into public.bookings(
+      id,business_id,customer_id,event_type_id,resource_id,start_at,end_at,
+      customer_name,customer_email_snapshot,status
+    ) values($1,$2,$3,$4,$5,$6,$7,'Ana Client','other@example.com','confirmed')`,[
+      scopeBookingId,businessId,attacker,setup.event_type_id,scopeCalendarId,
+      scopeStart.toISOString(),new Date(scopeStart.getTime()+60*60000).toISOString()
+    ]);
+    const scopeClientJobId=randomUUID(),scopeBusinessJobId=randomUUID();
+    const scopeOriginalSend=new Date(scopeStart.getTime()-60*60000).toISOString();
+    await db.query(`insert into public.notification_jobs(
+      id,booking_id,user_id,send_at,title,body,status,attempts,last_error,kind,target_route,type
+    ) values
+      ($1,$2,$3,$4,'Client scope','Client scope','failed',3,'old client error','reminder','/customer/notifications','client'),
+      ($5,$2,$6,$4,'Business scope','Business scope','sent',2,'old business error','reminder','/business/notifications','business')`,[
+      scopeClientJobId,scopeBookingId,attacker,scopeOriginalSend,scopeBusinessJobId,owner
+    ]);
+    const nearStart=new Date(Date.now()+6*60000),nearBookingId=randomUUID();
+    const nearClientJobId=randomUUID(),nearBusinessJobId=randomUUID();
+    await db.query(`insert into public.bookings(
+      id,business_id,customer_id,event_type_id,resource_id,start_at,end_at,
+      customer_name,customer_email_snapshot,status
+    ) values($1,$2,$3,$4,$5,$6,$7,'Ana Client','other@example.com','confirmed')`,[
+      nearBookingId,businessId,attacker,setup.event_type_id,scopeCalendarId,
+      nearStart.toISOString(),new Date(nearStart.getTime()+30*60000).toISOString()
+    ]);
+    await db.query(`insert into public.notification_jobs(
+      id,booking_id,user_id,send_at,title,body,kind,target_route,type
+    ) values
+      ($1,$2,$3,$4,'Client near','Client near','reminder','/customer/notifications','client'),
+      ($5,$2,$6,$4,'Business near','Business near','reminder','/business/notifications','business')`,[
+      nearClientJobId,nearBookingId,attacker,new Date(nearStart.getTime()-60000).toISOString(),nearBusinessJobId,owner
+    ]);
+
     await call(attacker,'set_client_notification_preferences',[90,true]);
-    const updatedClientReminder=(await db.query("select send_at,type from public.notification_jobs where booking_id=$1 and user_id=$2 and kind='reminder'",[bookingId,attacker])).rows[0];
+    const updatedClientReminder=(await db.query("select id,send_at,type from public.notification_jobs where booking_id=$1 and user_id=$2 and kind='reminder'",[bookingId,attacker])).rows[0];
+    assert.equal(updatedClientReminder.id,reminderJobs[0].id);
     assert.equal(updatedClientReminder.type,'client');
     assert.equal(new Date(updatedClientReminder.send_at).getTime(),start.getTime()-90*60000);
+    const updatedScopeClient=(await db.query("select id,send_at,status,attempts,last_error from public.notification_jobs where id=$1",[scopeClientJobId])).rows[0];
+    assert.equal(updatedScopeClient.id,scopeClientJobId);
+    assert.equal(new Date(updatedScopeClient.send_at).getTime(),scopeStart.getTime()-90*60000);
+    assert.deepEqual({status:updatedScopeClient.status,attempts:updatedScopeClient.attempts,lastError:updatedScopeClient.last_error},{status:'pending',attempts:0,lastError:null});
+    const scopeBusinessAfterClientSave=(await db.query("select send_at,status,attempts,last_error from public.notification_jobs where id=$1",[scopeBusinessJobId])).rows[0];
+    assert.equal(new Date(scopeBusinessAfterClientSave.send_at).getTime(),new Date(scopeOriginalSend).getTime());
+    assert.deepEqual({status:scopeBusinessAfterClientSave.status,attempts:scopeBusinessAfterClientSave.attempts,lastError:scopeBusinessAfterClientSave.last_error},{status:'sent',attempts:2,lastError:'old business error'});
+    assert.deepEqual((await db.query("select id,status from public.notification_jobs where id=$1",[nearClientJobId])).rows[0],{id:nearClientJobId,status:'cancelled'});
+    await db.query("update public.notification_jobs set status='sent',attempts=2,last_error='old failure' where user_id=$1 and kind='reminder' and type='client'",[attacker]);
+    await call(attacker,'set_client_notification_preferences',[120,true]);
+    const retriedClientReminder=(await db.query("select id,send_at,status,attempts,last_error from public.notification_jobs where booking_id=$1 and user_id=$2 and kind='reminder' and type='client'",[bookingId,attacker])).rows[0];
+    assert.equal(retriedClientReminder.id,reminderJobs[0].id);
+    assert.equal(new Date(retriedClientReminder.send_at).getTime(),start.getTime()-120*60000);
+    assert.deepEqual({status:retriedClientReminder.status,attempts:retriedClientReminder.attempts,lastError:retriedClientReminder.last_error},{status:'pending',attempts:0,lastError:null});
+    const retriedScopeClient=(await db.query("select id,send_at,status,attempts,last_error from public.notification_jobs where id=$1",[scopeClientJobId])).rows[0];
+    assert.equal(retriedScopeClient.id,scopeClientJobId);
+    assert.equal(new Date(retriedScopeClient.send_at).getTime(),scopeStart.getTime()-120*60000);
+    assert.deepEqual({status:retriedScopeClient.status,attempts:retriedScopeClient.attempts,lastError:retriedScopeClient.last_error},{status:'pending',attempts:0,lastError:null});
+
     await call(invited,'set_calendar_notification_minutes',[setup.resource_id,9]);
-    const businessReminders=(await db.query("select user_id,send_at,type from public.notification_jobs where booking_id=$1 and kind='reminder' and type='business' order by user_id",[bookingId])).rows;
+    const businessReminders=(await db.query("select id,user_id,send_at,type from public.notification_jobs where booking_id=$1 and kind='reminder' and type='business' order by user_id",[bookingId])).rows;
     assert.equal(businessReminders.length,2);
     assert(businessReminders.every(job=>job.type==='business' && new Date(job.send_at).getTime()===start.getTime()-9*60000));
+    await db.query("update public.notification_jobs set status='processing',attempts=2,last_error='old failure' where booking_id=$1 and kind='reminder' and type='business'",[bookingId]);
+    await call(invited,'set_calendar_notification_minutes',[setup.resource_id,11]);
+    const retriedBusinessReminders=(await db.query("select id,user_id,send_at,status,attempts,last_error from public.notification_jobs where booking_id=$1 and kind='reminder' and type='business' order by user_id",[bookingId])).rows;
+    assert.equal(retriedBusinessReminders.length,2);
+    assert.deepEqual(retriedBusinessReminders.map(job=>job.id),businessReminders.map(job=>job.id));
+    assert(retriedBusinessReminders.every(job=>new Date(job.send_at).getTime()===start.getTime()-11*60000&&job.status==='pending'&&job.attempts===0&&job.last_error===null));
+    const scopeBusinessAfterOtherCalendarSave=(await db.query("select send_at,status,attempts,last_error from public.notification_jobs where id=$1",[scopeBusinessJobId])).rows[0];
+    assert.equal(new Date(scopeBusinessAfterOtherCalendarSave.send_at).getTime(),new Date(scopeOriginalSend).getTime());
+    assert.deepEqual({status:scopeBusinessAfterOtherCalendarSave.status,attempts:scopeBusinessAfterOtherCalendarSave.attempts,lastError:scopeBusinessAfterOtherCalendarSave.last_error},{status:'sent',attempts:2,lastError:'old business error'});
+
+    // Saving BV preferences for the second calendar now resets all business
+    // recipients on that calendar, while the CV reminder keeps its same data.
+    const scopeClientBeforeBusinessSave=(await db.query("select id,send_at,status,attempts,last_error from public.notification_jobs where id=$1",[scopeClientJobId])).rows[0];
+    await call(owner,'set_calendar_notification_minutes',[scopeCalendarId,13]);
+    const scopeBusinessJobs=(await db.query("select id,user_id,send_at,status,attempts,last_error from public.notification_jobs where booking_id=$1 and kind='reminder' and type='business' order by user_id",[scopeBookingId])).rows;
+    assert.equal(scopeBusinessJobs.length,2);
+    assert(scopeBusinessJobs.some(job=>job.id===scopeBusinessJobId));
+    assert(scopeBusinessJobs.every(job=>new Date(job.send_at).getTime()===scopeStart.getTime()-13*60000&&job.status==='pending'&&job.attempts===0&&job.last_error===null));
+    assert.deepEqual((await db.query("select id,status from public.notification_jobs where id=$1",[nearBusinessJobId])).rows[0],{id:nearBusinessJobId,status:'cancelled'});
+    assert.deepEqual((await db.query("select id,send_at,status,attempts,last_error from public.notification_jobs where id=$1",[scopeClientJobId])).rows[0],scopeClientBeforeBusinessSave);
     const rejectedStart=new Date(start.getTime()+2*60*60*1000);
     const rejectedId=await call(attacker,'create_booking',[businessId,setup.event_type_id,setup.resource_id,rejectedStart.toISOString(),'Nume ignorat',60]);
     assert.equal((await db.query("select count(*)::int count from public.notification_jobs where booking_id=$1 and kind='reminder'",[rejectedId])).rows[0].count,0);

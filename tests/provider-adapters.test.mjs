@@ -63,7 +63,7 @@ test('Provider adapters: reminder worker claiming, eligibility, FCM and retries'
   const fixture={env:name=>name==='CRON_SECRET'?'offline-secret':name==='GCLOUD_SERVICEACCOUNT_KEYS'?JSON.stringify({type:'service_account',project_id:'test-project',client_email:'offline@example.invalid',private_key:'offline-private-key'}):'test-project',db:{
     rpc:async()=>({data:allowed,error:null}),
     from:table=>{
-      let update;const query={select(){return query;},eq(){return query;},lte(){return query;},limit(){return query;},delete(){return query;},
+      let update;const query={select(){return query;},eq(){return query;},lte(){return query;},lt(){return query;},limit(){return query;},delete(){return query;},
         update(value){update=value;updates.push(value);return query;},
         async insert(value){logs.push(value);return {error:null};},
         async maybeSingle(){return {data:claimed?{id:'job'}:null,error:null};},
@@ -82,6 +82,14 @@ test('Provider adapters: reminder worker claiming, eligibility, FCM and retries'
   });
   await t.test('another worker claim prevents duplicate send',async()=>{
     jobs=[job];claimed=false;assert.deepEqual(await (await invoke()).json(),{processed:0});assert.equal(calls.length,0);claimed=true;
+  });
+  await t.test('a reminder overdue by more than three minutes is cancelled without FCM delivery',async()=>{
+    const before=calls.length;
+    jobs=[{...job,kind:'reminder',send_at:new Date(Date.now()-4*60000).toISOString()}];
+    assert.deepEqual(await (await invoke()).json(),{processed:0});
+    assert.equal(calls.length,before);
+    assert.deepEqual(updates.at(-1),{status:'cancelled',last_error:'Reminder anulat pentru ca nu a fost trimis la timp de catre server'});
+    jobs=[job];
   });
   await t.test('revoked/opted-out recipient cancels without sending',async()=>{
     allowed=false;await invoke();assert.equal(updates.at(-1).status,'cancelled');assert.equal(calls.length,0);allowed=true;

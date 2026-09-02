@@ -8,7 +8,14 @@ Deno.serve(async (request) => {
   if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 });
   if (!secret || request.headers.get('x-cron-secret') !== secret) return new Response('Unauthorized', { status: 401 });
   const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
-  const { data: jobs, error } = await supabase.from('notification_jobs').select('*').eq('status', 'pending').lte('send_at', new Date().toISOString()).limit(100);
+  const now = new Date();
+  const reminderExpiredBefore = new Date(now.getTime() - 3 * 60 * 1000).toISOString();
+  const reminderExpiredMessage = 'Reminder anulat pentru ca nu a fost trimis la timp de catre server';
+  const { error: expiryError } = await supabase.from('notification_jobs').update({
+    status: 'cancelled', last_error: reminderExpiredMessage,
+  }).eq('status', 'pending').eq('kind', 'reminder').lt('send_at', reminderExpiredBefore);
+  if (expiryError) return Response.json({ error: expiryError.message }, { status: 500 });
+  const { data: jobs, error } = await supabase.from('notification_jobs').select('*').eq('status', 'pending').lte('send_at', now.toISOString()).limit(100);
   if (error) return Response.json({ error: error.message }, { status: 500 });
   if (!jobs?.length) return Response.json({ processed: 0 });
 
@@ -21,6 +28,10 @@ Deno.serve(async (request) => {
   for (const job of jobs) {
     const { data: claimed, error: claimError } = await supabase.from('notification_jobs').update({ status: 'processing', attempts: job.attempts + 1 }).eq('id', job.id).eq('status', 'pending').select('id').maybeSingle();
     if (claimError || !claimed) continue;
+    if (job.kind === 'reminder' && new Date(job.send_at).getTime() < Date.now() - 3 * 60 * 1000) {
+      await supabase.from('notification_jobs').update({ status: 'cancelled', last_error: reminderExpiredMessage }).eq('id', job.id);
+      continue;
+    }
     const { data: tokens } = await supabase.from('device_tokens').select('token').eq('user_id', job.user_id);
     try {
       const { data: allowed, error: allowedError } = await supabase.rpc('notification_job_recipient_allowed', { p_job: job.id });
