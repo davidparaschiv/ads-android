@@ -12,7 +12,7 @@
 <div class="layout"><nav aria-label="Setup steps"><strong>START HERE</strong>
 <a href="#changes">What changed</a><a href="#commands">Commands to run now</a><a href="#qr-setup">QR update &amp; phone test</a><a href="#phone-readiness">Remaining configuration</a><a href="#step-1">1. Windows tools</a><a href="#step-2">2. Extract and install</a><a href="#step-3">3. Database migrations</a><a href="#step-4">4. Google sign-in</a><a href="#step-5">5. Domain, email &amp; paid SMS</a><a href="#step-6">6. Firebase push</a><a href="#step-7">7. Exact secret names</a><a href="#step-8">8. Link and deploy</a><a href="#step-9">9. Build and install Android</a><a href="#step-10">10. Business enrollment</a><a href="#step-11">11. Reminder scheduler</a><a href="#step-12">12. Manual phone checks</a><a href="#step-13">13. Billing &amp; release</a><a href="#backend-tests">Local versus live tests</a><a href="#verification">Verification boundaries</a></nav><main>
 <section id="changes"><h2>Update your setup, don’t recreate it.</h2>
-<p>This update keeps your frontend/Firebase configuration, icons, secret names and Small/Complete plans. <strong>New migration: 021_account_type_resolution.sql.</strong> Apply it once after 020, then rebuild the APK.</p>
+<p>This update keeps your frontend/Firebase configuration, icons, secret names and Small/Complete plans. <strong>New migration: 022_notification_scheduler.sql.</strong> Apply it once after 021. It enables <code>pg_cron</code>/<code>pg_net</code> and creates the <code>rezerva-reminders</code> job only when that job does not already exist.</p>
 <ul><li>Explicit Android permissions, notification channel, transparent notification R, launcher/adaptive icons and icon-only splash from your supplied PNG.</li><li>Exact existing secret names: <code>TWILLIO_ACCOUNT_SID</code>, <code>TWILLIO_AUTH_TOKEN</code> and <code>TWILIO_VERIFY_SERVICE_SID</code>.</li><li>Full Firebase JSON under <code>GCLOUD_SERVICEACCOUNT_KEYS</code>; project ID under <code>FIREBASE_PROJID</code>.</li><li>Google OAuth values must be entered into hosted Supabase Auth, not only custom Edge secrets.</li></ul>
 <div class="table"><table><thead><tr><th>Plan</th><th>Monthly price</th><th>Calendars</th><th>Business reports / reminders</th></tr></thead><tbody><tr><td>Small</td><td>€50</td><td>1</td><td>No</td></tr><tr><td>Complete</td><td>€150</td><td>5</td><td>Yes</td></tr></tbody></table></div>
 <p>Customer reminders remain available on either plan. Invited staff do not buy separate plans. Complete's internal identifier remains <code>large</code>.</p>
@@ -37,7 +37,7 @@ npm run check:phone
 npm run android:sync
 npm run android:open</code></pre>
 <p><code>npm ci</code> downloads dependencies. Assets, lint, typechecking and local tests do not call your cloud services. <code>check:phone</code> reads local settings without displaying values. It cannot prove cloud readiness. Android sync builds/copies the frontend; it does not deploy backend functions.</p>
-<p><strong>For this update:</strong> apply migration 021 after every earlier migration through 020. No new secrets, accounts, domain changes or Edge Function deployment are required.</p>
+<p><strong>For this update:</strong> apply migration 022 after every earlier migration through 021. The migration contains no secret values. Before expecting the scheduler to deliver notifications, configure the two Vault entries from <a href="#step-11">Step 11</a> and keep the Edge <code>CRON_SECRET</code> identical to the Vault cron secret.</p>
 <p>The following deployments are needed only if you have not yet deployed the previous archive's renamed-secret functions. QR itself does not change them. Link the folder first if needed (<a href="#step-8">Step 8.1</a>):</p>
 <pre><code>npx supabase functions deploy enrollment --use-api
 npx supabase functions deploy send-reminders --use-api</code></pre>
@@ -55,9 +55,9 @@ java -version</code></pre>
 <p>The ZIP retains your uploaded account-specific configuration. Keep it private; never upload the entire source ZIP, private keys or test session files to GitHub Pages.</p>
 <p class="check">Run <code>npm run check:phone</code>. Fix failures; review warnings manually.</p></section>
 <section id="step-3"><h2>3. Database migrations</h2>
-<p>Keep your existing Supabase development project. If migrations 001–020 already succeeded, <strong>do not rerun them</strong>. Back up the database, then apply only <code>021_account_type_resolution.sql</code>. It preserves accounts and booking history.</p>
+<p>Keep your existing Supabase development project. If migrations 001–021 already succeeded, <strong>do not rerun them</strong>. Back up the database, then apply only <code>022_notification_scheduler.sql</code>. It does not modify application records.</p>
 <p>For a new project only, execute each complete file in SQL Editor, in this order:</p>
-<ol><li>Run every complete SQL file in <code>supabase/migrations</code> in numeric order, from <code>001_initial_schema.sql</code> through <code>021_account_type_resolution.sql</code>.</li><li>Migration 012 must finish before 013, 019 after 018, 020 after 019, and 021 after 020; do not combine migration files into one transaction.</li></ol>
+<ol><li>Run every complete SQL file in <code>supabase/migrations</code> in numeric order, from <code>001_initial_schema.sql</code> through <code>022_notification_scheduler.sql</code>.</li><li>Migration 012 must finish before 013, 019 after 018, 020 after 019, 021 after 020, and 022 after 021; do not combine migration files into one transaction.</li></ol>
 <p>On an existing database, back up first and apply only missing migrations. Stop on errors; do not disable RLS or reset tables to hide a problem. Check:</p>
 <pre><code>select to_regclass('public.bookings'),
        to_regclass('private.license_keys'),
@@ -130,6 +130,7 @@ npx supabase migration repair 018 --status applied
 npx supabase migration repair 019 --status applied
 npx supabase migration repair 020 --status applied
 npx supabase migration repair 021 --status applied
+npx supabase migration repair 022 --status applied
 npx supabase migration list</code></pre>
 <p>Repair changes history, not schema. It does not validate or run missing SQL. Do not mark partial/failed migrations complete, reset the database, or blindly push old migrations.</p>
 <h3>8.3 — Functions from the previous update (no QR redeployment required)</h3>
@@ -170,24 +171,47 @@ cd ..</code></pre>
 <p>Other owners need a valid email-bound license through the existing local license-generator/admin SQL workflow or a verified purchase. Do not assume dev112233 works for every user or is a production secret.</p></section>
 <section id="step-11"><h2>11. Schedule reminders — no extra broker</h2>
 <p><code>public.notification_jobs</code> is the queue. Supabase scheduling calls the send-reminders worker, which sends FCM messages. RabbitMQ/Kafka are not required.</p>
-<ol><li>Enable <strong>pg_cron</strong> and <strong>pg_net</strong>; ensure Vault is available.</li><li>In Vault create <code>rezerva_project_url</code>: Supabase project HTTPS URL with no trailing slash.</li><li>Create <code>rezerva_cron_secret</code>: exactly the existing Edge <code>CRON_SECRET</code>. Keep its value private.</li></ol>
-<p>Check first:</p><pre><code>select jobid, jobname, schedule, active
-from cron.job where jobname = 'rezerva-reminders';</code></pre>
-<p>Only if absent, run once in SQL Editor. This starts recurring processing of due jobs:</p>
-<pre><code>select cron.schedule('rezerva-reminders', '* * * * *', $job$
-  select net.http_post(
-    url := (select decrypted_secret from vault.decrypted_secrets
-            where name = 'rezerva_project_url')
-           || '/functions/v1/send-reminders',
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'x-cron-secret', (select decrypted_secret from vault.decrypted_secrets
-                        where name = 'rezerva_cron_secret')
-    ),
-    body := '{}'::jsonb,
-    timeout_milliseconds := 10000
-  );
-$job$);</code></pre>
+<p>Migration <code>022_notification_scheduler.sql</code> enables <code>pg_cron</code> and <code>pg_net</code>, then creates <code>rezerva-reminders</code> only if a job with that name is absent. Do not manually create a second schedule. The migration deliberately contains only Vault secret names, never environment-specific values.</p>
+<h3>11.1 — Create the shared cron secret</h3>
+<p>If <code>CRON_SECRET</code> is not already configured, generate one value locally in Git Bash:</p>
+<pre><code>node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"</code></pre>
+<p>In Supabase → <strong>Edge Functions → Secrets</strong>, create <code>CRON_SECRET</code> and paste the generated value. Do not share or commit it. The same value must be used below for <code>rezerva_cron_secret</code>.</p>
+<h3>11.2 — Create the Vault entries</h3>
+<p>First check only the names; this does not display secret values:</p>
+<pre><code>select name
+from vault.decrypted_secrets
+where name in ('rezerva_project_url', 'rezerva_cron_secret')
+order by name;</code></pre>
+<p>For each missing name, replace the uppercase placeholder and run the corresponding statement once in SQL Editor:</p>
+<pre><code>select vault.create_secret(
+  'https://YOUR_PROJECT_REF.supabase.co',
+  'rezerva_project_url',
+  'Supabase project URL used by the reminder scheduler'
+);
+
+select vault.create_secret(
+  'PASTE_THE_EXACT_VALUE_OF_EDGE_CRON_SECRET_HERE',
+  'rezerva_cron_secret',
+  'Shared authorization secret for send-reminders'
+);</code></pre>
+<p class="warn">Do not run the placeholder text literally. The project URL must use <code>.supabase.co</code> with no trailing slash. The second value must match Edge <code>CRON_SECRET</code> character for character. Vault values belong to the hosted environment and must never be added to a migration or committed file.</p>
+<h3>11.3 — Apply and verify migration 022</h3>
+<p>Apply <code>supabase/migrations/022_notification_scheduler.sql</code> after migration 021. Using the linked CLI:</p>
+<pre><code>npx supabase db push
+npx supabase migration list</code></pre>
+<p>If you instead executed the complete migration manually in SQL Editor and verified it succeeded, record only its history:</p>
+<pre><code>npx supabase migration repair 022 --status applied
+npx supabase migration list</code></pre>
+<p>Verify the extensions and the single active job:</p>
+<pre><code>select extname
+from pg_extension
+where extname in ('pg_cron', 'pg_net')
+order by extname;
+
+select jobid, jobname, schedule, active
+from cron.job
+where jobname = 'rezerva-reminders';</code></pre>
+<p>The extension query must return <code>pg_cron</code> and <code>pg_net</code>. The job query must return exactly one active <code>rezerva-reminders</code> row with schedule <code>* * * * *</code>.</p>
 <p>Read-only diagnostics:</p>
 <pre><code>select jobid, status, return_message, start_time
 from cron.job_run_details order by start_time desc limit 10;
