@@ -10,15 +10,15 @@ function installDom(url = 'https://localhost/') {
   return dom;
 }
 
-test('Business notifications render the booking date', async t => {
-  const dom = installDom('https://localhost/#/business/notifications');
+test('Business notifications render the booking date and offer personal calendar opt-out first', async t => {
+  const dom = installDom('https://localhost/#/business/notifications?calendar=calendar');
   t.after(() => dom.window.close());
   globalThis.businessViewFixture = {
     config:{mode:'live'},
     store:{get:()=>({business:{id:'business'}}),set:async()=>{}},
-    calendars:async()=>[], rpc:async()=>{},
+    calendars:async()=>[{id:'calendar',name:'Calendar principal'}], rpc:async()=>{},
     listPendingBookingRequests:async()=>[{id:'booking',customer:'Ana',service:'Manichiură',date:'2026-09-01',time:'09:00',endTime:'09:20'}],
-    getCalendarNotificationMinutes:async()=>15, setCalendarNotificationMinutes:async()=>{},
+    getCalendarNotificationMinutes:async()=>0, setCalendarNotificationMinutes:async()=>{},
   };
   t.after(() => { delete globalThis.businessViewFixture; });
   const output = await build({entryPoints:['src/screens/notifications.js'],bundle:true,write:false,format:'esm',platform:'browser',plugins:[{
@@ -30,6 +30,8 @@ test('Business notifications render the booking date', async t => {
   const screen=await import('data:text/javascript;base64,'+Buffer.from(output.outputFiles[0].text).toString('base64'));
   const root=dom.window.document.querySelector('#app');await screen.notificationsScreen(root,'business');
   assert.match(root.textContent,/1 sept\./);assert.match(root.textContent,/09:00-09:20/);
+  const options=root.querySelectorAll('#calendar-reminder select[name="minutes"] option');
+  assert.equal(options[0].value,'0');assert.equal(options[0].textContent,'Oprit');assert.equal(options[0].selected,true);
 });
 
 test('Business report chart and calendar request approved bookings only', async t => {

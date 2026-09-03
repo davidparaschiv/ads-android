@@ -137,13 +137,9 @@ export async function saveCalendarServiceSettings(businessId,calendarId,input) {
 }
 
 export async function getCalendarNotificationMinutes(calendarId) {
-  if (config.mode === 'demo') return store.get().notificationPreference >= 2 && store.get().notificationPreference <= 30 ? store.get().notificationPreference : 15;
-  return loggedDatabaseAction(DATABASE_ACTIONS.BV_VIEW_CALENDAR_REMINDER,async()=>{
-    const supabase=requireSupabase();
-    const {data,error}=await supabase.from('business_notification_preferences').select('minutes_before').eq('calendar_id',calendarId).maybeSingle();
-    if(error) throw error;
-    return data?.minutes_before || 15;
-  });
+  if (config.mode === 'demo') return store.get().notificationPreference === 0 ? 0
+    : store.get().notificationPreference >= 2 && store.get().notificationPreference <= 30 ? store.get().notificationPreference : 15;
+  return rpc('get_calendar_notification_minutes',{p_calendar_id:calendarId});
 }
 
 export async function setCalendarNotificationMinutes(calendarId,minutes) {

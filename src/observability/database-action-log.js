@@ -99,6 +99,7 @@ export function databaseActionForRpc(name, args = {}) {
     get_calendar_service_settings: DATABASE_ACTIONS.BV_VIEW_SERVICE_SETTINGS,
     save_calendar_service_settings: DATABASE_ACTIONS.BV_UPDATE_SERVICE_SCHEDULE,
     set_calendar_notification_minutes: DATABASE_ACTIONS.BV_UPDATE_CALENDAR_REMINDER,
+    get_calendar_notification_minutes: DATABASE_ACTIONS.BV_VIEW_CALENDAR_REMINDER,
     get_business_report: DATABASE_ACTIONS.BV_VIEW_REPORTS,
     set_client_notification_preferences: DATABASE_ACTIONS.CV_UPDATE_REMINDER,
     available_slots: DATABASE_ACTIONS.CV_VIEW_AVAILABLE_APPOINTMENT_TIMES,
