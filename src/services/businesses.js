@@ -137,7 +137,7 @@ export async function saveCalendarServiceSettings(businessId,calendarId,input) {
 }
 
 export async function getCalendarNotificationMinutes(calendarId) {
-  if (config.mode === 'demo') return store.get().notificationPreference === 0 ? 0
+  if (config.mode === 'demo') return store.get().notificationPreference === -1 ? -1
     : store.get().notificationPreference >= 2 && store.get().notificationPreference <= 30 ? store.get().notificationPreference : 15;
   return rpc('get_calendar_notification_minutes',{p_calendar_id:calendarId});
 }
