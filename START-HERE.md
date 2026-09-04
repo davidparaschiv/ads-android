@@ -116,6 +116,7 @@ Open **Supabase → Edge Functions → Secrets**. Add:
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | Entire valid private service-account JSON, not a filename |
 | `CRON_SECRET` | A new long random value generated below |
 | `ALLOWED_ORIGINS` | `https://localhost,http://localhost,http://localhost:5173` |
+LAST STABLE
 
 Generate your cron secret locally:
 
