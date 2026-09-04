@@ -58,8 +58,28 @@ export async function afterAccessRoute() {
 }
 
 export async function calendars(businessId) {
-  if (config.mode === 'demo') return store.get().demoCalendars;
+  if (config.mode === 'demo') {
+    const state=store.get();
+    if(state.business?.is_owner!==false)return state.demoCalendars;
+    const memberId=state.user?.id==='demo-business-user'?'demo-staff':state.user?.id;
+    return state.demoCalendars.filter(calendar=>!state.demoCalendarRestrictions.some(restriction=>restriction.businessId===businessId&&restriction.calendarId===calendar.id&&restriction.userId===memberId));
+  }
   return rpc('list_my_calendars', { p_business_id: businessId });
+}
+
+export async function calendarInviteePermissions(businessId,calendarId) {
+  if(config.mode!=='demo')return rpc('get_calendar_invitee_permissions',{p_business_id:businessId,p_calendar_id:calendarId});
+  const state=store.get();
+  return state.demoMembers.filter(member=>member.role!=='owner').map(member=>({
+    userId:member.userId,email:member.email,
+    allowed:!state.demoCalendarRestrictions.some(restriction=>restriction.businessId===businessId&&restriction.calendarId===calendarId&&restriction.userId===member.userId),
+  }));
+}
+
+export async function setCalendarInviteePermission(businessId,calendarId,userId,allowed) {
+  if(config.mode!=='demo')return rpc('set_calendar_invitee_permission',{p_business_id:businessId,p_calendar_id:calendarId,p_user_id:userId,p_allowed:allowed});
+  const restrictions=store.get().demoCalendarRestrictions.filter(restriction=>!(restriction.businessId===businessId&&restriction.calendarId===calendarId&&restriction.userId===userId));
+  await store.set({demoCalendarRestrictions:allowed?restrictions:[...restrictions,{businessId,calendarId,userId}]});
 }
 
 export async function addCalendar(businessId, name) {

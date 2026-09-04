@@ -21,6 +21,7 @@ const initialState = {
   demoCalendars: [],
   demoInvitations: [],
   demoMembers: [{ userId: 'demo-staff', email: 'coleg@demo.ro', role: 'staff', permission: 'viewer' }],
+  demoCalendarRestrictions: [],
   demoCalendarSettings: {},
   businessPendingCount: 0,
 };

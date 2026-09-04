@@ -11,6 +11,7 @@ import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
 const migrationUrl=new URL('../supabase/migrations/024_ui_database_action_logging.sql',import.meta.url);
 const renameMigrationUrl=new URL('../supabase/migrations/027_simplify_logger_action_types.sql',import.meta.url);
 const retentionMigrationUrl=new URL('../supabase/migrations/029_logger_retention_four_days.sql',import.meta.url);
+const calendarPermissionsMigrationUrl=new URL('../supabase/migrations/035_calendar_invitee_permissions.sql',import.meta.url);
 const loggerUrl=new URL('../src/observability/database-action-log.js',import.meta.url);
 
 async function loadLogger(fixture) {
@@ -31,9 +32,16 @@ async function loadLogger(fixture) {
 }
 
 test('database logger schema, enum and 4-day cron retention stay explicit',async()=>{
-  const [sql,module]=await Promise.all([readFile(migrationUrl,'utf8'),loadLogger({config:{mode:'demo'},client:null,state:{role:'business'}})]);
+  const [sql,permissionsSql,module]=await Promise.all([
+    readFile(migrationUrl,'utf8'),
+    readFile(calendarPermissionsMigrationUrl,'utf8'),
+    loadLogger({config:{mode:'demo'},client:null,state:{role:'business'}}),
+  ]);
   const enumBody=sql.match(/create type public\.logger_action_type as enum \(([\s\S]*?)\);/)?.[1]||'';
-  const sqlActions=[...enumBody.matchAll(/'([A-Z][A-Z0-9_]+)'/g)].map(match=>match[1]);
+  const sqlActions=[
+    ...enumBody.matchAll(/'([A-Z][A-Z0-9_]+)'/g),
+    ...permissionsSql.matchAll(/alter type public\.logger_action_type add value if not exists '([A-Z][A-Z0-9_]+)'/g),
+  ].map(match=>match[1]);
   assert.deepEqual(sqlActions.sort(),Object.values(module.DATABASE_ACTIONS).sort());
   assert.match(sql,/create table public\.logger_engine[\s\S]*logged_at timestamptz[\s\S]*message jsonb[\s\S]*user_id uuid[\s\S]*status public\.logger_status[\s\S]*action_type public\.logger_action_type/);
   assert.match(sql,/values\('logger_engine',4\)/);
@@ -89,7 +97,11 @@ test('migration 027 renames every action enum and preserves historical logger ro
   const mappings=[...sql.matchAll(/\('([A-Z][A-Z0-9_]+)','([A-Z][A-Z0-9_]+)'\)/g)]
     .map(match=>({old:match[1],next:match[2]}));
   const renamedActions=Object.values(module.DATABASE_ACTIONS)
-    .filter(action=>action!==module.DATABASE_ACTIONS.BV_DELETE_INVITEE_ACCOUNT);
+    .filter(action=>![
+      module.DATABASE_ACTIONS.BV_DELETE_INVITEE_ACCOUNT,
+      module.DATABASE_ACTIONS.BV_VIEW_CALENDAR_INVITEE_PERMISSIONS,
+      module.DATABASE_ACTIONS.BV_UPDATE_CALENDAR_INVITEE_PERMISSION,
+    ].includes(action));
   assert.equal(mappings.length,renamedActions.length);
   assert.equal(new Set(mappings.map(item=>item.old)).size,mappings.length);
   assert.equal(new Set(mappings.map(item=>item.next)).size,mappings.length);

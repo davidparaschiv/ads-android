@@ -1,7 +1,7 @@
 // @ts-check
 
 import { config } from '../config.js';
-import { demoBusinesses, demoBookings } from '../data.js';
+import { demoBusinesses, demoBookings, todayIso } from '../data.js';
 import { getSupabase } from '../api/supabase.js';
 import { calendars, getAccess, hasBusinessFeature, rpc } from './access.js';
 import { store } from '../state/store.js';
@@ -83,14 +83,16 @@ export async function listBusinessBookings(businessId, calendarId = '', from = '
 }
 
 export async function listPendingBookingRequests(businessId) {
-  if (config.mode === 'demo') return demoBookings.filter(item => item.status === 'pending').map((item,index) => ({ ...item, calendarId: 'demo-calendar-1', endTime: addMinutes(item.time, 60), createdAt: new Date(Date.now()+index).toISOString() }));
+  if (config.mode === 'demo') return demoBookings.filter(item => item.status === 'pending' && item.date >= todayIso()).map((item,index) => ({ ...item, calendarId: 'demo-calendar-1', endTime: addMinutes(item.time, 60), createdAt: new Date(Date.now()+index).toISOString() }));
   return loggedDatabaseAction(DATABASE_ACTIONS.BV_VIEW_PENDING_APPOINTMENTS,async()=>{
     const supabase = requireSupabase();
     const allowedIds = (await calendars(businessId)).map(item => item.id);
     if (!allowedIds.length) return [];
+    const { data: currentDayStart, error: timeError } = await supabase.rpc('get_server_day_start');
+    if (timeError) throw timeError;
     const { data,error } = await supabase.from('bookings')
       .select('id,resource_id,start_at,end_at,created_at,status,customer_name,customer_email_snapshot,event_types(name)')
-      .eq('business_id',businessId).in('resource_id',allowedIds).eq('status','pending').order('created_at',{ascending:true}).order('id');
+      .eq('business_id',businessId).in('resource_id',allowedIds).eq('status','pending').gte('start_at',currentDayStart).order('created_at',{ascending:true}).order('id');
     if (error) throw error;
     return (data || []).map(mapBusinessBooking);
   });

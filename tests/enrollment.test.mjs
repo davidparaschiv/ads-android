@@ -20,7 +20,7 @@ test('Verified enrollment and universal developer access', async t => {
     grant usage on schema public,auth to anon,authenticated,service_role;
     grant execute on all functions in schema auth to anon,authenticated,service_role;
     alter default privileges in schema public grant all on tables to anon,authenticated,service_role;`);
-  for (const file of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql','004_team_features.sql','006_universal_developer_license.sql','007_approval_email_details.sql','008_owner_approval_codes.sql','009_access_expiry_and_permanent_dev.sql','010_team_plan_and_member_limit.sql','011_all_team_calendars_shared.sql','012_booking_rejected_status.sql','013_customer_profiles_booking_approval.sql','014_drawn_screens_service_calendar.sql','015_calendar_service_settings.sql','016_strict_entitlement_lock.sql','017_account_roles_calendar_delete.sql','018_booking_schedule_views_and_notifications.sql','019_customer_confirmed_reminders_and_invite_privacy.sql','020_team_operational_access_and_phone_uniqueness.sql','021_account_type_resolution.sql','023_notification_preferences_and_job_types.sql','025_complete_calendars_and_license_types.sql','026_notification_preference_save_updates_jobs.sql','027_simplify_logger_action_types.sql','028_owner_delete_invitee_account.sql','030_business_calendar_reminder_opt_out.sql','031_client_status_notification_calendar_name.sql','032_business_reminder_off_without_opt_out_table.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+  for (const file of ['001_initial_schema.sql','002_plans_licenses_invitations.sql','003_verified_enrollment.sql','004_team_features.sql','006_universal_developer_license.sql','007_approval_email_details.sql','008_owner_approval_codes.sql','009_access_expiry_and_permanent_dev.sql','010_team_plan_and_member_limit.sql','011_all_team_calendars_shared.sql','012_booking_rejected_status.sql','013_customer_profiles_booking_approval.sql','014_drawn_screens_service_calendar.sql','015_calendar_service_settings.sql','016_strict_entitlement_lock.sql','017_account_roles_calendar_delete.sql','018_booking_schedule_views_and_notifications.sql','019_customer_confirmed_reminders_and_invite_privacy.sql','020_team_operational_access_and_phone_uniqueness.sql','021_account_type_resolution.sql','023_notification_preferences_and_job_types.sql','025_complete_calendars_and_license_types.sql','026_notification_preference_save_updates_jobs.sql','027_simplify_logger_action_types.sql','028_owner_delete_invitee_account.sql','030_business_calendar_reminder_opt_out.sql','031_client_status_notification_calendar_name.sql','032_business_reminder_off_without_opt_out_table.sql','034_business_reminder_reactivation.sql','035_calendar_invitee_permissions.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
   const admin=randomUUID(), owner=randomUUID(), attacker=randomUUID(), invited=randomUUID(), removedInvitee=randomUUID(), phoneUser=randomUUID();
   for (const [id,email] of [[admin,'davidnicolaparaschiv@gmail.com'],[owner,'business@example.com'],[attacker,'other@example.com'],[invited,'invited@example.com'],[removedInvitee,'removed@example.com'],[phoneUser,'phone@example.com']]) {
     await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[id,email]);
@@ -148,11 +148,13 @@ test('Verified enrollment and universal developer access', async t => {
     await db.query("update public.profiles set display_name='Invitat Șters',first_name='Invitat',last_name='Șters',customer_profile_completed_at=now() where id=$1",[removedInvitee]);
     await db.query("insert into public.device_tokens(user_id,token,platform) values($1,'removed-device','android')",[removedInvitee]);
     await db.query("insert into public.client_notification_preferences(user_id,default_minutes,push_enabled) values($1,30,true) on conflict(user_id) do update set default_minutes=30",[removedInvitee]);
+    assert.equal((await db.query("select count(*)::int count from public.business_members where business_id=$1 and role='staff'",[businessId])).rows[0].count,1);
     await assert.rejects(call(removedInvitee,'delete_invitee_account',[businessId,removedInvitee]),/Doar proprietarul/);
     await assert.rejects(call(owner,'delete_invitee_account',[businessId,owner]),/Proprietarul nu poate fi șters/);
 
     assert.deepEqual(await call(owner,'delete_invitee_account',[businessId,removedInvitee]),{ok:true});
     assert.equal((await db.query('select count(*)::int count from public.business_members where user_id=$1',[removedInvitee])).rows[0].count,0);
+    assert.equal((await db.query("select count(*)::int count from public.business_members where business_id=$1 and role='staff'",[businessId])).rows[0].count,0);
     assert.equal((await db.query('select count(*)::int count from public.calendar_members where user_id=$1',[removedInvitee])).rows[0].count,0);
     assert.equal((await db.query('select count(*)::int count from public.device_tokens where user_id=$1',[removedInvitee])).rows[0].count,0);
     assert.equal((await db.query('select count(*)::int count from public.client_notification_preferences where user_id=$1',[removedInvitee])).rows[0].count,0);
@@ -222,6 +224,31 @@ test('Verified enrollment and universal developer access', async t => {
     const initialBusinessReminders=(await db.query("select user_id,body from public.notification_jobs where booking_id=$1 and kind='reminder' and type='business' order by user_id",[bookingId])).rows;
     assert.equal(initialBusinessReminders.length,2);
     assert(initialBusinessReminders.every(job=>job.body==='Ana Client · Serviciu: Calendar principal'));
+    const initialPermissions=await call(owner,'get_calendar_invitee_permissions',[businessId,setup.resource_id]);
+    assert.deepEqual(initialPermissions,[{userId:invited,email:'invited@example.com',allowed:true}]);
+    await assert.rejects(call(invited,'get_calendar_invitee_permissions',[businessId,setup.resource_id]),/Acces interzis/);
+    await assert.rejects(as(owner,'insert into public.bv_restrict_calendar_invitee(business_id,calendar_id,user_id) values($1,$2,$3)',[businessId,setup.resource_id,invited]),/permission denied/);
+
+    await call(owner,'set_calendar_invitee_permission',[businessId,setup.resource_id,invited,false]);
+    assert.equal((await db.query('select count(*)::int count from public.bv_restrict_calendar_invitee where business_id=$1 and calendar_id=$2 and user_id=$3',[businessId,setup.resource_id,invited])).rows[0].count,1);
+    assert.equal(await call(invited,'can_read_calendar',[setup.resource_id]),false);
+    assert.equal(await call(invited,'can_manage_calendar',[setup.resource_id]),false);
+    assert.equal((await as(invited,'select id from public.list_my_calendars($1)',[businessId])).length,0);
+    assert.equal((await as(invited,'select id from public.bookings where id=$1',[bookingId])).length,0);
+    assert.equal((await as(invited,'select * from public.get_business_report($1,$2,$3,$4,$5)',[businessId,start.toISOString().slice(0,10),start.toISOString().slice(0,10),null,0])).length,0);
+    await assert.rejects(call(invited,'get_calendar_service_settings',[setup.resource_id]),/Acces interzis/);
+    await assert.rejects(call(invited,'set_calendar_notification_minutes',[setup.resource_id,8]),/Acces interzis/);
+    await assert.rejects(call(invited,'set_booking_status',[bookingId,'completed']),/Acces interzis/);
+    assert.equal((await db.query('select status from public.bookings where id=$1',[bookingId])).rows[0].status,'confirmed');
+    assert.equal((await db.query("select status from public.notification_jobs where booking_id=$1 and user_id=$2 and kind='reminder' and type='business'",[bookingId,invited])).rows[0].status,'cancelled');
+    assert.equal((await db.query("select status from public.notification_jobs where booking_id=$1 and user_id=$2 and kind='reminder' and type='business'",[bookingId,owner])).rows[0].status,'pending');
+
+    await call(owner,'set_calendar_invitee_permission',[businessId,setup.resource_id,invited,true]);
+    assert.equal((await db.query('select count(*)::int count from public.bv_restrict_calendar_invitee where business_id=$1 and calendar_id=$2 and user_id=$3',[businessId,setup.resource_id,invited])).rows[0].count,0);
+    assert.equal(await call(invited,'can_read_calendar',[setup.resource_id]),true);
+    assert.equal(await call(invited,'can_manage_calendar',[setup.resource_id]),true);
+    assert.equal((await as(invited,'select id from public.list_my_calendars($1)',[businessId])).length,1);
+    assert.deepEqual((await db.query("select status,attempts,last_error from public.notification_jobs where booking_id=$1 and user_id=$2 and kind='reminder' and type='business'",[bookingId,invited])).rows[0],{status:'pending',attempts:0,last_error:null});
     assert.equal(await call(invited,'get_calendar_notification_minutes',[setup.resource_id]),7);
     await call(invited,'set_calendar_notification_minutes',[setup.resource_id,-1]);
     assert.equal(await call(invited,'get_calendar_notification_minutes',[setup.resource_id]),-1);
@@ -233,6 +260,9 @@ test('Verified enrollment and universal developer access', async t => {
     const businessAfterInviteeOptIn=(await db.query("select user_id,body from public.notification_jobs where booking_id=$1 and kind='reminder' and type='business' order by user_id",[bookingId])).rows;
     assert.equal(businessAfterInviteeOptIn.length,2);
     assert(businessAfterInviteeOptIn.every(job=>job.body==='Ana Client · Serviciu: Calendar principal'));
+    const reactivatedInviteeReminder=(await db.query("select status,attempts,last_error,send_at from public.notification_jobs where booking_id=$1 and user_id=$2 and kind='reminder' and type='business'",[bookingId,invited])).rows[0];
+    assert.deepEqual({status:reactivatedInviteeReminder.status,attempts:reactivatedInviteeReminder.attempts,lastError:reactivatedInviteeReminder.last_error},{status:'pending',attempts:0,lastError:null});
+    assert.equal(new Date(reactivatedInviteeReminder.send_at).getTime(),start.getTime()-7*60000);
     const reminderJobs=(await db.query("select id,title,target_route,status,type from public.notification_jobs where booking_id=$1 and user_id=$2 and kind='reminder'",[bookingId,attacker])).rows;
     assert.equal(reminderJobs.length,1);
     assert.equal(reminderJobs[0].title,'Programarea ta se apropie');
@@ -330,7 +360,9 @@ test('Verified enrollment and universal developer access', async t => {
     assert.equal(scopeBusinessJobs.length,1);
     assert(scopeBusinessJobs.some(job=>job.id===scopeBusinessJobId));
     assert(scopeBusinessJobs.every(job=>job.user_id===owner&&new Date(job.send_at).getTime()===scopeStart.getTime()-13*60000&&job.status==='pending'&&job.attempts===0&&job.last_error===null));
-    assert.deepEqual((await db.query("select id,status from public.notification_jobs where id=$1",[nearBusinessJobId])).rows[0],{id:nearBusinessJobId,status:'cancelled'});
+    const nearBusinessAfterSave=(await db.query("select id,status,attempts,last_error,send_at from public.notification_jobs where id=$1",[nearBusinessJobId])).rows[0];
+    assert.deepEqual({id:nearBusinessAfterSave.id,status:nearBusinessAfterSave.status,attempts:nearBusinessAfterSave.attempts,lastError:nearBusinessAfterSave.last_error},{id:nearBusinessJobId,status:'pending',attempts:0,lastError:null});
+    assert.equal(new Date(nearBusinessAfterSave.send_at).getTime(),nearStart.getTime()-13*60000);
     assert.deepEqual((await db.query("select id,send_at,status,attempts,last_error from public.notification_jobs where id=$1",[scopeClientJobId])).rows[0],scopeClientBeforeBusinessSave);
     const rejectedStart=new Date(start.getTime()+2*60*60*1000);
     const rejectedId=await call(attacker,'create_booking',[businessId,setup.event_type_id,setup.resource_id,rejectedStart.toISOString(),'Nume ignorat',60]);

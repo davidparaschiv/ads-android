@@ -47,13 +47,16 @@ export async function createBooking(input) {
 }
 
 export async function listCustomerBookings() {
-  if (config.mode === 'demo') return demoBookings.slice(0, 2);
+  if (config.mode === 'demo') return demoBookings.filter(item => item.date >= dateInTimezone(new Date(),config.timezone))
+    .sort((left,right) => Date.parse(`${right.date}T${right.time}`)-Date.parse(`${left.date}T${left.time}`));
   return loggedDatabaseAction(DATABASE_ACTIONS.CV_VIEW_MY_APPOINTMENTS,async()=>{
     const supabase = getSupabase();
     if (!supabase) return [];
     const { data: authData } = await supabase.auth.getUser();
     if (!authData.user) throw new Error('Autentificare necesară.');
-    const { data, error } = await supabase.from('bookings').select('*, businesses(name), event_types(name,duration_minutes)').eq('customer_id', authData.user.id).order('start_at');
+    const { data: currentDayStart, error: timeError } = await supabase.rpc('get_server_day_start');
+    if (timeError) throw timeError;
+    const { data, error } = await supabase.from('bookings').select('*, businesses(name), event_types(name,duration_minutes)').eq('customer_id', authData.user.id).gte('start_at',currentDayStart).order('start_at',{ascending:false});
     if (error) throw error;
     return (data || []).map((item) => ({
       id: item.id,
