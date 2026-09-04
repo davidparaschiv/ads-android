@@ -8,6 +8,7 @@ import {isPlatformOwnerAccount} from '../services/enrollment.js';
 import {store} from '../state/store.js';
 import {escapeHtml} from '../ui/dom.js';
 import {bindBack,loadingButton,page,toast} from '../ui/layout.js';
+import {errorMessageForUser} from '../ui/error-message.js';
 import {planCard} from './business.js';
 
 function accessExpiryLabel(value){
@@ -49,7 +50,7 @@ export async function profileScreen(root){
   root.innerHTML=page({title:'Contul meu',nav:business?'business':'customer',active:'profile',content:`${accountHero}${business?businessAccess:''}<section class="draw-section draw-section--center account-glass-card account-legal-card"><span class="account-card-kicker">DOCUMENTE</span><h1>Siguranță și transparență</h1><div class="account-link-list"><a href="${config.links.terms}" target="_blank" rel="noreferrer"><span>Termeni și condiții</span><b aria-hidden="true">›</b></a><a href="${config.links.privacy}" target="_blank" rel="noreferrer"><span>Politica de confidențialitate</span><b aria-hidden="true">›</b></a></div></section><section class="draw-section draw-section--center account-glass-card account-signout-card"><button class="button button--secondary" id="sign-out">Deconectare</button></section>`});
   bindBack(root);
   root.querySelectorAll('[data-plan]').forEach(button=>button.addEventListener('click',async()=>{const plan=button.getAttribute('data-plan');if(plan===selected&&access?.active)return;if(access?.active&&selected==='large'&&plan==='small'){toast(root,'Trecerea de la Complete la Small nu este disponibilă.','error');return;}await store.set({selectedPlan:plan});navigate('/business/payment');}));
-  root.querySelector('#restore-purchases')?.addEventListener('click',async event=>{const button=event.currentTarget;try{loadingButton(button,true);const result=await restorePurchases();if(!result.active)throw new Error('Nu am găsit un abonament activ.');toast(root,'Achizițiile au fost restaurate.');await profileScreen(root);}catch(error){loadingButton(button,false);toast(root,error.message||'Restaurarea a eșuat.','error');}});
-  root.querySelector('#manage-subscription')?.addEventListener('click',async event=>{const button=event.currentTarget;try{loadingButton(button,true,'Se deschide Google Play…');await openSubscriptionManagement(state.user?.id||'');}catch(error){toast(root,error.message||'Google Play nu poate fi deschis.','error');}finally{loadingButton(button,false);}});
+  root.querySelector('#restore-purchases')?.addEventListener('click',async event=>{const button=event.currentTarget;try{loadingButton(button,true);const result=await restorePurchases();if(!result.active)throw new Error('Nu am găsit un abonament activ.');toast(root,'Achizițiile au fost restaurate.');await profileScreen(root);}catch(error){loadingButton(button,false);toast(root,errorMessageForUser(error),'error');}});
+  root.querySelector('#manage-subscription')?.addEventListener('click',async event=>{const button=event.currentTarget;try{loadingButton(button,true,'Se deschide Google Play…');await openSubscriptionManagement(state.user?.id||'');}catch(error){toast(root,errorMessageForUser(error),'error');}finally{loadingButton(button,false);}});
   root.querySelector('#sign-out')?.addEventListener('click',async()=>{await signOut();navigate('/');});
 }

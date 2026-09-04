@@ -23,6 +23,7 @@ import { businessHomeScreen, businessCalendarScreen, businessCalendarViewScreen,
 import { invitationScreen, licenseScreen } from './screens/team.js';
 import { workspaces, getAccess } from './services/access.js';
 import { page, bindBack, alertDialog } from './ui/layout.js';
+import { errorMessageForUser } from './ui/error-message.js';
 import { escapeHtml, trimTextControl, trimTextFields } from './ui/dom.js';
 import { navigate, currentRoute } from './router.js';
 import { businessQrScreen, customerQrScreen } from './screens/reservation-qr.js';
@@ -138,7 +139,7 @@ export async function startApp() {
         void alertDialog(notice);
       }
     } catch (error) {
-      root.innerHTML = page({ title: 'Nu putem încărca acest ecran', content: `<div class="empty-state"><p>${escapeHtml(error.message || 'Verifică conexiunea și reîncearcă.')}</p><button class="button" data-route="${escapeHtml(path)}">Reîncearcă</button><button class="text-button" data-route="/business/start">Înapoi la pagina principală</button></div>` });
+      root.innerHTML = page({ title: 'Nu putem încărca acest ecran', content: `<div class="empty-state"><p>${escapeHtml(errorMessageForUser(error))}</p><button class="button" data-route="${escapeHtml(path)}">Reîncearcă</button><button class="text-button" data-route="/business/start">Înapoi la pagina principală</button></div>` });
       bindBack(root);
     }
   });

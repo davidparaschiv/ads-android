@@ -6,11 +6,12 @@ import { customerReservationQr, resolveReservationQr, scanReservationQr } from '
 import { takePendingReservationQr } from '../services/qr-session.js';
 import { escapeHtml } from '../ui/dom.js';
 import { page, bindBack, loadingButton } from '../ui/layout.js';
+import { errorMessageForUser } from '../ui/error-message.js';
 import { icon } from '../ui/icons.js';
 
 const statuses = { confirmed: 'Confirmată', pending: 'În așteptare', rejected: 'Respinsă', cancelled: 'Anulată', completed: 'Finalizată', no_show: 'Absent' };
 const dateTime = value => new Intl.DateTimeFormat('ro-RO', { dateStyle: 'full', timeStyle: 'short', timeZone: config.timezone }).format(new Date(value));
-const errorText = error => error instanceof Error ? error.message : 'Operația nu a reușit. Verifică internetul și reîncearcă.';
+const errorText = errorMessageForUser;
 
 function details(booking, businessView = false) {
   return `<div class="qr-reservation-details">

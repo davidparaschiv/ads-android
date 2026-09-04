@@ -4,6 +4,7 @@ import { store } from '../state/store.js';
 import { navigate } from '../router.js';
 import { escapeHtml } from '../ui/dom.js';
 import { bindBack, page, toast, loadingButton } from '../ui/layout.js';
+import { errorMessageForUser } from '../ui/error-message.js';
 import { getAccess, redeemLicense, workspaces, acceptInvitation, afterAccessRoute } from '../services/access.js';
 import { signOut, takePendingInvitation } from '../services/auth.js';
 
@@ -41,7 +42,7 @@ export async function licenseScreen(root) {
       const panel = root.querySelector('#license-result');
       panel.innerHTML = `<div class="access-banner"><strong>${result.scheduled ? 'Licență înregistrată. Începe la ' + dateLabel(result.startsAt) : `Licență activată: ${result.calendarLimit || result.access?.calendarLimit} calendare`}</strong><span>Expiră la ${dateLabel(result.expiresAt)}</span><button class="button button--secondary" data-route="${result.scheduled ? '/business/plans' : await afterAccessRoute()}">Continuă</button></div>`;
       bindBack(panel);
-    } catch (error) { toast(root, error.message || 'Licență invalidă.', 'error'); }
+    } catch (error) { toast(root, errorMessageForUser(error), 'error'); }
     finally { key = ''; loadingButton(button, false); }
   });
 }

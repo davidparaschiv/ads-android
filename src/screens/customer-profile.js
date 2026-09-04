@@ -3,6 +3,7 @@ import { completeCustomerProfile } from '../services/customer-profile.js';
 import { navigate } from '../router.js';
 import { signOut } from '../services/auth.js';
 import { bindBack, loadingButton, page, toast } from '../ui/layout.js';
+import { errorMessageForUser } from '../ui/error-message.js';
 import { formData } from '../ui/dom.js';
 
 export function customerProfileSetupScreen(root) {
@@ -29,7 +30,7 @@ export function customerProfileSetupScreen(root) {
       navigate('/customer/search');
     } catch (error) {
       loadingButton(button, false);
-      toast(root, error instanceof Error ? error.message : 'Profilul nu a putut fi salvat.', 'error');
+      toast(root, errorMessageForUser(error), 'error');
     }
   });
 }

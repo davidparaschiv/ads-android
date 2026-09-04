@@ -14,9 +14,9 @@ Deno.serve(async (request) => {
   const { error: expiryError } = await supabase.from('notification_jobs').update({
     status: 'cancelled', last_error: reminderExpiredMessage,
   }).eq('status', 'pending').eq('kind', 'reminder').lt('send_at', reminderExpiredBefore);
-  if (expiryError) return Response.json({ error: expiryError.message }, { status: 500 });
+  if (expiryError) return Response.json({ error: 'Error' }, { status: 500 });
   const { data: jobs, error } = await supabase.from('notification_jobs').select('*').eq('status', 'pending').lte('send_at', now.toISOString()).limit(100);
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return Response.json({ error: 'Error' }, { status: 500 });
   if (!jobs?.length) return Response.json({ processed: 0 });
 
   const credentials = JSON.parse(Deno.env.get('GCLOUD_SERVICEACCOUNT_KEYS') ?? '{}');

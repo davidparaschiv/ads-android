@@ -6,6 +6,7 @@ import { signInWithGoogle, resolveBusinessEntryRoute, resolveCustomerEntryRoute 
 import { icon } from '../ui/icons.js';
 import { logo } from '../ui/logo.js';
 import { bindBack, loadingButton, page, toast } from '../ui/layout.js';
+import { errorMessageForUser } from '../ui/error-message.js';
 
 /** @param {HTMLElement} root */
 export function roleScreen(root) {
@@ -68,7 +69,7 @@ export function loginScreen(root, role, accountType = role === 'customer' ? 'cli
       if (result.demo) navigate(isBusiness ? await resolveBusinessEntryRoute() : await resolveCustomerEntryRoute());
     } catch (error) {
       loadingButton(button, false);
-      toast(root, error instanceof Error ? error.message : 'Autentificarea a eșuat.', 'error');
+      toast(root, errorMessageForUser(error), 'error');
     }
   });
 }

@@ -8,6 +8,7 @@ import { workspaces, getAccess, afterAccessRoute } from '../services/access.js';
 import { enrollmentAction, enrollmentLinkDetails, enrollmentStatus, isPlatformOwnerAccount } from '../services/enrollment.js';
 import { escapeHtml, formData } from '../ui/dom.js';
 import { page, bindBack, loadingButton, toast } from '../ui/layout.js';
+import { errorMessageForUser } from '../ui/error-message.js';
 
 export function businessDetailsScreen(root) {
   root.innerHTML = page({ title: 'Înscrie afacerea', backTo: '/', content: `<form class="form-card" id="business-form">
@@ -29,7 +30,7 @@ export function businessDetailsScreen(root) {
       const result = await enrollmentAction('start', formData(form));
       await store.set({ enrollmentWarning: result.warning || '' });
       navigate('/business/verification');
-    } catch (error) { loadingButton(button, false); toast(root, error.message, 'error'); }
+    } catch (error) { loadingButton(button, false); toast(root, errorMessageForUser(error), 'error'); }
   });
 }
 
@@ -42,7 +43,7 @@ export async function verificationScreen(root) {
       if (!business) throw new Error('Afacerea aprobată nu este încă disponibilă.');
       await store.set({ business });
       navigate((await getAccess(business.id)).active ? await afterAccessRoute() : '/business/plans');
-    } catch (error) { toast(root, error.message, 'error'); }
+    } catch (error) { toast(root, errorMessageForUser(error), 'error'); }
     return;
   }
   const pending = request.status === 'pending';
@@ -57,7 +58,7 @@ export async function verificationScreen(root) {
   if (store.get().enrollmentWarning) toast(root, store.get().enrollmentWarning, 'error');
   const action = async (button, operation, values = {}) => {
     try { loadingButton(button, true); await enrollmentAction(operation, { id: request.id, ...values }); await verificationScreen(root); toast(root, operation === 'checkSms' ? 'Telefon verificat.' : 'Mesaj trimis.'); }
-    catch (error) { loadingButton(button, false); toast(root, error.message, 'error'); }
+    catch (error) { loadingButton(button, false); toast(root, errorMessageForUser(error), 'error'); }
   };
   root.querySelectorAll('[data-action]').forEach(b => b.addEventListener('click', () => action(b, b.getAttribute('data-action'))));
   root.querySelector('#email-code-form')?.addEventListener('submit', async event => {
@@ -69,11 +70,11 @@ export async function verificationScreen(root) {
       await enrollmentAction('confirm', { token, approve: true });
       await verificationScreen(root);
       toast(root, 'E-mail confirmat.');
-    } catch (error) { loadingButton(button, false); toast(root, error.message || 'Cod de confirmare invalid.', 'error'); }
+    } catch (error) { loadingButton(button, false); toast(root, errorMessageForUser(error), 'error'); }
   });
   root.querySelector('#sms-form')?.addEventListener('submit', event => { event.preventDefault(); const f = event.currentTarget; const values = formData(f); f.reset(); action(f.querySelector('button'), 'checkSms', values); });
   if (pending && request.phoneVerified) window.setTimeout(() => {
-    if (currentRoute().path === '/business/verification') verificationScreen(root).catch(error => toast(root, error.message, 'error'));
+    if (currentRoute().path === '/business/verification') verificationScreen(root).catch(error => toast(root, errorMessageForUser(error), 'error'));
   }, 5000);
 }
 
@@ -102,11 +103,11 @@ export async function approvalCodeScreen(root) {
         try {
           await enrollmentAction('confirm', { token, approve });
           box.innerHTML = `<div class="access-banner">${approve ? 'Afacerea a fost aprobată și înregistrată.' : 'Cererea a fost respinsă.'}</div>`;
-        } catch (error) { box.querySelectorAll('button').forEach(control => { control.disabled = false; }); toast(root, error.message, 'error'); }
+        } catch (error) { box.querySelectorAll('button').forEach(control => { control.disabled = false; }); toast(root, errorMessageForUser(error), 'error'); }
       };
       box.querySelector('#approve-request').addEventListener('click', () => decide(true));
       box.querySelector('#reject-request').addEventListener('click', () => decide(false));
-    } catch (error) { toast(root, error.message || 'Cod de aprobare invalid.', 'error'); }
+    } catch (error) { toast(root, errorMessageForUser(error), 'error'); }
     finally { loadingButton(button, false); }
   });
 }

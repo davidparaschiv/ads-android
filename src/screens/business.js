@@ -12,6 +12,7 @@ import { store } from '../state/store.js';
 import { formData, reminderLabel } from '../ui/dom.js';
 import { icon } from '../ui/icons.js';
 import { bindBack, loadingButton, page, toast } from '../ui/layout.js';
+import { errorMessageForUser } from '../ui/error-message.js';
 
 /** @param {HTMLElement} root */
 export async function plansScreen(root) {
@@ -52,7 +53,7 @@ export async function plansScreen(root) {
       if (!business) { navigate('/business/details'); return; }
       const access = await getAccess(business.id);
       navigate(access.active && (access.source === 'license' || access.source === 'developer') ? await afterAccessRoute() : '/business/payment');
-    } catch (error) { toast(root, error.message, 'error'); }
+    } catch (error) { toast(root, errorMessageForUser(error), 'error'); }
   });
   root.querySelector('#plan-sign-out')?.addEventListener('click', async () => { await signOut(); navigate('/'); });
 }
@@ -105,7 +106,7 @@ export async function paymentScreen(root) {
       navigate(await afterAccessRoute());
     } catch (error) {
       loadingButton(button, false);
-      toast(root, error instanceof Error ? error.message : 'Plata nu a putut fi finalizată.', 'error');
+      toast(root, errorMessageForUser(error), 'error');
     }
   });
   root.querySelector('#restore')?.addEventListener('click', async () => {
@@ -113,13 +114,13 @@ export async function paymentScreen(root) {
       const result = await restorePurchases();
       if (result.active) navigate(await afterAccessRoute());
       else toast(root, 'Nu am găsit un abonament activ.', 'error');
-    } catch (error) { toast(root, error.message || 'Restaurarea a eșuat.', 'error'); }
+    } catch (error) { toast(root, errorMessageForUser(error), 'error'); }
   });
   if (config.mode === 'live') {
     const button = /** @type {HTMLButtonElement} */ (root.querySelector('#purchase'));
     button.disabled = true;
     try { const product = await offeringFor(planId, state.user?.id || ''); root.querySelector('#store-price').textContent = product.product.priceString; button.disabled = false; }
-    catch (error) { root.querySelector('#store-price').textContent = 'Preț indisponibil'; toast(root, error.message, 'error'); }
+    catch (error) { root.querySelector('#store-price').textContent = 'Preț indisponibil'; toast(root, errorMessageForUser(error), 'error'); }
   }
 }
 
@@ -160,6 +161,6 @@ export async function notificationSettings(root, role) {
       await store.set({ notificationPreference: Number(values.minutes) });
       const result = enabled ? await registerPushNotifications().catch(() => ({ enabled: false })) : { enabled: false, reason: 'disabled' };
       toast(root, enabled && !result.enabled ? 'Preferința a fost salvată. Permite notificările din setările telefonului.' : 'Preferințele au fost salvate.', enabled && !result.enabled ? 'error' : 'success');
-    } catch (error) { toast(root, error.message || 'Preferințele nu au putut fi salvate.', 'error'); }
+    } catch (error) { toast(root, errorMessageForUser(error), 'error'); }
   });
 }

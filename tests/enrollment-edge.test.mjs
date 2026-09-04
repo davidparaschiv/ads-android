@@ -10,11 +10,12 @@ test('Enrollment edge adapter: authentication, SMS provider proof, and fixed rec
   const calls=[], sid='VE'+'a'.repeat(32);
   const env={ TWILLIO_ACCOUNT_SID:'AC'+'a'.repeat(32), TWILLIO_AUTH_TOKEN:'test-token', TWILIO_VERIFY_SERVICE_SID:'VA'+'a'.repeat(32), RESEND_API_KEY:'test', INVITE_FROM_EMAIL:'test@example.com' };
   let authenticated=true, providerStatus='pending', providerPhone='+40712345678';
+  /** @type {null|{code:string,message:string}} */ let clientError=null;
   globalThis.Deno={ serve() {}, env:{get:name=>env[name]} };
   globalThis.enrollmentFixture={
     env:name=>{ if (!env[name]) throw new Error('Missing server setting: '+name); return env[name]; },
     authenticated:async()=>{ if (!authenticated) throw new Error('Unauthorized'); return {user:{id:'actual-owner'},client:{rpc:async(name,args)=>{
-      calls.push({kind:'client',name,args}); return {data:{ok:true,phone:'+40712345678',sid},error:null};
+      calls.push({kind:'client',name,args}); return {data:{ok:true,phone:'+40712345678',sid},error:clientError};
     }}}; },
     serviceClient:()=>({rpc:async(name,args)=>{
       calls.push({kind:'service',name,args});
@@ -67,5 +68,14 @@ test('Enrollment edge adapter: authentication, SMS provider proof, and fixed rec
     assert.doesNotMatch(message.text,/https?:\/\/|ro\.rezerva\.app:\/\//);
     assert.doesNotMatch(message.text,/Cod alternativ/);
     assert.equal((await handleEnrollment(request({action:'approval',id:'request-id'}))).status,400);
+  });
+  await t.test('internal database details are hidden but defined database messages remain',async()=>{
+    clientError={code:'25006',message:'cannot execute SELECT FOR UPDATE in a read-only transaction'};
+    let response=await handleEnrollment(request({action:'start'}));
+    assert.equal((await response.json()).error,'Error');
+    clientError={code:'P0001',message:'Completează datele obligatorii.'};
+    response=await handleEnrollment(request({action:'start'}));
+    assert.equal((await response.json()).error,'Completează datele obligatorii.');
+    clientError=null;
   });
 });
