@@ -7,6 +7,12 @@ npm run build
 npx cap sync android
 npx cap open android
 -----------------
+Before prod deactivate dev112233:
+update private.platform_settings
+set developer_bypass_enabled = false
+where singleton = true;
+-----------------------------
+
 Pune toate jobs in cancelled
 
 update public.notification_jobs
