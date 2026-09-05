@@ -1,10 +1,24 @@
 Db actions to replace applicense1 with applicense2 for same user:
 
-0. daca exista grant (adica doar dev112233) il stergi
+0. daca exista grant (developer key) il stergi
 delete from private.developer_grants g
 using auth.users u
 where g.user_id = u.id
   and lower(u.email) = lower('gotanaa12@gmail.com');
+
+
+0.2 daca exita licenta veche nu grant , adica app license nu developerkey
+select
+  l.id,
+  l.bound_email,
+  l.type,
+  l.starts_at,
+  l.expires_at,
+  l.redeemed_at,
+  l.revoked_at
+from private.license_keys l
+where l.bound_email = lower('firma@gmail.com')
+order by l.created_at desc;
 
 
 1. generezi licenta
