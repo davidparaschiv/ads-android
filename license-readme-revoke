@@ -17,7 +17,7 @@ select
   l.redeemed_at,
   l.revoked_at
 from private.license_keys l
-where l.bound_email = lower('firma@gmail.com')
+where l.bound_email = lower('davidnicolap@gmail.com')
 order by l.created_at desc;
 
 

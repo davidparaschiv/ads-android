@@ -31,7 +31,7 @@ export async function profileScreen(root){
   const ownerAction=platformOwner?'<button class="button button--secondary" data-route="/business/approve">Verificări business</button>':'';
   const accountName=business?(state.business?.name||state.user?.name||'Afacerea mea'):(state.user?.name||'Client Rezervări AI');
   const accountType=business?'Cont business':'Cont client';
-  const accountDetail=business?(access?.active?(access.planId==='large'?'Complete':'Small'):'Plan inactiv'):'Profil activ';
+  const accountDetail=business?(access?.active?(access.source==='license'?(access.licenseType==='half_complete'?'Firma mică':'Complet'):(access.planId==='large'?'Complet':'Firma mică')):'Plan inactiv'):'Profil activ';
   const accountHero=`<section class="account-modern account-modern--${business?'business':'customer'}" aria-label="Rezumat cont">
     <span class="account-modern__line account-modern__line--top" aria-hidden="true"></span>
     <span class="account-modern__line account-modern__line--bottom" aria-hidden="true"></span>
