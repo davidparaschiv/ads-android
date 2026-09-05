@@ -1,7 +1,14 @@
 Db actions to replace applicense1 with applicense2 for same user:
 
+0. daca exista grant (adica doar dev112233) il stergi
+delete from private.developer_grants g
+using auth.users u
+where g.user_id = u.id
+  and lower(u.email) = lower('gotanaa12@gmail.com');
+
+
 1. generezi licenta
-npm run license:generate -- --email davidnicolap@gmail.com --start "2026-09-05T18:00:00+03:00" --months 6 --type Complete
+npm run license:generate -- --email davidnicolap@gmail.com --start "2026-09-03T18:00:00+03:00" --months 3 --type Complete
 
 2. rulezi sql din spit generator
 
