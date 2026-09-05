@@ -1,0 +1,12 @@
+Db actions to replace applicense1 with applicense2 for same user:
+
+1. generezi licenta
+npm run license:generate -- --email davidnicolap@gmail.com --start "2026-09-05T18:00:00+03:00" --months 6 --type Complete
+
+2. rulezi sql din spit generator
+
+
+3.
+update private.license_keys
+set revoked_at = now()
+where id = 'UUID-UL-LICENTEI-VECHI';
